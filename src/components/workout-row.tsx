@@ -2,11 +2,13 @@
 
 import { NAMES } from '@/lib/program';
 import type { WorkoutRow as WorkoutRowType, Tier, ResultValue } from '@/types';
+import { StageTag } from './stage-tag';
 
 interface WorkoutRowProps {
   row: WorkoutRowType;
   isCurrent: boolean;
   onMark: (index: number, tier: Tier, value: ResultValue) => void;
+  onSetAmrapReps: (index: number, field: 't1Reps' | 't3Reps', reps: number | undefined) => void;
   onUndo: (index: number, tier: Tier) => void;
 }
 
@@ -60,22 +62,32 @@ function ResultCell({
   );
 }
 
-function StageTag({ stage }: { stage: number }) {
-  const cls =
-    stage === 0
-      ? 'bg-[var(--stage-s1)] text-white'
-      : stage === 1
-        ? 'bg-[var(--stage-s2)] text-black'
-        : 'bg-[var(--stage-s3)] text-white';
-
+function AmrapInput({
+  value,
+  onChange,
+}: {
+  value: number | undefined;
+  onChange: (reps: number | undefined) => void;
+}) {
   return (
-    <span className={`inline-block text-[10px] font-bold px-1.5 py-px mt-0.5 ${cls}`}>
-      S{stage + 1}
-    </span>
+    <input
+      type="number"
+      inputMode="numeric"
+      min="0"
+      max="99"
+      placeholder="—"
+      value={value ?? ''}
+      onChange={(e) => {
+        const v = e.target.value;
+        onChange(v === '' ? undefined : Math.max(0, parseInt(v, 10) || 0));
+      }}
+      className="w-10 px-1 py-0.5 text-center text-[11px] font-bold bg-transparent border border-[var(--border-color)] text-[var(--text-main)] focus:border-[var(--fill-progress)] focus:outline-none tabular-nums"
+      title="AMRAP reps"
+    />
   );
 }
 
-export function WorkoutRow({ row, isCurrent, onMark, onUndo }: WorkoutRowProps) {
+export function WorkoutRow({ row, isCurrent, onMark, onSetAmrapReps, onUndo }: WorkoutRowProps) {
   const allDone = row.result.t1 && row.result.t2 && row.result.t3;
 
   const rowClasses = [
@@ -108,7 +120,7 @@ export function WorkoutRow({ row, isCurrent, onMark, onUndo }: WorkoutRowProps) 
       <td className="border border-[var(--border-light)] px-2 py-3 text-center align-middle font-semibold text-[13px]">
         {row.t1Sets}&times;{row.t1Reps}
         <br />
-        <StageTag stage={row.t1Stage} />
+        <StageTag stage={row.t1Stage} size="md" />
       </td>
       <td className="border border-[var(--border-light)] px-2 py-3 text-center align-middle">
         <ResultCell
@@ -118,6 +130,15 @@ export function WorkoutRow({ row, isCurrent, onMark, onUndo }: WorkoutRowProps) 
           onMark={onMark}
           onUndo={onUndo}
         />
+        {row.result.t1 && (
+          <div className="mt-1 flex items-center justify-center gap-1">
+            <span className="text-[10px] text-[var(--text-muted)]">AMRAP</span>
+            <AmrapInput
+              value={row.result.t1Reps}
+              onChange={(reps) => onSetAmrapReps(row.index, 't1Reps', reps)}
+            />
+          </div>
+        )}
       </td>
       {/* T2 */}
       <td className="border border-[var(--border-light)] px-2 py-3 text-left align-middle font-bold text-[13px]">
@@ -129,7 +150,7 @@ export function WorkoutRow({ row, isCurrent, onMark, onUndo }: WorkoutRowProps) 
       <td className="border border-[var(--border-light)] px-2 py-3 text-center align-middle font-semibold text-[13px]">
         {row.t2Sets}&times;{row.t2Reps}
         <br />
-        <StageTag stage={row.t2Stage} />
+        <StageTag stage={row.t2Stage} size="md" />
       </td>
       <td className="border border-[var(--border-light)] px-2 py-3 text-center align-middle">
         <ResultCell
@@ -157,6 +178,15 @@ export function WorkoutRow({ row, isCurrent, onMark, onUndo }: WorkoutRowProps) 
           onMark={onMark}
           onUndo={onUndo}
         />
+        {row.result.t3 && (
+          <div className="mt-1 flex items-center justify-center gap-1">
+            <span className="text-[10px] text-[var(--text-muted)]">AMRAP</span>
+            <AmrapInput
+              value={row.result.t3Reps}
+              onChange={(reps) => onSetAmrapReps(row.index, 't3Reps', reps)}
+            />
+          </div>
+        )}
       </td>
     </tr>
   );

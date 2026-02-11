@@ -8,6 +8,7 @@ import { SetupForm } from './setup-form';
 import { Toolbar } from './toolbar';
 import { WeekSection } from './week-section';
 import { StatsPanel } from './stats-panel';
+import { StageTag } from './stage-tag';
 
 export function GZCLPApp() {
   const {
@@ -15,7 +16,9 @@ export function GZCLPApp() {
     results,
     undoHistory,
     generateProgram,
+    updateWeights,
     markResult,
+    setAmrapReps,
     undoSpecific,
     undoLast,
     resetAll,
@@ -67,8 +70,10 @@ export function GZCLPApp() {
 
   return (
     <>
-      <header className="text-center py-10 px-5 bg-[var(--bg-header)] text-[var(--text-header)] mb-7">
-        <h1 className="text-[28px] font-extrabold tracking-tight mb-1.5">GZCLP 30-WEEK PROGRAM</h1>
+      <header className="text-center py-6 sm:py-10 px-5 bg-[var(--bg-header)] text-[var(--text-header)] mb-7">
+        <h1 className="text-[22px] sm:text-[28px] font-extrabold tracking-tight mb-1.5">
+          GZCLP 30-WEEK PROGRAM
+        </h1>
         <p className="text-[13px] opacity-70">
           Cody Lefever&apos;s Linear Progression — Mark Success or Fail, program recalculates
           automatically
@@ -89,7 +94,11 @@ export function GZCLPApp() {
       )}
 
       <div className="max-w-[1300px] mx-auto px-5 pb-20">
-        <SetupForm initialWeights={startWeights} onGenerate={generateProgram} />
+        <SetupForm
+          initialWeights={startWeights}
+          onGenerate={generateProgram}
+          onUpdateWeights={updateWeights}
+        />
 
         {startWeights && (
           <>
@@ -97,7 +106,7 @@ export function GZCLPApp() {
             <div className="flex gap-0 mb-6 border-b-2 border-[var(--border-color)]">
               <button
                 onClick={() => setActiveTab('program')}
-                className={`px-6 py-3 text-sm font-bold cursor-pointer transition-colors -mb-[2px] ${
+                className={`px-3 sm:px-6 py-3 text-xs sm:text-sm font-bold cursor-pointer transition-colors -mb-[2px] ${
                   activeTab === 'program'
                     ? 'border-b-2 border-[var(--fill-progress)] text-[var(--text-main)]'
                     : 'text-[var(--text-muted)] hover:text-[var(--text-main)]'
@@ -107,7 +116,7 @@ export function GZCLPApp() {
               </button>
               <button
                 onClick={() => setActiveTab('stats')}
-                className={`px-6 py-3 text-sm font-bold cursor-pointer transition-colors -mb-[2px] ${
+                className={`px-3 sm:px-6 py-3 text-xs sm:text-sm font-bold cursor-pointer transition-colors -mb-[2px] ${
                   activeTab === 'stats'
                     ? 'border-b-2 border-[var(--fill-progress)] text-[var(--text-main)]'
                     : 'text-[var(--text-muted)] hover:text-[var(--text-main)]'
@@ -171,22 +180,13 @@ export function GZCLPApp() {
                 <div className="flex items-center gap-4 mb-5 text-[12px] font-bold">
                   <span className="text-[var(--text-muted)] mr-1">Stages:</span>
                   <span className="inline-flex items-center gap-1.5">
-                    <span className="inline-block bg-[var(--stage-s1)] text-white text-[10px] font-bold px-1.5 py-px">
-                      S1
-                    </span>
-                    Normal
+                    <StageTag stage={0} size="md" /> Normal
                   </span>
                   <span className="inline-flex items-center gap-1.5">
-                    <span className="inline-block bg-[var(--stage-s2)] text-black text-[10px] font-bold px-1.5 py-px">
-                      S2
-                    </span>
-                    Caution
+                    <StageTag stage={1} size="md" /> Caution
                   </span>
                   <span className="inline-flex items-center gap-1.5">
-                    <span className="inline-block bg-[var(--stage-s3)] text-white text-[10px] font-bold px-1.5 py-px">
-                      S3
-                    </span>
-                    Reset
+                    <StageTag stage={2} size="md" /> Reset
                   </span>
                 </div>
 
@@ -197,6 +197,7 @@ export function GZCLPApp() {
                     rows={weekRows}
                     firstPendingIdx={firstPendingIdx}
                     onMark={markResult}
+                    onSetAmrapReps={setAmrapReps}
                     onUndo={undoSpecific}
                   />
                 ))}

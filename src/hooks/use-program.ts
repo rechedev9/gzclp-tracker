@@ -1,15 +1,21 @@
 'use client';
 
-import { useState, useCallback, useEffect, useRef } from 'react';
+import { useState, useCallback, useEffect, useRef, useSyncExternalStore } from 'react';
 import type { StartWeights, Results, UndoHistory, Tier, ResultValue } from '@/types';
 import { loadData, saveData, parseImportData, createExportData } from '@/lib/storage';
+
+const emptySubscribe = (): (() => void) => () => {};
+const returnTrue = (): boolean => true;
+const returnFalse = (): boolean => false;
 
 interface UseProgramReturn {
   startWeights: StartWeights | null;
   results: Results;
   undoHistory: UndoHistory;
   generateProgram: (weights: StartWeights) => void;
+  updateWeights: (weights: StartWeights) => void;
   markResult: (index: number, tier: Tier, value: ResultValue) => void;
+  setAmrapReps: (index: number, field: 't1Reps' | 't3Reps', reps: number | undefined) => void;
   undoSpecific: (index: number, tier: Tier) => void;
   undoLast: () => void;
   resetAll: () => void;
@@ -18,17 +24,24 @@ interface UseProgramReturn {
 }
 
 export function useProgram(): UseProgramReturn {
-  const [startWeights, setStartWeights] = useState<StartWeights | null>(
-    () => loadData()?.startWeights ?? null
-  );
-  const [results, setResults] = useState<Results>(() => loadData()?.results ?? {});
-  const [undoHistory, setUndoHistory] = useState<UndoHistory>(() => loadData()?.undoHistory ?? []);
-  const isInitialRender = useRef(true);
+  // useSyncExternalStore returns false on server, true on client — no hydration mismatch
+  const isClient = useSyncExternalStore(emptySubscribe, returnTrue, returnFalse);
 
-  // Save to localStorage on changes (skip initial render)
+  const [startWeights, setStartWeights] = useState<StartWeights | null>(() =>
+    isClient ? (loadData()?.startWeights ?? null) : null
+  );
+  const [results, setResults] = useState<Results>(() =>
+    isClient ? (loadData()?.results ?? {}) : {}
+  );
+  const [undoHistory, setUndoHistory] = useState<UndoHistory>(() =>
+    isClient ? (loadData()?.undoHistory ?? []) : []
+  );
+  const isInitialMount = useRef(true);
+
+  // Save to localStorage on changes (skip initial mount)
   useEffect(() => {
-    if (isInitialRender.current) {
-      isInitialRender.current = false;
+    if (isInitialMount.current) {
+      isInitialMount.current = false;
       return;
     }
     if (!startWeights) return;
@@ -41,6 +54,10 @@ export function useProgram(): UseProgramReturn {
     setUndoHistory([]);
   }, []);
 
+  const updateWeights = useCallback((weights: StartWeights) => {
+    setStartWeights(weights);
+  }, []);
+
   const markResult = useCallback(
     (index: number, tier: Tier, value: ResultValue) => {
       setUndoHistory((prev) => [...prev, { i: index, tier, prev: results[index]?.[tier] }]);
@@ -50,6 +67,21 @@ export function useProgram(): UseProgramReturn {
       }));
     },
     [results]
+  );
+
+  const setAmrapReps = useCallback(
+    (index: number, field: 't1Reps' | 't3Reps', reps: number | undefined) => {
+      setResults((prev) => {
+        const entry = { ...prev[index] };
+        if (reps === undefined) {
+          delete entry[field];
+        } else {
+          entry[field] = reps;
+        }
+        return { ...prev, [index]: entry };
+      });
+    },
+    []
   );
 
   const undoSpecific = useCallback(
@@ -141,7 +173,9 @@ export function useProgram(): UseProgramReturn {
     results,
     undoHistory,
     generateProgram,
+    updateWeights,
     markResult,
+    setAmrapReps,
     undoSpecific,
     undoLast,
     resetAll,

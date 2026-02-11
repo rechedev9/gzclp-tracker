@@ -38,6 +38,8 @@ export interface WorkoutRow {
     t1?: ResultValue;
     t2?: ResultValue;
     t3?: ResultValue;
+    t1Reps?: number;
+    t3Reps?: number;
   };
 }
 

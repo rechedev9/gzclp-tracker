@@ -10,6 +10,7 @@ interface WeekSectionProps {
   rows: WorkoutRowType[];
   firstPendingIdx: number;
   onMark: (index: number, tier: Tier, value: ResultValue) => void;
+  onSetAmrapReps: (index: number, field: 't1Reps' | 't3Reps', reps: number | undefined) => void;
   onUndo: (index: number, tier: Tier) => void;
 }
 
@@ -49,7 +50,14 @@ function LazyContent({
   return <>{children}</>;
 }
 
-export function WeekSection({ week, rows, firstPendingIdx, onMark, onUndo }: WeekSectionProps) {
+export function WeekSection({
+  week,
+  rows,
+  firstPendingIdx,
+  onMark,
+  onSetAmrapReps,
+  onUndo,
+}: WeekSectionProps) {
   const isDeload = week % 4 === 0;
   const weekDone = rows.every((r) => r.result.t1 && r.result.t2 && r.result.t3);
   const [collapsed, setCollapsed] = useState(weekDone);
@@ -155,6 +163,7 @@ export function WeekSection({ week, rows, firstPendingIdx, onMark, onUndo }: Wee
                     row={row}
                     isCurrent={row.index === firstPendingIdx}
                     onMark={onMark}
+                    onSetAmrapReps={onSetAmrapReps}
                     onUndo={onUndo}
                   />
                 ))}
@@ -170,6 +179,7 @@ export function WeekSection({ week, rows, firstPendingIdx, onMark, onUndo }: Wee
                 row={row}
                 isCurrent={row.index === firstPendingIdx}
                 onMark={onMark}
+                onSetAmrapReps={onSetAmrapReps}
                 onUndo={onUndo}
               />
             ))}
