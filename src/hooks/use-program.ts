@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
 import type { StartWeights, Results, UndoHistory, Tier, ResultValue } from '@/types';
 import { loadData, saveData, parseImportData, createExportData } from '@/lib/storage';
 
@@ -18,27 +18,22 @@ interface UseProgramReturn {
 }
 
 export function useProgram(): UseProgramReturn {
-  const [startWeights, setStartWeights] = useState<StartWeights | null>(null);
-  const [results, setResults] = useState<Results>({});
-  const [undoHistory, setUndoHistory] = useState<UndoHistory>([]);
-  const [loaded, setLoaded] = useState(false);
+  const [startWeights, setStartWeights] = useState<StartWeights | null>(
+    () => loadData()?.startWeights ?? null
+  );
+  const [results, setResults] = useState<Results>(() => loadData()?.results ?? {});
+  const [undoHistory, setUndoHistory] = useState<UndoHistory>(() => loadData()?.undoHistory ?? []);
+  const isInitialRender = useRef(true);
 
-  // Load from localStorage on mount
+  // Save to localStorage on changes (skip initial render)
   useEffect(() => {
-    const data = loadData();
-    if (data) {
-      setStartWeights(data.startWeights);
-      setResults(data.results);
-      setUndoHistory(data.undoHistory);
+    if (isInitialRender.current) {
+      isInitialRender.current = false;
+      return;
     }
-    setLoaded(true);
-  }, []);
-
-  // Save to localStorage on changes
-  useEffect(() => {
-    if (!loaded || !startWeights) return;
+    if (!startWeights) return;
     saveData({ results, startWeights, undoHistory });
-  }, [results, startWeights, undoHistory, loaded]);
+  }, [results, startWeights, undoHistory]);
 
   const generateProgram = useCallback((weights: StartWeights) => {
     setStartWeights(weights);
