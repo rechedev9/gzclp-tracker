@@ -1,0 +1,22 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(bun run build)",
+      "Bash(bun run dev)",
+      "Bash(bun run lint)",
+      "Bash(bun run lint:fix)",
+      "Bash(bun run typecheck)",
+      "Bash(bun run format:check)",
+      "Bash(bun run prettier --write *)",
+      "Bash(bun test)",
+      "Bash(bunx tsc --noEmit)",
+      "Bash(git status*)",
+      "Bash(git diff*)",
+      "Bash(git log*)",
+      "Read",
+      "Glob",
+      "Grep"
+    ],
+    "deny": []
+  }
+}
