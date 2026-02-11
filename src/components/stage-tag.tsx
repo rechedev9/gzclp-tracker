@@ -19,9 +19,7 @@ export function StageTag({ stage, size = 'sm' }: StageTagProps): React.ReactNode
   const label = STAGE_LABELS[idx];
 
   const sizeClass =
-    size === 'md'
-      ? 'text-[11px] px-2 py-0.5 border'
-      : 'text-[10px] px-1.5 py-px border';
+    size === 'md' ? 'text-[11px] px-2 py-0.5 border' : 'text-[10px] px-1.5 py-px border';
 
   return (
     <span
