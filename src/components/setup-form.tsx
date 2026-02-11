@@ -20,14 +20,14 @@ const FIELDS = [
   { key: 'dbrow', label: 'DB Bent Over Row (T3)', defaultVal: 12.5 },
 ] as const;
 
-const STEP = 2.5;
+const STEP = 0.5;
 
 function validateField(value: string): string | null {
   const num = parseFloat(value);
   if (value.trim() === '' || isNaN(num)) return 'Required';
   if (num < 2.5) return 'Min 2.5 kg';
   if (num > 500) return 'Max 500 kg';
-  if (num % 2.5 !== 0) return 'Must be multiple of 2.5';
+
   return null;
 }
 
@@ -194,7 +194,7 @@ export function SetupForm({ initialWeights, onGenerate, onUpdateWeights }: Setup
                       onChange={(e) => handleChange(f.key, e.target.value)}
                       onBlur={() => handleBlur(f.key, values[f.key])}
                       onKeyDown={(e) => e.key === 'Enter' && handleSubmit()}
-                      step="2.5"
+                      step="any"
                       min="2.5"
                       max="500"
                       aria-invalid={fieldError ? 'true' : undefined}
@@ -229,7 +229,7 @@ export function SetupForm({ initialWeights, onGenerate, onUpdateWeights }: Setup
                       <span aria-hidden="true">&#10003;</span> Valid
                     </p>
                   ) : (
-                    <p className="text-[10px] text-[var(--text-muted)] mt-1">Multiples of 2.5 kg</p>
+                    <p className="text-[10px] text-[var(--text-muted)] mt-1">Min 2.5 kg</p>
                   )}
                 </div>
               );
