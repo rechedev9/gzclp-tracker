@@ -18,6 +18,7 @@ export function GZCLPApp() {
     generateProgram,
     updateWeights,
     markResult,
+    setAmrapReps,
     undoSpecific,
     undoLast,
     resetAll,
@@ -194,6 +195,7 @@ export function GZCLPApp() {
                     rows={weekRows}
                     firstPendingIdx={firstPendingIdx}
                     onMark={markResult}
+                    onSetAmrapReps={setAmrapReps}
                     onUndo={undoSpecific}
                   />
                 ))}

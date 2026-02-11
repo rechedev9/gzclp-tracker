@@ -8,6 +8,7 @@ interface WorkoutRowCardProps {
   row: WorkoutRowType;
   isCurrent: boolean;
   onMark: (index: number, tier: Tier, value: ResultValue) => void;
+  onSetAmrapReps: (index: number, field: 't1Reps' | 't3Reps', reps: number | undefined) => void;
   onUndo: (index: number, tier: Tier) => void;
 }
 
@@ -69,6 +70,8 @@ function TierSection({
   index,
   tier,
   result,
+  amrapReps,
+  onSetAmrapReps,
   onMark,
   onUndo,
 }: {
@@ -81,35 +84,69 @@ function TierSection({
   index: number;
   tier: Tier;
   result?: ResultValue;
+  amrapReps?: number;
+  onSetAmrapReps?: (reps: number | undefined) => void;
   onMark: (index: number, tier: Tier, value: ResultValue) => void;
   onUndo: (index: number, tier: Tier) => void;
 }) {
   return (
-    <div className="flex items-center justify-between gap-2 py-2 border-b border-[var(--border-light)] last:border-b-0">
-      <div className="flex-1 min-w-0">
-        <div className="text-[11px] font-bold uppercase text-[var(--text-muted)]">{label}</div>
-        <div className="text-[13px] font-bold truncate">{exercise}</div>
-      </div>
-      <div className="text-center shrink-0">
-        <div className="text-[15px] font-extrabold tabular-nums">{weight} kg</div>
-        <div className="text-[12px] font-semibold text-[var(--text-muted)]">
-          {scheme}
-          {showStage && stage !== undefined && (
-            <>
-              {' '}
-              <StageTag stage={stage} size="md" />
-            </>
-          )}
+    <div className="py-2 border-b border-[var(--border-light)] last:border-b-0">
+      <div className="flex items-center justify-between gap-2">
+        <div className="flex-1 min-w-0">
+          <div className="text-[11px] font-bold uppercase text-[var(--text-muted)]">{label}</div>
+          <div className="text-[13px] font-bold truncate">{exercise}</div>
+        </div>
+        <div className="text-center shrink-0">
+          <div className="text-[15px] font-extrabold tabular-nums">{weight} kg</div>
+          <div className="text-[12px] font-semibold text-[var(--text-muted)]">
+            {scheme}
+            {showStage && stage !== undefined && (
+              <>
+                {' '}
+                <StageTag stage={stage} size="md" />
+              </>
+            )}
+          </div>
+        </div>
+        <div className="shrink-0">
+          <CardResultCell
+            index={index}
+            tier={tier}
+            result={result}
+            onMark={onMark}
+            onUndo={onUndo}
+          />
         </div>
       </div>
-      <div className="shrink-0">
-        <CardResultCell index={index} tier={tier} result={result} onMark={onMark} onUndo={onUndo} />
-      </div>
+      {result && onSetAmrapReps && (
+        <div className="mt-1.5 flex items-center gap-2 pl-1">
+          <span className="text-[10px] text-[var(--text-muted)]">AMRAP reps:</span>
+          <input
+            type="number"
+            inputMode="numeric"
+            min="0"
+            max="99"
+            placeholder="—"
+            value={amrapReps ?? ''}
+            onChange={(e) => {
+              const v = e.target.value;
+              onSetAmrapReps(v === '' ? undefined : Math.max(0, parseInt(v, 10) || 0));
+            }}
+            className="w-12 px-1.5 py-1 text-center text-[12px] font-bold bg-transparent border border-[var(--border-color)] text-[var(--text-main)] focus:border-[var(--fill-progress)] focus:outline-none tabular-nums"
+          />
+        </div>
+      )}
     </div>
   );
 }
 
-export function WorkoutRowCard({ row, isCurrent, onMark, onUndo }: WorkoutRowCardProps) {
+export function WorkoutRowCard({
+  row,
+  isCurrent,
+  onMark,
+  onSetAmrapReps,
+  onUndo,
+}: WorkoutRowCardProps) {
   const allDone = row.result.t1 && row.result.t2 && row.result.t3;
 
   return (
@@ -136,6 +173,8 @@ export function WorkoutRowCard({ row, isCurrent, onMark, onUndo }: WorkoutRowCar
         index={row.index}
         tier="t1"
         result={row.result.t1}
+        amrapReps={row.result.t1Reps}
+        onSetAmrapReps={(reps) => onSetAmrapReps(row.index, 't1Reps', reps)}
         onMark={onMark}
         onUndo={onUndo}
       />
@@ -161,6 +200,8 @@ export function WorkoutRowCard({ row, isCurrent, onMark, onUndo }: WorkoutRowCar
         index={row.index}
         tier="t3"
         result={row.result.t3}
+        amrapReps={row.result.t3Reps}
+        onSetAmrapReps={(reps) => onSetAmrapReps(row.index, 't3Reps', reps)}
         onMark={onMark}
         onUndo={onUndo}
       />

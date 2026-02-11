@@ -15,6 +15,8 @@ const WorkoutResultSchema = z.strictObject({
   t1: ResultValue.optional(),
   t2: ResultValue.optional(),
   t3: ResultValue.optional(),
+  t1Reps: z.number().int().min(0).optional(),
+  t3Reps: z.number().int().min(0).optional(),
 });
 
 export const ResultsSchema = z.record(z.string(), WorkoutResultSchema);

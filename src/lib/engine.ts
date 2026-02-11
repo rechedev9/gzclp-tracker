@@ -65,6 +65,8 @@ export function computeProgram(startWeights: StartWeights, results: Results): Wo
         t1: res.t1,
         t2: res.t2,
         t3: res.t3,
+        t1Reps: res.t1Reps,
+        t3Reps: res.t3Reps,
       },
     });
 

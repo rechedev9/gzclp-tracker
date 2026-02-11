@@ -15,6 +15,7 @@ interface UseProgramReturn {
   generateProgram: (weights: StartWeights) => void;
   updateWeights: (weights: StartWeights) => void;
   markResult: (index: number, tier: Tier, value: ResultValue) => void;
+  setAmrapReps: (index: number, field: 't1Reps' | 't3Reps', reps: number | undefined) => void;
   undoSpecific: (index: number, tier: Tier) => void;
   undoLast: () => void;
   resetAll: () => void;
@@ -66,6 +67,21 @@ export function useProgram(): UseProgramReturn {
       }));
     },
     [results]
+  );
+
+  const setAmrapReps = useCallback(
+    (index: number, field: 't1Reps' | 't3Reps', reps: number | undefined) => {
+      setResults((prev) => {
+        const entry = { ...prev[index] };
+        if (reps === undefined) {
+          delete entry[field];
+        } else {
+          entry[field] = reps;
+        }
+        return { ...prev, [index]: entry };
+      });
+    },
+    []
   );
 
   const undoSpecific = useCallback(
@@ -159,6 +175,7 @@ export function useProgram(): UseProgramReturn {
     generateProgram,
     updateWeights,
     markResult,
+    setAmrapReps,
     undoSpecific,
     undoLast,
     resetAll,
