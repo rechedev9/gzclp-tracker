@@ -152,7 +152,7 @@ export function WorkoutRowCard({
   return (
     <div
       {...(isCurrent ? { 'data-current-row': true } : {})}
-      className={`bg-[var(--bg-card)] border border-[var(--border-color)] p-4 mb-3 ${
+      className={`bg-[var(--bg-card)] border border-[var(--border-color)] p-3 sm:p-4 mb-3 ${
         allDone ? 'opacity-40' : ''
       } ${isCurrent ? 'border-l-4 border-l-[var(--fill-progress)]' : ''} ${
         row.isChanged && !allDone ? 'bg-[var(--bg-changed)]' : ''

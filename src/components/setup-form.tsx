@@ -119,7 +119,7 @@ export function SetupForm({ initialWeights, onGenerate, onUpdateWeights }: Setup
   };
 
   return (
-    <div className="bg-[var(--bg-card)] border border-[var(--border-color)] p-7 mb-7">
+    <div className="bg-[var(--bg-card)] border border-[var(--border-color)] p-4 sm:p-7 mb-7">
       {isEditMode && !isExpanded ? (
         /* Collapsed summary view */
         <div className="flex items-center justify-between flex-wrap gap-3">
@@ -150,7 +150,7 @@ export function SetupForm({ initialWeights, onGenerate, onUpdateWeights }: Setup
               : 'Enter your current working weight for T1 exercises (85% of 5RM recommended)'}
           </p>
 
-          <div className="grid grid-cols-[repeat(auto-fit,minmax(170px,1fr))] gap-4 mb-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
             {FIELDS.map((f) => {
               const fieldError = touched[f.key] ? fieldErrors[f.key] : null;
               return (

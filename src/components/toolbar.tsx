@@ -60,10 +60,10 @@ export function Toolbar({
   };
 
   const btnClass =
-    'px-3.5 py-2.5 min-h-[44px] border-2 border-[var(--btn-border)] text-xs font-bold cursor-pointer bg-[var(--btn-bg)] text-[var(--btn-text)] whitespace-nowrap transition-all hover:bg-[var(--btn-hover-bg)] hover:text-[var(--btn-hover-text)] disabled:opacity-25 disabled:cursor-not-allowed disabled:hover:bg-[var(--btn-bg)] disabled:hover:text-[var(--btn-text)]';
+    'px-2 py-2 sm:px-3.5 sm:py-2.5 min-h-[44px] border-2 border-[var(--btn-border)] text-[10px] sm:text-xs font-bold cursor-pointer bg-[var(--btn-bg)] text-[var(--btn-text)] whitespace-nowrap transition-all hover:bg-[var(--btn-hover-bg)] hover:text-[var(--btn-hover-text)] disabled:opacity-25 disabled:cursor-not-allowed disabled:hover:bg-[var(--btn-bg)] disabled:hover:text-[var(--btn-text)]';
 
   return (
-    <div className="sticky top-0 z-50 bg-[var(--bg-card)] border-b border-[var(--border-color)] px-5 py-3 shadow-[0_2px_8px_var(--shadow-toolbar)]">
+    <div className="sticky top-0 z-50 bg-[var(--bg-card)] border-b border-[var(--border-color)] px-3 sm:px-5 py-2 sm:py-3 shadow-[0_2px_8px_var(--shadow-toolbar)]">
       {/* Progress bar - always full width */}
       <div className="flex items-center gap-3 mb-2 sm:mb-0 sm:hidden">
         <div className="flex-1 h-2 bg-[var(--bg-progress)] overflow-hidden">
