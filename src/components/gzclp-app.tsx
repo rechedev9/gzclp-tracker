@@ -15,6 +15,7 @@ export function GZCLPApp() {
     results,
     undoHistory,
     generateProgram,
+    updateWeights,
     markResult,
     undoSpecific,
     undoLast,
@@ -89,7 +90,11 @@ export function GZCLPApp() {
       )}
 
       <div className="max-w-[1300px] mx-auto px-5 pb-20">
-        <SetupForm initialWeights={startWeights} onGenerate={generateProgram} />
+        <SetupForm
+          initialWeights={startWeights}
+          onGenerate={generateProgram}
+          onUpdateWeights={updateWeights}
+        />
 
         {startWeights && (
           <>

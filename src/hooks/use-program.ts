@@ -13,6 +13,7 @@ interface UseProgramReturn {
   results: Results;
   undoHistory: UndoHistory;
   generateProgram: (weights: StartWeights) => void;
+  updateWeights: (weights: StartWeights) => void;
   markResult: (index: number, tier: Tier, value: ResultValue) => void;
   undoSpecific: (index: number, tier: Tier) => void;
   undoLast: () => void;
@@ -50,6 +51,10 @@ export function useProgram(): UseProgramReturn {
     setStartWeights(weights);
     setResults({});
     setUndoHistory([]);
+  }, []);
+
+  const updateWeights = useCallback((weights: StartWeights) => {
+    setStartWeights(weights);
   }, []);
 
   const markResult = useCallback(
@@ -152,6 +157,7 @@ export function useProgram(): UseProgramReturn {
     results,
     undoHistory,
     generateProgram,
+    updateWeights,
     markResult,
     undoSpecific,
     undoLast,

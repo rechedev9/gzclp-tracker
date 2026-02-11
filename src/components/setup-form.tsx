@@ -3,10 +3,12 @@
 import { useState, useCallback } from 'react';
 import { StartWeightsSchema } from '@/lib/schemas';
 import type { StartWeights } from '@/types';
+import { ConfirmDialog } from './confirm-dialog';
 
 interface SetupFormProps {
   initialWeights?: StartWeights | null;
   onGenerate: (weights: StartWeights) => void;
+  onUpdateWeights?: (weights: StartWeights) => void;
 }
 
 const FIELDS = [
@@ -27,7 +29,11 @@ function validateField(value: string): string | null {
   return null;
 }
 
-export function SetupForm({ initialWeights, onGenerate }: SetupFormProps) {
+export function SetupForm({ initialWeights, onGenerate, onUpdateWeights }: SetupFormProps) {
+  const isEditMode = initialWeights !== null && initialWeights !== undefined;
+  const [isExpanded, setIsExpanded] = useState(!isEditMode);
+  const [showConfirm, setShowConfirm] = useState(false);
+  const [pendingWeights, setPendingWeights] = useState<StartWeights | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [fieldErrors, setFieldErrors] = useState<Record<string, string | null>>({});
   const [touched, setTouched] = useState<Record<string, boolean>>({});
@@ -54,10 +60,9 @@ export function SetupForm({ initialWeights, onGenerate }: SetupFormProps) {
     setFieldErrors((prev) => ({ ...prev, [key]: validateField(value) }));
   }, []);
 
-  const handleSubmit = () => {
+  const validateAndParse = (): StartWeights | null => {
     setError(null);
 
-    // Validate all fields
     const errors: Record<string, string | null> = {};
     let hasError = false;
     for (const f of FIELDS) {
@@ -70,7 +75,7 @@ export function SetupForm({ initialWeights, onGenerate }: SetupFormProps) {
 
     if (hasError) {
       setError('Please fix the highlighted fields.');
-      return;
+      return null;
     }
 
     const parsed: Record<string, number> = {};
@@ -81,63 +86,137 @@ export function SetupForm({ initialWeights, onGenerate }: SetupFormProps) {
     const result = StartWeightsSchema.safeParse(parsed);
     if (!result.success) {
       setError('Invalid weights. Please check all fields.');
-      return;
+      return null;
     }
 
-    onGenerate(result.data);
+    return result.data;
+  };
+
+  const handleSubmit = (): void => {
+    const weights = validateAndParse();
+    if (!weights) return;
+
+    if (isEditMode && onUpdateWeights) {
+      setPendingWeights(weights);
+      setShowConfirm(true);
+    } else {
+      onGenerate(weights);
+    }
+  };
+
+  const handleConfirmUpdate = (): void => {
+    if (pendingWeights && onUpdateWeights) {
+      onUpdateWeights(pendingWeights);
+      setPendingWeights(null);
+      setIsExpanded(false);
+    }
+    setShowConfirm(false);
+  };
+
+  const handleCancelUpdate = (): void => {
+    setPendingWeights(null);
+    setShowConfirm(false);
   };
 
   return (
     <div className="bg-[var(--bg-card)] border border-[var(--border-color)] p-7 mb-7">
-      <h2 className="text-lg font-bold mb-1.5">Starting Weights (kg)</h2>
-      <p className="text-[13px] text-[var(--text-muted)] mb-5">
-        Enter your current working weight for T1 exercises (85% of 5RM recommended)
-      </p>
-
-      <div className="grid grid-cols-[repeat(auto-fit,minmax(170px,1fr))] gap-4 mb-6">
-        {FIELDS.map((f) => {
-          const fieldError = touched[f.key] ? fieldErrors[f.key] : null;
-          return (
-            <div key={f.key}>
-              <label className="block text-xs font-bold uppercase tracking-wide text-[var(--text-label)] mb-1.5">
-                {f.label}
-              </label>
-              <input
-                type="number"
-                inputMode="decimal"
-                value={values[f.key]}
-                onChange={(e) => handleChange(f.key, e.target.value)}
-                onBlur={() => handleBlur(f.key, values[f.key])}
-                onKeyDown={(e) => e.key === 'Enter' && handleSubmit()}
-                step="2.5"
-                min="2.5"
-                max="500"
-                className={`w-full px-3 py-2.5 border-2 text-base font-semibold bg-[var(--bg-card)] text-[var(--text-main)] focus:outline-none transition-colors ${
-                  fieldError
-                    ? 'border-[var(--border-error)] focus:border-[var(--border-error)]'
-                    : 'border-[var(--border-color)] focus:border-[var(--fill-progress)]'
-                }`}
-              />
-              {fieldError && (
-                <p className="text-[11px] font-bold text-[var(--text-error)] mt-1">{fieldError}</p>
+      {isEditMode && !isExpanded ? (
+        /* Collapsed summary view */
+        <div className="flex items-center justify-between flex-wrap gap-3">
+          <div>
+            <h2 className="text-sm font-bold mb-1">Starting Weights</h2>
+            <p className="text-xs text-[var(--text-muted)]">
+              {FIELDS.map((f) => `${f.label.split(' (')[0]}: ${initialWeights[f.key]}kg`).join(
+                ' · '
               )}
-            </div>
-          );
-        })}
-      </div>
-
-      {error && (
-        <div className="text-[var(--text-error)] font-bold mb-3 p-2.5 bg-[var(--bg-error)] border-2 border-[var(--border-error)]">
-          {error}
+            </p>
+          </div>
+          <button
+            onClick={() => setIsExpanded(true)}
+            className="px-4 py-2.5 min-h-[44px] border-2 border-[var(--btn-border)] text-xs font-bold cursor-pointer bg-[var(--btn-bg)] text-[var(--btn-text)] whitespace-nowrap transition-all hover:bg-[var(--btn-hover-bg)] hover:text-[var(--btn-hover-text)]"
+          >
+            Edit Weights
+          </button>
         </div>
+      ) : (
+        /* Expanded form view */
+        <>
+          <h2 className="text-lg font-bold mb-1.5">
+            {isEditMode ? 'Edit Starting Weights (kg)' : 'Starting Weights (kg)'}
+          </h2>
+          <p className="text-[13px] text-[var(--text-muted)] mb-5">
+            {isEditMode
+              ? 'Update your starting weights — the program will recalculate from these new values'
+              : 'Enter your current working weight for T1 exercises (85% of 5RM recommended)'}
+          </p>
+
+          <div className="grid grid-cols-[repeat(auto-fit,minmax(170px,1fr))] gap-4 mb-6">
+            {FIELDS.map((f) => {
+              const fieldError = touched[f.key] ? fieldErrors[f.key] : null;
+              return (
+                <div key={f.key}>
+                  <label className="block text-xs font-bold uppercase tracking-wide text-[var(--text-label)] mb-1.5">
+                    {f.label}
+                  </label>
+                  <input
+                    type="number"
+                    inputMode="decimal"
+                    value={values[f.key]}
+                    onChange={(e) => handleChange(f.key, e.target.value)}
+                    onBlur={() => handleBlur(f.key, values[f.key])}
+                    onKeyDown={(e) => e.key === 'Enter' && handleSubmit()}
+                    step="2.5"
+                    min="2.5"
+                    max="500"
+                    className={`w-full px-3 py-2.5 border-2 text-base font-semibold bg-[var(--bg-card)] text-[var(--text-main)] focus:outline-none transition-colors ${
+                      fieldError
+                        ? 'border-[var(--border-error)] focus:border-[var(--border-error)]'
+                        : 'border-[var(--border-color)] focus:border-[var(--fill-progress)]'
+                    }`}
+                  />
+                  {fieldError && (
+                    <p className="text-[11px] font-bold text-[var(--text-error)] mt-1">
+                      {fieldError}
+                    </p>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+
+          {error && (
+            <div className="text-[var(--text-error)] font-bold mb-3 p-2.5 bg-[var(--bg-error)] border-2 border-[var(--border-error)]">
+              {error}
+            </div>
+          )}
+
+          <div className="flex gap-3">
+            {isEditMode && (
+              <button
+                onClick={() => setIsExpanded(false)}
+                className="flex-1 py-3.5 border-2 border-[var(--border-color)] bg-[var(--bg-card)] text-[var(--text-muted)] text-base font-bold cursor-pointer hover:bg-[var(--bg-hover-row)] hover:text-[var(--text-main)] transition-colors"
+              >
+                Cancel
+              </button>
+            )}
+            <button
+              onClick={handleSubmit}
+              className="flex-1 py-3.5 border-none bg-[var(--bg-header)] text-[var(--text-header)] text-base font-bold cursor-pointer hover:opacity-85 transition-opacity"
+            >
+              {isEditMode ? 'Update Weights' : 'Generate Program'}
+            </button>
+          </div>
+        </>
       )}
 
-      <button
-        onClick={handleSubmit}
-        className="w-full py-3.5 border-none bg-[var(--bg-header)] text-[var(--text-header)] text-base font-bold cursor-pointer hover:opacity-85 transition-opacity"
-      >
-        Generate Program
-      </button>
+      <ConfirmDialog
+        open={showConfirm}
+        title="Update Starting Weights"
+        message="This will recalculate the entire program from the new starting weights. Your pass/fail history will be preserved, but projected weights will change. Continue?"
+        confirmLabel="Update Weights"
+        onConfirm={handleConfirmUpdate}
+        onCancel={handleCancelUpdate}
+      />
     </div>
   );
 }
