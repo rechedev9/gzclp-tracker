@@ -1,6 +1,6 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
-import { StartWeightsSchema, ResultsSchema, UndoHistorySchema } from './schemas';
-import type { StoredData } from './storage';
+import { type StoredData, validateStoredData } from './storage';
+import { isRecord } from './type-guards';
 
 const SYNC_META_KEY = 'gzclp-sync-meta';
 const DATA_VERSION = 1;
@@ -28,12 +28,11 @@ export function loadSyncMeta(): SyncMeta | null {
   if (!raw) return null;
   try {
     const parsed: unknown = JSON.parse(raw);
-    if (typeof parsed !== 'object' || parsed === null) return null;
-    const obj = parsed as Record<string, unknown>;
-    if (typeof obj.localUpdatedAt !== 'string') return null;
+    if (!isRecord(parsed)) return null;
+    if (typeof parsed.localUpdatedAt !== 'string') return null;
     return {
-      lastSyncedAt: typeof obj.lastSyncedAt === 'string' ? obj.lastSyncedAt : null,
-      localUpdatedAt: obj.localUpdatedAt,
+      lastSyncedAt: typeof parsed.lastSyncedAt === 'string' ? parsed.lastSyncedAt : null,
+      localUpdatedAt: parsed.localUpdatedAt,
     };
   } catch {
     return null;
@@ -42,7 +41,11 @@ export function loadSyncMeta(): SyncMeta | null {
 
 export function saveSyncMeta(meta: SyncMeta): void {
   if (typeof window === 'undefined') return;
-  localStorage.setItem(SYNC_META_KEY, JSON.stringify(meta));
+  try {
+    localStorage.setItem(SYNC_META_KEY, JSON.stringify(meta));
+  } catch {
+    // QuotaExceededError — sync metadata is non-critical, cloud sync still functions
+  }
 }
 
 export function clearSyncMeta(): void {
@@ -66,23 +69,6 @@ export function markSynced(serverTimestamp?: string): void {
   });
 }
 
-export function validateStoredData(data: unknown): StoredData | null {
-  if (typeof data !== 'object' || data === null || Array.isArray(data)) return null;
-  const obj = data as Record<string, unknown>;
-
-  const startWeights = StartWeightsSchema.safeParse(obj.startWeights);
-  if (!startWeights.success) return null;
-
-  const results = ResultsSchema.safeParse(obj.results ?? {});
-  const undoHistory = UndoHistorySchema.safeParse(obj.undoHistory ?? []);
-
-  return {
-    startWeights: startWeights.data,
-    results: results.success ? results.data : {},
-    undoHistory: undoHistory.success ? undoHistory.data : [],
-  };
-}
-
 export async function fetchCloudData(
   supabase: SupabaseClient,
   userId: string
@@ -94,12 +80,12 @@ export async function fetchCloudData(
     .maybeSingle();
 
   if (error || !data) return null;
+  if (!isRecord(data) || typeof data.updated_at !== 'string') return null;
 
-  const row = data as { data: unknown; updated_at: string };
-  const validated = validateStoredData(row.data);
+  const validated = validateStoredData(data.data);
   if (!validated) return null;
 
-  return { data: validated, updatedAt: row.updated_at };
+  return { data: validated, updatedAt: data.updated_at };
 }
 
 export interface PushResult {
@@ -126,7 +112,8 @@ export async function pushToCloud(
     return { success: false, retryable: isRateLimit };
   }
 
-  const serverTimestamp = (data as { updated_at: string } | null)?.updated_at;
+  const serverTimestamp =
+    isRecord(data) && typeof data.updated_at === 'string' ? data.updated_at : undefined;
   markSynced(serverTimestamp);
   return { success: true, retryable: false };
 }
