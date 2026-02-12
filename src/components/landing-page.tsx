@@ -257,6 +257,7 @@ export function LandingPage(): React.ReactNode {
             </p>
             <h1
               id="hero-heading"
+              aria-label="Train Smarter. Progress Faster."
               className="text-4xl sm:text-5xl lg:text-6xl font-extrabold tracking-tight text-[var(--text-header)] leading-[1.1] mb-6"
             >
               Train Smarter.
