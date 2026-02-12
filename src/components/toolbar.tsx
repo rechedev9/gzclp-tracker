@@ -1,10 +1,8 @@
 'use client';
 
-import { useRef, useState } from 'react';
-import type { User } from '@supabase/supabase-js';
-import type { SyncStatus } from '@/lib/sync';
+import { useRef, useState, useCallback } from 'react';
 import { ConfirmDialog } from './confirm-dialog';
-import { UserMenu } from './user-menu';
+import { DropdownMenu, DropdownItem, DropdownDivider } from './dropdown-menu';
 
 interface ToolbarProps {
   readonly completedCount: number;
@@ -15,10 +13,6 @@ interface ToolbarProps {
   readonly onImport: (json: string) => boolean;
   readonly onJumpToCurrent: () => void;
   readonly onReset: () => void;
-  readonly onGoToProfile?: () => void;
-  readonly user?: User | null;
-  readonly syncStatus?: SyncStatus;
-  readonly onSignOut?: () => void;
 }
 
 export function Toolbar({
@@ -30,14 +24,12 @@ export function Toolbar({
   onImport,
   onJumpToCurrent,
   onReset,
-  onGoToProfile,
-  user,
-  syncStatus = 'idle',
-  onSignOut,
 }: ToolbarProps) {
   const fileRef = useRef<HTMLInputElement>(null);
   const pendingImportRef = useRef<string | null>(null);
   const [confirmState, setConfirmState] = useState<'reset' | 'import' | null>(null);
+  const [menuOpen, setMenuOpen] = useState(false);
+  const closeMenu = useCallback((): void => setMenuOpen(false), []);
   const pct = Math.round((completedCount / totalWorkouts) * 100);
 
   const handleImport = (e: React.ChangeEvent<HTMLInputElement>): void => {
@@ -119,13 +111,50 @@ export function Toolbar({
         </div>
 
         {/* Right */}
-        <div className="flex items-center gap-2.5 shrink-0 flex-wrap">
-          <button className={btnClass} onClick={onExport}>
-            Export
+        <div className="flex items-center gap-2.5 shrink-0">
+          <button className={btnClass} onClick={onJumpToCurrent}>
+            Go to current
           </button>
-          <button className={btnClass} onClick={() => fileRef.current?.click()}>
-            Import
-          </button>
+
+          {/* Overflow menu */}
+          <div className="relative">
+            <button
+              className={btnClass}
+              onClick={() => setMenuOpen((prev) => !prev)}
+              aria-label="More actions"
+            >
+              &#8942;
+            </button>
+            <DropdownMenu open={menuOpen} onClose={closeMenu} align="right">
+              <DropdownItem
+                onClick={() => {
+                  closeMenu();
+                  onExport();
+                }}
+              >
+                Export
+              </DropdownItem>
+              <DropdownItem
+                onClick={() => {
+                  closeMenu();
+                  fileRef.current?.click();
+                }}
+              >
+                Import
+              </DropdownItem>
+              <DropdownDivider />
+              <DropdownItem
+                variant="danger"
+                onClick={() => {
+                  closeMenu();
+                  setConfirmState('reset');
+                }}
+              >
+                Reset All
+              </DropdownItem>
+            </DropdownMenu>
+          </div>
+
           <input
             ref={fileRef}
             type="file"
@@ -133,20 +162,6 @@ export function Toolbar({
             className="hidden"
             onChange={handleImport}
           />
-          <button className={btnClass} onClick={onJumpToCurrent}>
-            Go to current
-          </button>
-          {onGoToProfile && (
-            <button className={btnClass} onClick={onGoToProfile}>
-              Profile
-            </button>
-          )}
-          <button className={btnClass} onClick={() => setConfirmState('reset')}>
-            Reset All
-          </button>
-          {onSignOut && (
-            <UserMenu user={user ?? null} syncStatus={syncStatus} onSignOut={onSignOut} />
-          )}
         </div>
       </div>
 
