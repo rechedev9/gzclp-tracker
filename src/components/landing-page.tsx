@@ -7,19 +7,24 @@ import Link from 'next/link';
 function useFadeInOnScroll(): React.RefCallback<HTMLElement> {
   const observer = useRef<IntersectionObserver | null>(null);
 
-  useEffect(() => {
-    observer.current = new IntersectionObserver(
-      (entries) => {
-        for (const entry of entries) {
-          if (entry.isIntersecting) {
-            entry.target.classList.add('landing-visible');
-            observer.current?.unobserve(entry.target);
+  const getObserver = (): IntersectionObserver => {
+    if (!observer.current) {
+      observer.current = new IntersectionObserver(
+        (entries) => {
+          for (const entry of entries) {
+            if (entry.isIntersecting) {
+              entry.target.classList.add('landing-visible');
+              observer.current?.unobserve(entry.target);
+            }
           }
-        }
-      },
-      { threshold: 0.1, rootMargin: '0px 0px -20px 0px' }
-    );
+        },
+        { threshold: 0.1, rootMargin: '0px 0px -20px 0px' }
+      );
+    }
+    return observer.current;
+  };
 
+  useEffect(() => {
     if (window.location.hash) {
       const sections = document.querySelectorAll('.landing-fade-in');
       for (const section of sections) {
@@ -33,8 +38,8 @@ function useFadeInOnScroll(): React.RefCallback<HTMLElement> {
   }, []);
 
   return (el: HTMLElement | null): void => {
-    if (el && observer.current) {
-      observer.current.observe(el);
+    if (el) {
+      getObserver().observe(el);
     }
   };
 }
