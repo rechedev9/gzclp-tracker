@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/auth-context';
 import { sanitizeAuthError } from '@/lib/auth-errors';
+import { checkLeakedPassword } from '@/lib/password-check';
 
 type AuthMode = 'sign-in' | 'sign-up';
 
@@ -53,6 +54,15 @@ export function LoginPage(): React.ReactNode {
     setError(null);
     setSuccess(null);
     setSubmitting(true);
+
+    if (mode === 'sign-up') {
+      const isLeaked = await checkLeakedPassword(password);
+      if (isLeaked) {
+        setSubmitting(false);
+        setError('This password has appeared in a data breach. Please choose a different one.');
+        return;
+      }
+    }
 
     const authError =
       mode === 'sign-in' ? await signIn(email, password) : await signUp(email, password);
