@@ -44,7 +44,14 @@ function useFadeInOnScroll(): React.RefCallback<HTMLElement> {
 const FEATURES = [
   {
     icon: (
-      <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+      <svg
+        width="28"
+        height="28"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="1.5"
+      >
         <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z" strokeLinecap="round" strokeLinejoin="round" />
       </svg>
     ),
@@ -53,7 +60,14 @@ const FEATURES = [
   },
   {
     icon: (
-      <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+      <svg
+        width="28"
+        height="28"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="1.5"
+      >
         <rect x="3" y="4" width="18" height="18" rx="2" strokeLinecap="round" />
         <path d="M16 2v4M8 2v4M3 10h18" strokeLinecap="round" />
       </svg>
@@ -63,7 +77,14 @@ const FEATURES = [
   },
   {
     icon: (
-      <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+      <svg
+        width="28"
+        height="28"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="1.5"
+      >
         <path d="M22 12h-4l-3 9L9 3l-3 9H2" strokeLinecap="round" strokeLinejoin="round" />
       </svg>
     ),
@@ -72,8 +93,19 @@ const FEATURES = [
   },
   {
     icon: (
-      <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
-        <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" strokeLinecap="round" strokeLinejoin="round" />
+      <svg
+        width="28"
+        height="28"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="1.5"
+      >
+        <path
+          d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        />
       </svg>
     ),
     title: 'Offline First',
@@ -168,7 +200,8 @@ export function LandingPage(): React.ReactNode {
         <div
           className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[400px] pointer-events-none opacity-[0.07]"
           style={{
-            background: 'radial-gradient(ellipse at center, var(--fill-progress) 0%, transparent 70%)',
+            background:
+              'radial-gradient(ellipse at center, var(--fill-progress) 0%, transparent 70%)',
           }}
         />
       </section>
@@ -247,37 +280,67 @@ export function LandingPage(): React.ReactNode {
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-5">
           <div className="bg-[var(--bg-card)] border border-[var(--border-color)] p-5 text-center">
             <div className="text-2xl font-extrabold text-[var(--text-header)] mb-1">
-              <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="mx-auto">
+              <svg
+                width="28"
+                height="28"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="1.5"
+                className="mx-auto"
+              >
                 <path d="M23 6l-9.5 9.5-5-5L1 18" strokeLinecap="round" strokeLinejoin="round" />
                 <path d="M17 6h6v6" strokeLinecap="round" strokeLinejoin="round" />
               </svg>
             </div>
-            <div className="text-xs font-bold text-[var(--text-main)] mb-1 mt-2">Progressive Overload</div>
+            <div className="text-xs font-bold text-[var(--text-main)] mb-1 mt-2">
+              Progressive Overload
+            </div>
             <p className="text-[11px] text-[var(--text-muted)] leading-relaxed">
               Weight goes up when you&apos;re ready. Not before, not after. The program decides.
             </p>
           </div>
           <div className="bg-[var(--bg-card)] border border-[var(--border-color)] p-5 text-center">
             <div className="text-2xl font-extrabold text-[var(--stage-s2)] mb-1">
-              <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="mx-auto">
+              <svg
+                width="28"
+                height="28"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="1.5"
+                className="mx-auto"
+              >
                 <path d="M12 20V10M18 20V4M6 20v-4" strokeLinecap="round" strokeLinejoin="round" />
               </svg>
             </div>
-            <div className="text-xs font-bold text-[var(--text-main)] mb-1 mt-2">Failure Management</div>
+            <div className="text-xs font-bold text-[var(--text-main)] mb-1 mt-2">
+              Failure Management
+            </div>
             <p className="text-[11px] text-[var(--text-muted)] leading-relaxed">
-              Missed a lift? The program adapts — adjusting volume and intensity to keep you progressing.
+              Missed a lift? The program adapts — adjusting volume and intensity to keep you
+              progressing.
             </p>
           </div>
           <div className="bg-[var(--bg-card)] border border-[var(--border-color)] p-5 text-center">
             <div className="text-2xl font-extrabold text-[var(--stage-s3)] mb-1">
-              <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="mx-auto">
+              <svg
+                width="28"
+                height="28"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="1.5"
+                className="mx-auto"
+              >
                 <circle cx="12" cy="12" r="10" />
                 <path d="M12 6v6l4 2" strokeLinecap="round" strokeLinejoin="round" />
               </svg>
             </div>
             <div className="text-xs font-bold text-[var(--text-main)] mb-1 mt-2">Zero Thinking</div>
             <p className="text-[11px] text-[var(--text-muted)] leading-relaxed">
-              Walk into the gym knowing exactly what to do. No planning, no spreadsheets, no wasted time.
+              Walk into the gym knowing exactly what to do. No planning, no spreadsheets, no wasted
+              time.
             </p>
           </div>
         </div>
