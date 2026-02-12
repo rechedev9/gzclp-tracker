@@ -8,6 +8,9 @@ import { sanitizeAuthError } from '@/lib/auth-errors';
 
 type AuthMode = 'sign-in' | 'sign-up';
 
+const MAX_ATTEMPTS = 5;
+const LOCKOUT_MS = 60_000;
+
 export function LoginPage(): React.ReactNode {
   const { user, signIn, signUp, signInWithGoogle } = useAuth();
   const router = useRouter();
@@ -17,7 +20,22 @@ export function LoginPage(): React.ReactNode {
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const [attempts, setAttempts] = useState(0);
+  const [lockCountdown, setLockCountdown] = useState(0);
   const emailRef = useRef<HTMLInputElement>(null);
+
+  // Decrement lockout countdown each second
+  useEffect(() => {
+    if (lockCountdown <= 0) return;
+    const timer = setTimeout(() => {
+      setLockCountdown((prev) => prev - 1);
+    }, 1000);
+    return (): void => {
+      clearTimeout(timer);
+    };
+  }, [lockCountdown]);
+
+  const isLocked = lockCountdown > 0;
 
   useEffect(() => {
     if (user) {
@@ -31,6 +49,7 @@ export function LoginPage(): React.ReactNode {
 
   const handleSubmit = async (e: React.FormEvent): Promise<void> => {
     e.preventDefault();
+    if (isLocked) return;
     setError(null);
     setSuccess(null);
     setSubmitting(true);
@@ -41,10 +60,20 @@ export function LoginPage(): React.ReactNode {
     setSubmitting(false);
 
     if (authError) {
-      setError(sanitizeAuthError(authError.message));
+      const nextAttempts = attempts + 1;
+      setAttempts(nextAttempts);
+      if (nextAttempts >= MAX_ATTEMPTS) {
+        const lockSeconds = LOCKOUT_MS / 1000;
+        setLockCountdown(lockSeconds);
+        setAttempts(0);
+        setError(`Too many failed attempts. Try again in ${lockSeconds} seconds.`);
+      } else {
+        setError(sanitizeAuthError(authError.message));
+      }
       return;
     }
 
+    setAttempts(0);
     if (mode === 'sign-up') {
       setSuccess('Check your email for a confirmation link.');
       return;
@@ -189,8 +218,14 @@ export function LoginPage(): React.ReactNode {
                 </div>
               )}
 
-              <button type="submit" className={primaryBtn} disabled={submitting}>
-                {submitting ? 'Loading...' : mode === 'sign-in' ? 'Sign In' : 'Create Account'}
+              <button type="submit" className={primaryBtn} disabled={submitting || isLocked}>
+                {isLocked
+                  ? `Locked (${lockCountdown}s)`
+                  : submitting
+                    ? 'Loading...'
+                    : mode === 'sign-in'
+                      ? 'Sign In'
+                      : 'Create Account'}
               </button>
             </form>
 
