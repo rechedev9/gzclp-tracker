@@ -205,56 +205,6 @@ function GradientDivider(): React.ReactNode {
   return <div className="landing-gradient-divider" />;
 }
 
-/* ── Hero Quotes Card ──────────────────────────── */
-
-const HERO_QUOTES = [
-  {
-    quote: '"I\'ll surpass my limits right here, right now."',
-    source: '— Goku',
-  },
-  {
-    quote: '"A year in here is only a day outside. Let\'s make every second count."',
-    source: '— Vegeta',
-  },
-  {
-    quote: '"The real training begins when you push past what you think is your limit."',
-    source: '— Goku',
-  },
-] as const;
-
-function HeroQuotesCard(): React.ReactNode {
-  return (
-    <div className="landing-float relative mx-auto mt-14 max-w-md">
-      {/* Glow behind the card */}
-      <div
-        className="landing-glow-pulse absolute inset-0 -m-4 pointer-events-none rounded-sm"
-        style={{
-          background:
-            'radial-gradient(ellipse at center, var(--fill-progress) 0%, transparent 70%)',
-        }}
-      />
-
-      {/* Quotes card */}
-      <div className="relative bg-[var(--bg-card)] border border-[var(--border-color)] p-6 rounded-sm">
-        <div className="text-[10px] font-bold uppercase tracking-[0.25em] text-[var(--text-muted)] mb-5 text-center">
-          Hyperbolic Time Chamber
-        </div>
-
-        <div className="space-y-4">
-          {HERO_QUOTES.map((q) => (
-            <blockquote key={q.quote} className="landing-quote-glow p-3 rounded-sm">
-              <p className="text-sm italic text-[var(--text-main)] leading-relaxed">{q.quote}</p>
-              <cite className="text-xs text-[var(--text-muted)] not-italic block mt-1.5">
-                {q.source}
-              </cite>
-            </blockquote>
-          ))}
-        </div>
-      </div>
-    </div>
-  );
-}
-
 /* ── Main Component ────────────────────────────── */
 
 export function LandingPage(): React.ReactNode {
@@ -331,9 +281,6 @@ export function LandingPage(): React.ReactNode {
                 How It Works
               </a>
             </div>
-
-            {/* Floating quotes card */}
-            <HeroQuotesCard />
           </div>
 
           {/* Decorative gradient glow */}
