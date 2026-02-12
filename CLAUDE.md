@@ -8,11 +8,11 @@ GZCLP Tracker — a Next.js 16 app (React 19, TypeScript, Tailwind CSS 4) that i
 
 ## Commands
 
-| Task       | Command          |
-|------------|------------------|
-| Dev server | `bun run dev`    |
-| Build      | `bun run build`  |
-| Lint       | `bun run lint`   |
+| Task       | Command         |
+| ---------- | --------------- |
+| Dev server | `bun run dev`   |
+| Build      | `bun run build` |
+| Lint       | `bun run lint`  |
 
 No test runner is configured.
 
@@ -28,6 +28,7 @@ No test runner is configured.
 - **`src/components/gzclp-app.tsx`** — Root client component; orchestrates setup vs. tracker view.
 
 **Key domain concepts:**
+
 - **Tiers (T1/T2/T3):** Exercise priority levels with different set/rep schemes and progression rules
 - **Stages:** When a tier fails, it advances to the next stage (fewer reps, more sets) before resetting weight
 - **Results map:** `Record<workoutIndex, { t1?, t2?, t3? }>` — sparse map keyed by workout index (0–89)
