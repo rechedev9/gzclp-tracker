@@ -27,14 +27,7 @@ function readInitialState(): ShellState {
     map = loadInstanceMap(); // re-read after migration
   }
 
-  // When arriving from the login page (?view=programs), force the programs dashboard.
-  const params = new URLSearchParams(window.location.search);
-  if (params.get('view') === 'programs') {
-    return { view: 'dashboard', instanceMap: map };
-  }
-
-  const hasActive = !!(map?.activeProgramId && map.instances[map.activeProgramId]);
-  return { view: hasActive ? 'tracker' : 'dashboard', instanceMap: map };
+  return { view: 'dashboard', instanceMap: map };
 }
 
 export function AppShell(): React.ReactNode {
