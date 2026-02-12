@@ -3,13 +3,13 @@
 import { useState, useCallback, useEffect, useRef, useSyncExternalStore } from 'react';
 import type { StartWeights, Results, UndoHistory, Tier, ResultValue } from '@/types';
 import {
-  loadData,
-  saveData,
-  clearData,
+  loadDataCompat as loadData,
+  saveDataCompat as saveData,
+  clearDataCompat as clearData,
   parseImportData,
   createExportData,
   type StoredData,
-} from '@/lib/storage';
+} from '@/lib/storage-v2';
 
 const emptySubscribe = (): (() => void) => () => {};
 const returnTrue = (): boolean => true;
