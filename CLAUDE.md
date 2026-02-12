@@ -8,14 +8,14 @@ GZCLP Tracker — a Next.js 16 app (React 19, TypeScript, Tailwind CSS 4) that i
 
 ## Commands
 
-| Task         | Command                              |
-| ------------ | ------------------------------------ |
-| Dev server   | `bun run dev`                        |
-| Build        | `bun run build`                      |
-| Type check   | `bun run typecheck`                  |
-| Lint         | `bun run lint`                       |
-| Format check | `bun run format:check`               |
-| Format fix   | `bun run prettier --write <path>`    |
+| Task         | Command                           |
+| ------------ | --------------------------------- |
+| Dev server   | `bun run dev`                     |
+| Build        | `bun run build`                   |
+| Type check   | `bun run typecheck`               |
+| Lint         | `bun run lint`                    |
+| Format check | `bun run format:check`            |
+| Format fix   | `bun run prettier --write <path>` |
 
 No test runner is configured.
 
@@ -77,6 +77,7 @@ schemas.ts (Zod v4) → types/index.ts (z.infer<>) → engine.ts (pure computati
 ## Environment variables
 
 Required for cloud sync (optional — app works without them):
+
 - `NEXT_PUBLIC_SUPABASE_URL`
 - `NEXT_PUBLIC_SUPABASE_ANON_KEY`
 
