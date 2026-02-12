@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 
@@ -43,6 +43,42 @@ function useFadeInOnScroll(): React.RefCallback<HTMLElement> {
     }
   };
 }
+
+function useScrollSpy(sectionIds: readonly string[]): string | null {
+  const [activeId, setActiveId] = useState<string | null>(null);
+
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      (entries) => {
+        for (const entry of entries) {
+          if (entry.isIntersecting) {
+            setActiveId(entry.target.id);
+          }
+        }
+      },
+      { rootMargin: '-20% 0px -75% 0px', threshold: 0 }
+    );
+
+    for (const id of sectionIds) {
+      const el = document.getElementById(id);
+      if (el) observer.observe(el);
+    }
+
+    return (): void => {
+      observer.disconnect();
+    };
+  }, [sectionIds]);
+
+  return activeId;
+}
+
+const SECTION_IDS = ['features', 'how-it-works', 'programs'] as const;
+
+const NAV_LINKS = [
+  { label: 'Features', href: '#features' },
+  { label: 'How It Works', href: '#how-it-works' },
+  { label: 'Programs', href: '#programs' },
+] as const;
 
 /* ── Data ──────────────────────────────────────── */
 
@@ -214,6 +250,7 @@ function GradientDivider(): React.ReactNode {
 
 export function LandingPage(): React.ReactNode {
   const observe = useFadeInOnScroll();
+  const activeSection = useScrollSpy(SECTION_IDS);
 
   return (
     <div className="min-h-dvh bg-[var(--bg-body)] overflow-x-hidden">
@@ -227,7 +264,7 @@ export function LandingPage(): React.ReactNode {
       {/* ── Nav ─────────────────────────────────────────── */}
       <nav
         aria-label="Main navigation"
-        className="flex items-center justify-between px-6 sm:px-10 py-4 bg-[var(--bg-header)] border-b border-[var(--border-color)]"
+        className="sticky top-0 z-50 flex items-center justify-between px-6 sm:px-10 py-4 bg-[var(--bg-header)]/90 backdrop-blur-md border-b border-[var(--border-color)]"
       >
         <div className="flex items-center gap-3">
           <Image
@@ -242,9 +279,24 @@ export function LandingPage(): React.ReactNode {
             The Real Hyperbolic Time Chamber
           </span>
         </div>
+        <div className="hidden md:flex items-center gap-6">
+          {NAV_LINKS.map((link) => (
+            <a
+              key={link.href}
+              href={link.href}
+              className={`text-sm font-medium transition-colors duration-200 ${
+                activeSection === link.href.slice(1)
+                  ? 'text-[var(--text-header)]'
+                  : 'text-[var(--text-muted)] hover:text-[var(--text-header)]'
+              }`}
+            >
+              {link.label}
+            </a>
+          ))}
+        </div>
         <Link
           href="/login"
-          className="text-xs font-bold text-[var(--btn-text)] border border-[var(--btn-border)] px-4 py-2 hover:bg-[var(--btn-hover-bg)] hover:text-[var(--btn-hover-text)] transition-colors"
+          className="text-xs font-bold text-[var(--btn-text)] border border-[var(--btn-border)] px-4 py-2 hover:bg-[var(--btn-hover-bg)] hover:text-[var(--btn-hover-text)] hover:scale-[1.02] hover:shadow-[0_0_12px_rgba(200,168,78,0.3)] transition-all duration-200"
         >
           Sign In
         </Link>
@@ -330,6 +382,7 @@ export function LandingPage(): React.ReactNode {
 
         {/* ── Features ────────────────────────────────────── */}
         <section
+          id="features"
           aria-labelledby="features-heading"
           ref={observe}
           className="landing-fade-in px-6 sm:px-10 py-12 sm:py-20 max-w-5xl mx-auto"
@@ -497,6 +550,7 @@ export function LandingPage(): React.ReactNode {
 
         {/* ── Who It's For ───────────────────────────────── */}
         <section
+          id="programs"
           aria-labelledby="personas-heading"
           ref={observe}
           className="landing-fade-in px-6 sm:px-10 py-12 sm:py-20 bg-[var(--bg-header)]"

@@ -12,8 +12,6 @@ function buildToolbarProps(overrides?: Partial<Parameters<typeof Toolbar>[0]>) {
     totalWorkouts: 90,
     undoCount: 0,
     onUndo: mock(),
-    onExport: mock(),
-    onImport: mock(() => true),
     onJumpToCurrent: mock(),
     onReset: mock(),
     ...overrides,
@@ -67,16 +65,6 @@ describe('Toolbar', () => {
   });
 
   describe('action buttons', () => {
-    it('should call onExport when Export is clicked in overflow menu', () => {
-      const onExport = mock();
-      render(<Toolbar {...buildToolbarProps({ onExport })} />);
-
-      openOverflowMenu();
-      fireEvent.click(screen.getByText('Export'));
-
-      expect(onExport).toHaveBeenCalledTimes(1);
-    });
-
     it('should call onJumpToCurrent when Go to current is clicked', () => {
       const onJumpToCurrent = mock();
       render(<Toolbar {...buildToolbarProps({ onJumpToCurrent })} />);

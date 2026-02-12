@@ -32,8 +32,6 @@ export function GZCLPApp({ onBackToDashboard, onGoToProfile }: GZCLPAppProps) {
     undoSpecific,
     undoLast,
     resetAll,
-    exportData,
-    importData,
     loadFromCloud,
   } = useProgram();
 
@@ -118,8 +116,6 @@ export function GZCLPApp({ onBackToDashboard, onGoToProfile }: GZCLPAppProps) {
           totalWorkouts={TOTAL_WORKOUTS}
           undoCount={undoHistory.length}
           onUndo={undoLast}
-          onExport={exportData}
-          onImport={importData}
           onJumpToCurrent={jumpToCurrent}
           onReset={() => void handleReset()}
         />
