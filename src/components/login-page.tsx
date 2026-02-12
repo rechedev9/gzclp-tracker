@@ -41,7 +41,7 @@ export function LoginPage(): React.ReactNode {
 
   useEffect(() => {
     if (user) {
-      router.push('/app');
+      router.push('/app?view=programs');
     }
   }, [user, router]);
 
@@ -285,7 +285,7 @@ export function LoginPage(): React.ReactNode {
           {/* Continue without account */}
           <div className="text-center mt-6">
             <Link
-              href="/app"
+              href="/app?view=programs"
               className="text-xs text-[var(--text-muted)] hover:text-[var(--text-main)] transition-colors underline underline-offset-2"
             >
               Continue without an account

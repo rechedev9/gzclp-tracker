@@ -169,7 +169,7 @@ export function LandingPage(): React.ReactNode {
       <section className="relative text-center px-6 pt-20 pb-24 sm:pt-28 sm:pb-32">
         <div className="landing-fade-in landing-visible max-w-2xl mx-auto">
           <p className="text-xs font-bold uppercase tracking-[0.25em] text-[var(--text-muted)] mb-4">
-            100% Free &middot; No Account Required
+            100% Free &middot; Sync Across Devices
           </p>
           <h1 className="text-4xl sm:text-5xl lg:text-6xl font-extrabold tracking-tight text-[var(--text-header)] leading-[1.1] mb-6">
             Train Smarter.
@@ -182,7 +182,7 @@ export function LandingPage(): React.ReactNode {
           </p>
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
             <Link
-              href="/app"
+              href="/login"
               className="px-8 py-3.5 text-sm font-bold border-2 border-[var(--btn-border)] bg-[var(--btn-hover-bg)] text-[var(--btn-hover-text)] hover:opacity-90 transition-all min-w-[200px]"
             >
               Start Training
@@ -355,10 +355,10 @@ export function LandingPage(): React.ReactNode {
           Ready to Start?
         </h2>
         <p className="text-sm text-[var(--text-muted)] mb-8 max-w-md mx-auto">
-          No sign-up. No payment. Just open the app and start lifting.
+          Free forever. Create an account to sync — or jump straight in.
         </p>
         <Link
-          href="/app"
+          href="/login"
           className="inline-block px-10 py-4 text-sm font-bold border-2 border-[var(--btn-border)] bg-[var(--btn-hover-bg)] text-[var(--btn-hover-text)] hover:opacity-90 transition-all"
         >
           Start Training
