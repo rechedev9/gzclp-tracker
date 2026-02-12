@@ -1,12 +1,12 @@
 'use client';
 
+import Link from 'next/link';
 import type { User } from '@supabase/supabase-js';
 import type { SyncStatus } from '@/lib/sync';
 
 interface UserMenuProps {
   readonly user: User | null;
   readonly syncStatus: SyncStatus;
-  readonly onSignInClick: () => void;
   readonly onSignOut: () => void;
 }
 
@@ -26,20 +26,15 @@ const SYNC_COLORS: Readonly<Record<SyncStatus, string>> = {
   error: 'text-[var(--text-error)]',
 };
 
-export function UserMenu({
-  user,
-  syncStatus,
-  onSignInClick,
-  onSignOut,
-}: UserMenuProps): React.ReactNode {
+export function UserMenu({ user, syncStatus, onSignOut }: UserMenuProps): React.ReactNode {
   const btnClass =
     'px-2 py-2 sm:px-3.5 sm:py-2.5 min-h-[44px] border-2 border-[var(--btn-border)] text-[10px] sm:text-xs font-bold cursor-pointer bg-[var(--btn-bg)] text-[var(--btn-text)] whitespace-nowrap transition-all hover:bg-[var(--btn-hover-bg)] hover:text-[var(--btn-hover-text)]';
 
   if (!user) {
     return (
-      <button className={btnClass} onClick={onSignInClick}>
+      <Link href="/login" className={btnClass + ' inline-flex items-center no-underline'}>
         Sign In
-      </button>
+      </Link>
     );
   }
 

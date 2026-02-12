@@ -17,7 +17,6 @@ interface ToolbarProps {
   readonly onReset: () => void;
   readonly user?: User | null;
   readonly syncStatus?: SyncStatus;
-  readonly onSignInClick?: () => void;
   readonly onSignOut?: () => void;
 }
 
@@ -32,7 +31,6 @@ export function Toolbar({
   onReset,
   user,
   syncStatus = 'idle',
-  onSignInClick,
   onSignOut,
 }: ToolbarProps) {
   const fileRef = useRef<HTMLInputElement>(null);
@@ -133,13 +131,8 @@ export function Toolbar({
           <button className={btnClass} onClick={() => setConfirmState('reset')}>
             Reset All
           </button>
-          {onSignInClick && onSignOut && (
-            <UserMenu
-              user={user ?? null}
-              syncStatus={syncStatus}
-              onSignInClick={onSignInClick}
-              onSignOut={onSignOut}
-            />
+          {onSignOut && (
+            <UserMenu user={user ?? null} syncStatus={syncStatus} onSignOut={onSignOut} />
           )}
         </div>
       </div>

@@ -12,7 +12,6 @@ import { Toolbar } from './toolbar';
 import { WeekSection } from './week-section';
 import { StatsPanel } from './stats-panel';
 import { StageTag } from './stage-tag';
-import { AuthModal } from './auth-modal';
 import { ConfirmDialog } from './confirm-dialog';
 
 export function GZCLPApp() {
@@ -42,7 +41,6 @@ export function GZCLPApp() {
     onCloudDataReceived: loadFromCloud,
   });
 
-  const [showAuthModal, setShowAuthModal] = useState(false);
   const [activeTab, setActiveTab] = useState<'program' | 'stats'>('program');
 
   const rows = useMemo(
@@ -120,7 +118,6 @@ export function GZCLPApp() {
           onReset={() => void handleReset()}
           user={configured ? user : undefined}
           syncStatus={syncStatus}
-          onSignInClick={configured ? () => setShowAuthModal(true) : undefined}
           onSignOut={configured ? () => void handleSignOut() : undefined}
         />
       )}
@@ -240,8 +237,6 @@ export function GZCLPApp() {
           </>
         )}
       </div>
-
-      {configured && <AuthModal open={showAuthModal} onClose={() => setShowAuthModal(false)} />}
 
       <ConfirmDialog
         open={conflict !== null}
