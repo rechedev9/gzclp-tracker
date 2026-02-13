@@ -114,15 +114,24 @@ export function WorkoutRow({ row, isCurrent, onMark, onSetAmrapReps, onUndo }: W
       <td className="border border-[var(--border-light)] px-2 py-3 text-left align-middle font-bold text-[13px]">
         {NAMES[row.t1Exercise]}
       </td>
-      <td className="border border-[var(--border-light)] px-2 py-3 text-center align-middle font-extrabold text-[15px] tabular-nums">
+      <td
+        data-testid={`t1-weight-${row.index}`}
+        className="border border-[var(--border-light)] px-2 py-3 text-center align-middle font-extrabold text-[15px] tabular-nums"
+      >
         {row.t1Weight}
       </td>
-      <td className="border border-[var(--border-light)] px-2 py-3 text-center align-middle font-semibold text-[13px]">
+      <td
+        data-testid={`t1-scheme-${row.index}`}
+        className="border border-[var(--border-light)] px-2 py-3 text-center align-middle font-semibold text-[13px]"
+      >
         {row.t1Sets}&times;{row.t1Reps}
         <br />
         <StageTag stage={row.t1Stage} size="md" />
       </td>
-      <td className="border border-[var(--border-light)] px-2 py-3 text-center align-middle">
+      <td
+        data-testid={`t1-result-${row.index}`}
+        className="border border-[var(--border-light)] px-2 py-3 text-center align-middle"
+      >
         <ResultCell
           index={row.index}
           tier="t1"
@@ -144,15 +153,24 @@ export function WorkoutRow({ row, isCurrent, onMark, onSetAmrapReps, onUndo }: W
       <td className="border border-[var(--border-light)] px-2 py-3 text-left align-middle font-bold text-[13px]">
         {NAMES[row.t2Exercise]}
       </td>
-      <td className="border border-[var(--border-light)] px-2 py-3 text-center align-middle font-extrabold text-[15px] tabular-nums">
+      <td
+        data-testid={`t2-weight-${row.index}`}
+        className="border border-[var(--border-light)] px-2 py-3 text-center align-middle font-extrabold text-[15px] tabular-nums"
+      >
         {row.t2Weight}
       </td>
-      <td className="border border-[var(--border-light)] px-2 py-3 text-center align-middle font-semibold text-[13px]">
+      <td
+        data-testid={`t2-scheme-${row.index}`}
+        className="border border-[var(--border-light)] px-2 py-3 text-center align-middle font-semibold text-[13px]"
+      >
         {row.t2Sets}&times;{row.t2Reps}
         <br />
         <StageTag stage={row.t2Stage} size="md" />
       </td>
-      <td className="border border-[var(--border-light)] px-2 py-3 text-center align-middle">
+      <td
+        data-testid={`t2-result-${row.index}`}
+        className="border border-[var(--border-light)] px-2 py-3 text-center align-middle"
+      >
         <ResultCell
           index={row.index}
           tier="t2"
@@ -166,6 +184,7 @@ export function WorkoutRow({ row, isCurrent, onMark, onSetAmrapReps, onUndo }: W
         {NAMES[row.t3Exercise]}
       </td>
       <td
+        data-testid={`t3-weight-${row.index}`}
         className="border border-[var(--border-light)] px-2 py-3 text-center align-middle font-extrabold text-[15px] tabular-nums"
         title="T3 weight increases when AMRAP set reaches 25+ reps"
       >
@@ -173,7 +192,10 @@ export function WorkoutRow({ row, isCurrent, onMark, onSetAmrapReps, onUndo }: W
         <br />
         <span className="text-[10px] text-[var(--text-muted)] font-normal">3&times;15</span>
       </td>
-      <td className="border border-[var(--border-light)] px-2 py-3 text-center align-middle">
+      <td
+        data-testid={`t3-result-${row.index}`}
+        className="border border-[var(--border-light)] px-2 py-3 text-center align-middle"
+      >
         <ResultCell
           index={row.index}
           tier="t3"

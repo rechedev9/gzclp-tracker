@@ -166,48 +166,54 @@ export function WorkoutRowCard({
         <span className="text-xs font-semibold text-[var(--text-muted)]">{row.dayName}</span>
       </div>
 
-      <TierSection
-        label="T1 — Main Lift"
-        exercise={NAMES[row.t1Exercise]}
-        weight={row.t1Weight}
-        scheme={`${row.t1Sets}\u00d7${row.t1Reps}`}
-        stage={row.t1Stage}
-        showStage={true}
-        index={row.index}
-        tier="t1"
-        result={row.result.t1}
-        amrapReps={row.result.t1Reps}
-        onSetAmrapReps={(reps) => onSetAmrapReps(row.index, 't1Reps', reps)}
-        onMark={onMark}
-        onUndo={onUndo}
-      />
-      <TierSection
-        label="T2 — Secondary"
-        exercise={NAMES[row.t2Exercise]}
-        weight={row.t2Weight}
-        scheme={`${row.t2Sets}\u00d7${row.t2Reps}`}
-        stage={row.t2Stage}
-        showStage={true}
-        index={row.index}
-        tier="t2"
-        result={row.result.t2}
-        onMark={onMark}
-        onUndo={onUndo}
-      />
-      <TierSection
-        label="T3 — Accessory"
-        exercise={NAMES[row.t3Exercise]}
-        weight={row.t3Weight}
-        scheme="3&times;15"
-        showStage={false}
-        index={row.index}
-        tier="t3"
-        result={row.result.t3}
-        amrapReps={row.result.t3Reps}
-        onSetAmrapReps={(reps) => onSetAmrapReps(row.index, 't3Reps', reps)}
-        onMark={onMark}
-        onUndo={onUndo}
-      />
+      <div data-testid={`t1-result-${row.index}`}>
+        <TierSection
+          label="T1 — Main Lift"
+          exercise={NAMES[row.t1Exercise]}
+          weight={row.t1Weight}
+          scheme={`${row.t1Sets}\u00d7${row.t1Reps}`}
+          stage={row.t1Stage}
+          showStage={true}
+          index={row.index}
+          tier="t1"
+          result={row.result.t1}
+          amrapReps={row.result.t1Reps}
+          onSetAmrapReps={(reps) => onSetAmrapReps(row.index, 't1Reps', reps)}
+          onMark={onMark}
+          onUndo={onUndo}
+        />
+      </div>
+      <div data-testid={`t2-result-${row.index}`}>
+        <TierSection
+          label="T2 — Secondary"
+          exercise={NAMES[row.t2Exercise]}
+          weight={row.t2Weight}
+          scheme={`${row.t2Sets}\u00d7${row.t2Reps}`}
+          stage={row.t2Stage}
+          showStage={true}
+          index={row.index}
+          tier="t2"
+          result={row.result.t2}
+          onMark={onMark}
+          onUndo={onUndo}
+        />
+      </div>
+      <div data-testid={`t3-result-${row.index}`}>
+        <TierSection
+          label="T3 — Accessory"
+          exercise={NAMES[row.t3Exercise]}
+          weight={row.t3Weight}
+          scheme="3&times;15"
+          showStage={false}
+          index={row.index}
+          tier="t3"
+          result={row.result.t3}
+          amrapReps={row.result.t3Reps}
+          onSetAmrapReps={(reps) => onSetAmrapReps(row.index, 't3Reps', reps)}
+          onMark={onMark}
+          onUndo={onUndo}
+        />
+      </div>
     </div>
   );
 }
