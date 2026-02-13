@@ -27,7 +27,30 @@ export const T2_STAGES = [
 ] as const;
 
 export const TOTAL_WORKOUTS = 90;
-export const TOTAL_WEEKS = 30;
+
+/** T2 starting weight = T1 starting weight × this multiplier */
+export const T2_INITIAL_MULTIPLIER = 0.65;
+
+/** On T1 final-stage failure, deload to weight × this multiplier */
+export const T1_DELOAD_MULTIPLIER = 0.9;
+
+/** Index of the final stage for T1 (0-based) */
+export const T1_MAX_STAGE = 2;
+
+/** Index of the final stage for T2 (0-based) */
+export const T2_MAX_STAGE = 2;
+
+/** Flat weight added on T2 final-stage failure reset */
+export const T2_RESET_INCREMENT = 15;
+
+/** T3 weight increment on success */
+export const T3_INCREMENT = 2.5;
+
+/** T3 total sets per workout */
+export const T3_SETS = 3;
+
+/** T3 prescribed reps per set */
+export const T3_PRESCRIBED_REPS = 15;
 
 export function inc(exercise: string): number {
   return exercise === 'bench' || exercise === 'ohp' ? 2.5 : 5;

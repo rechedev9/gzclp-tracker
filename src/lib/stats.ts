@@ -1,4 +1,4 @@
-import { DAYS, TOTAL_WORKOUTS, inc } from './program';
+import { DAYS, TOTAL_WORKOUTS, T1_MAX_STAGE, T1_DELOAD_MULTIPLIER, inc } from './program';
 import type { StartWeights, Results, ChartDataPoint, ExerciseStats } from '@/types';
 
 const T1_EXERCISES = ['squat', 'bench', 'deadlift', 'ohp'] as const;
@@ -32,8 +32,8 @@ export function extractChartData(
     });
 
     if (res.t1 === 'fail') {
-      if (t1[t1ex].s >= 2) {
-        t1[t1ex].w = Math.round(t1[t1ex].w * 0.9 * 2) / 2;
+      if (t1[t1ex].s >= T1_MAX_STAGE) {
+        t1[t1ex].w = Math.round(t1[t1ex].w * T1_DELOAD_MULTIPLIER * 2) / 2;
         t1[t1ex].s = 0;
       } else {
         t1[t1ex].s += 1;

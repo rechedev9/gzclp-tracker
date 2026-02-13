@@ -1,5 +1,5 @@
 import { computeProgram } from './engine';
-import { NAMES, TOTAL_WORKOUTS, T1_STAGES } from './program';
+import { NAMES, TOTAL_WORKOUTS, T1_STAGES, T3_SETS, T3_PRESCRIBED_REPS } from './program';
 import type { StartWeights, Results, WorkoutRow } from '@/types';
 
 // ─── Types ──────────────────────────────────────────────────────────
@@ -131,14 +131,13 @@ function computeVolume(rows: readonly WorkoutRow[]): VolumeStats {
 
     // T3 volume — last set is AMRAP
     if (row.result.t3) {
-      const t3RegularSets = 3 - 1; // 3 sets total, last is AMRAP
-      const t3PrescribedReps = 15;
-      const t3RegularReps = t3RegularSets * t3PrescribedReps;
-      const t3AmrapReps = row.result.t3Reps ?? t3PrescribedReps;
+      const t3RegularSets = T3_SETS - 1; // last set is AMRAP
+      const t3RegularReps = t3RegularSets * T3_PRESCRIBED_REPS;
+      const t3AmrapReps = row.result.t3Reps ?? T3_PRESCRIBED_REPS;
       const t3Reps = t3RegularReps + t3AmrapReps;
 
       totalVolume += t3Reps * row.t3Weight;
-      totalSets += 3;
+      totalSets += T3_SETS;
       totalReps += t3Reps;
     }
   }

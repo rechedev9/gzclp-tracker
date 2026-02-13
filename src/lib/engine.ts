@@ -1,4 +1,16 @@
-import { DAYS, T1_STAGES, T2_STAGES, TOTAL_WORKOUTS, inc } from './program';
+import {
+  DAYS,
+  T1_STAGES,
+  T2_STAGES,
+  TOTAL_WORKOUTS,
+  T2_INITIAL_MULTIPLIER,
+  T1_DELOAD_MULTIPLIER,
+  T1_MAX_STAGE,
+  T2_MAX_STAGE,
+  T2_RESET_INCREMENT,
+  T3_INCREMENT,
+  inc,
+} from './program';
 import type { StartWeights, Results, WorkoutRow } from '@/types';
 
 function roundToNearestHalf(value: number): number {
@@ -16,10 +28,10 @@ export function computeProgram(startWeights: StartWeights, results: Results): Wo
   };
 
   const t2: Record<string, { w: number; s: number }> = {
-    squat: { w: roundToNearestHalf(startWeights.squat * 0.65), s: 0 },
-    bench: { w: roundToNearestHalf(startWeights.bench * 0.65), s: 0 },
-    deadlift: { w: roundToNearestHalf(startWeights.deadlift * 0.65), s: 0 },
-    ohp: { w: roundToNearestHalf(startWeights.ohp * 0.65), s: 0 },
+    squat: { w: roundToNearestHalf(startWeights.squat * T2_INITIAL_MULTIPLIER), s: 0 },
+    bench: { w: roundToNearestHalf(startWeights.bench * T2_INITIAL_MULTIPLIER), s: 0 },
+    deadlift: { w: roundToNearestHalf(startWeights.deadlift * T2_INITIAL_MULTIPLIER), s: 0 },
+    ohp: { w: roundToNearestHalf(startWeights.ohp * T2_INITIAL_MULTIPLIER), s: 0 },
   };
 
   const t3: Record<string, number> = {
@@ -79,8 +91,8 @@ export function computeProgram(startWeights: StartWeights, results: Results): Wo
     // T1 progression
     if (res.t1 === 'fail') {
       changed[t1ex] = true;
-      if (t1[t1ex].s >= 2) {
-        t1[t1ex].w = roundToNearestHalf(t1[t1ex].w * 0.9);
+      if (t1[t1ex].s >= T1_MAX_STAGE) {
+        t1[t1ex].w = roundToNearestHalf(t1[t1ex].w * T1_DELOAD_MULTIPLIER);
         t1[t1ex].s = 0;
       } else {
         t1[t1ex].s += 1;
@@ -92,8 +104,8 @@ export function computeProgram(startWeights: StartWeights, results: Results): Wo
     // T2 progression
     if (res.t2 === 'fail') {
       t2changed[t2ex] = true;
-      if (t2[t2ex].s >= 2) {
-        t2[t2ex].w += 15;
+      if (t2[t2ex].s >= T2_MAX_STAGE) {
+        t2[t2ex].w += T2_RESET_INCREMENT;
         t2[t2ex].s = 0;
       } else {
         t2[t2ex].s += 1;
@@ -104,7 +116,7 @@ export function computeProgram(startWeights: StartWeights, results: Results): Wo
 
     // T3 progression
     if (res.t3 === 'success') {
-      t3[t3ex] += 2.5;
+      t3[t3ex] += T3_INCREMENT;
     }
   }
 
