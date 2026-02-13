@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useCallback, useSyncExternalStore } from 'react';
+import { useSearchParams, useRouter } from 'next/navigation';
 import { loadInstanceMap, loadDataCompat } from '@/lib/storage-v2';
 import { Dashboard } from './dashboard';
 import { GZCLPApp } from './gzclp-app';
@@ -8,6 +9,8 @@ import { ProfilePage } from './profile-page';
 import type { ProgramInstanceMap } from '@/types/program';
 
 type View = 'dashboard' | 'tracker' | 'profile';
+
+const VALID_VIEWS = new Set<View>(['dashboard', 'tracker', 'profile']);
 
 interface ShellState {
   readonly view: View;
@@ -17,6 +20,13 @@ interface ShellState {
 const emptySubscribe = (): (() => void) => () => {};
 const returnTrue = (): boolean => true;
 const returnFalse = (): boolean => false;
+
+function parseViewParam(param: string | null): View {
+  if (param && VALID_VIEWS.has(param as View)) return param as View;
+  // Legacy: ?view=programs maps to dashboard
+  if (param === 'programs') return 'dashboard';
+  return 'dashboard';
+}
 
 function loadInstanceMapWithCompat(): ProgramInstanceMap | null {
   let map = loadInstanceMap();
@@ -33,31 +43,44 @@ function loadInstanceMapWithCompat(): ProgramInstanceMap | null {
 export function AppShell(): React.ReactNode {
   // useSyncExternalStore returns false on server, true on client — no hydration mismatch
   const isClient = useSyncExternalStore(emptySubscribe, returnTrue, returnFalse);
+  const searchParams = useSearchParams();
+  const router = useRouter();
 
   const [state, setState] = useState<ShellState>(() => ({
-    view: 'dashboard',
+    view: parseViewParam(searchParams.get('view')),
     instanceMap: isClient ? loadInstanceMapWithCompat() : null,
   }));
 
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars -- programId will route to different trackers in the future
-  const handleSelectProgram = useCallback((programId: string): void => {
-    // For now, only GZCLP is supported — GZCLPApp + useProgram handle setup.
-    setState((prev) => ({ ...prev, view: 'tracker' }));
-  }, []);
+  const setView = useCallback(
+    (view: View): void => {
+      setState((prev) => ({ ...prev, view }));
+      router.replace(view === 'dashboard' ? '/app' : `/app?view=${view}`, { scroll: false });
+    },
+    [router]
+  );
+
+  const handleSelectProgram = useCallback(
+    (_programId: string): void => {
+      // For now, only GZCLP is supported — programId will route to different trackers in the future
+      setView('tracker');
+    },
+    [setView]
+  );
 
   const handleContinueProgram = useCallback((): void => {
-    setState((prev) => ({ ...prev, view: 'tracker' }));
-  }, []);
+    setView('tracker');
+  }, [setView]);
 
   const handleBackToDashboard = useCallback((): void => {
     // Re-read storage for fresh progress data
     const map = loadInstanceMap();
     setState({ view: 'dashboard', instanceMap: map });
-  }, []);
+    router.replace('/app', { scroll: false });
+  }, [router]);
 
   const handleGoToProfile = useCallback((): void => {
-    setState((prev) => ({ ...prev, view: 'profile' }));
-  }, []);
+    setView('profile');
+  }, [setView]);
 
   if (state.view === 'profile') {
     return <ProfilePage onBack={handleBackToDashboard} />;
