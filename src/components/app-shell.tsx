@@ -82,12 +82,12 @@ export function AppShell(): React.ReactNode {
     setView('profile');
   }, [setView]);
 
-  if (state.view === 'profile') {
-    return <ProfilePage onBack={handleBackToDashboard} />;
-  }
+  let content: React.ReactNode;
 
-  if (state.view === 'dashboard') {
-    return (
+  if (state.view === 'profile') {
+    content = <ProfilePage onBack={handleBackToDashboard} />;
+  } else if (state.view === 'dashboard') {
+    content = (
       <Dashboard
         instanceMap={state.instanceMap}
         onSelectProgram={handleSelectProgram}
@@ -95,7 +95,15 @@ export function AppShell(): React.ReactNode {
         onGoToProfile={handleGoToProfile}
       />
     );
+  } else {
+    content = (
+      <GZCLPApp onBackToDashboard={handleBackToDashboard} onGoToProfile={handleGoToProfile} />
+    );
   }
 
-  return <GZCLPApp onBackToDashboard={handleBackToDashboard} onGoToProfile={handleGoToProfile} />;
+  return (
+    <div key={state.view} className="animate-[viewFadeIn_0.2s_ease-out]">
+      {content}
+    </div>
+  );
 }
