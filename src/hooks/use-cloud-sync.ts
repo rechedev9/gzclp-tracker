@@ -23,8 +23,8 @@ const SYNC_LOCK_NAME = 'gzclp-cloud-sync';
 
 /** Cross-tab mutex using Web Locks API. Skips if another tab holds the lock. */
 async function withSyncLock<T>(fn: () => Promise<T>): Promise<T | null> {
-  if (typeof navigator === 'undefined' || !navigator.locks) {
-    return fn(); // Fallback for SSR/old browsers
+  if (!navigator.locks) {
+    return fn(); // Fallback for old browsers without Web Locks
   }
   return navigator.locks.request(SYNC_LOCK_NAME, { ifAvailable: true }, async (lock) => {
     if (!lock) return null; // Another tab holds the lock — skip
@@ -69,6 +69,31 @@ export function useCloudSync({
   const initialSyncDone = useRef(false);
   const prevUserIdRef = useRef<string | null>(null);
   const isSyncingRef = useRef(false);
+
+  // Shared push logic used by debounced push and reconnect sync
+  const executePush = useCallback(async (): Promise<void> => {
+    if (isSyncingRef.current) return;
+    const supabase = getSupabaseClient();
+    if (!supabase || !user || !startWeights) return;
+
+    isSyncingRef.current = true;
+    setSyncStatus('syncing');
+    try {
+      const result: PushResult = await pushToCloud(supabase, user.id, {
+        startWeights,
+        results,
+        undoHistory,
+      });
+      if (result.success) {
+        setSyncStatus('synced');
+      } else if (!result.retryable) {
+        setSyncStatus('error');
+      }
+      // retryable errors (rate limit): stay 'syncing', next debounce will retry
+    } finally {
+      isSyncingRef.current = false;
+    }
+  }, [user, startWeights, results, undoHistory]);
 
   // Track online/offline
   useEffect(() => {
@@ -156,64 +181,19 @@ export function useCloudSync({
     if (debounceRef.current) clearTimeout(debounceRef.current);
 
     debounceRef.current = setTimeout(() => {
-      void withSyncLock(async () => {
-        if (isSyncingRef.current) return;
-        const supabase = getSupabaseClient();
-        if (!supabase) return;
-
-        isSyncingRef.current = true;
-        setSyncStatus('syncing');
-        try {
-          const result: PushResult = await pushToCloud(supabase, user.id, {
-            startWeights,
-            results,
-            undoHistory,
-          });
-          if (result.success) {
-            setSyncStatus('synced');
-          } else if (!result.retryable) {
-            setSyncStatus('error');
-          }
-          // retryable errors (rate limit): stay 'syncing', next debounce will retry
-        } finally {
-          isSyncingRef.current = false;
-        }
-      });
+      void withSyncLock(executePush);
     }, DEBOUNCE_MS);
 
     return (): void => {
       if (debounceRef.current) clearTimeout(debounceRef.current);
     };
-  }, [user, startWeights, results, undoHistory, isOnline]);
+  }, [user, startWeights, results, undoHistory, isOnline, executePush]);
 
   // Re-sync when coming back online
   useEffect(() => {
     if (!isOnline || !user || !startWeights || !initialSyncDone.current) return;
 
-    const supabase = getSupabaseClient();
-    if (!supabase) return;
-
-    const syncOnReconnect = async (): Promise<void> => {
-      if (isSyncingRef.current) return;
-      isSyncingRef.current = true;
-      try {
-        setSyncStatus('syncing');
-        const result = await pushToCloud(supabase, user.id, {
-          startWeights,
-          results,
-          undoHistory,
-        });
-        if (result.success) {
-          setSyncStatus('synced');
-        } else if (!result.retryable) {
-          setSyncStatus('error');
-        }
-      } finally {
-        isSyncingRef.current = false;
-      }
-    };
-
-    void withSyncLock(syncOnReconnect);
+    void withSyncLock(executePush);
   }, [isOnline]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const resolveConflict = useCallback(
