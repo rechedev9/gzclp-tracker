@@ -33,7 +33,14 @@ export function Toolbar({
     <div className="bg-[var(--bg-card)] border-b border-[var(--border-color)] px-3 sm:px-5 py-2 sm:py-3 shadow-[0_2px_8px_var(--shadow-toolbar)]">
       {/* Progress bar - always full width */}
       <div className="flex items-center gap-3 mb-2 sm:mb-0 sm:hidden">
-        <div className="flex-1 h-2 bg-[var(--bg-progress)] overflow-hidden">
+        <div
+          className="flex-1 h-2 bg-[var(--bg-progress)] overflow-hidden"
+          role="progressbar"
+          aria-valuenow={completedCount}
+          aria-valuemin={0}
+          aria-valuemax={totalWorkouts}
+          aria-label="Workout completion progress"
+        >
           <div
             className="h-full bg-[var(--fill-progress)] transition-[width] duration-300 ease-out"
             style={{ width: `${pct}%` }}
@@ -57,7 +64,14 @@ export function Toolbar({
 
         {/* Progress - desktop */}
         <div className="flex-1 hidden sm:flex items-center gap-3">
-          <div className="flex-1 h-2 bg-[var(--bg-progress)] overflow-hidden">
+          <div
+            className="flex-1 h-2 bg-[var(--bg-progress)] overflow-hidden"
+            role="progressbar"
+            aria-valuenow={completedCount}
+            aria-valuemin={0}
+            aria-valuemax={totalWorkouts}
+            aria-label="Workout completion progress"
+          >
             <div
               className="h-full bg-[var(--fill-progress)] transition-[width] duration-300 ease-out"
               style={{ width: `${pct}%` }}
