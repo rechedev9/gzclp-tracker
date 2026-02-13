@@ -253,7 +253,7 @@ export function LandingPage(): React.ReactNode {
   const activeSection = useScrollSpy(SECTION_IDS);
 
   return (
-    <div className="min-h-dvh bg-[var(--bg-body)] overflow-x-hidden">
+    <div className="min-h-dvh bg-[var(--bg-body)] overflow-x-clip">
       <a
         href="#main-content"
         className="sr-only focus:not-sr-only focus:absolute focus:z-50 focus:top-2 focus:left-2 focus:px-4 focus:py-2 focus:bg-[var(--btn-hover-bg)] focus:text-[var(--btn-hover-text)] focus:text-sm focus:font-bold"
