@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useCallback } from 'react';
 
 interface ConfirmDialogProps {
   open: boolean;
@@ -24,6 +24,7 @@ export function ConfirmDialog({
   onCancel,
 }: ConfirmDialogProps): React.ReactNode {
   const cancelRef = useRef<HTMLButtonElement>(null);
+  const confirmRef = useRef<HTMLButtonElement>(null);
 
   useEffect(() => {
     if (open) {
@@ -42,6 +43,25 @@ export function ConfirmDialog({
     };
   }, [open, onCancel]);
 
+  const handleDialogKeyDown = useCallback((e: React.KeyboardEvent<HTMLDivElement>): void => {
+    if (e.key !== 'Tab') return;
+    const focusable = [cancelRef.current, confirmRef.current].filter(
+      (el): el is HTMLButtonElement => el !== null
+    );
+    if (focusable.length < 2) return;
+
+    const first = focusable[0];
+    const last = focusable[focusable.length - 1];
+
+    if (e.shiftKey && document.activeElement === first) {
+      e.preventDefault();
+      last.focus();
+    } else if (!e.shiftKey && document.activeElement === last) {
+      e.preventDefault();
+      first.focus();
+    }
+  }, []);
+
   if (!open) return null;
 
   const dangerBtn =
@@ -57,16 +77,26 @@ export function ConfirmDialog({
       onClick={onCancel}
     >
       <div
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="confirm-dialog-title"
         className="bg-[var(--bg-card)] border border-[var(--border-color)] p-6 max-w-sm w-[calc(100%-2rem)] shadow-lg"
         onClick={(e) => e.stopPropagation()}
+        onKeyDown={handleDialogKeyDown}
       >
-        <h3 className="text-sm font-bold text-[var(--text-header)] mb-2">{title}</h3>
+        <h3 id="confirm-dialog-title" className="text-sm font-bold text-[var(--text-header)] mb-2">
+          {title}
+        </h3>
         <p className="text-xs text-[var(--text-muted)] mb-5 leading-relaxed">{message}</p>
         <div className="flex justify-end gap-3">
           <button ref={cancelRef} className={cancelBtnClass} onClick={onCancel}>
             {cancelLabel}
           </button>
-          <button className={variant === 'danger' ? dangerBtn : defaultBtn} onClick={onConfirm}>
+          <button
+            ref={confirmRef}
+            className={variant === 'danger' ? dangerBtn : defaultBtn}
+            onClick={onConfirm}
+          >
             {confirmLabel}
           </button>
         </div>
