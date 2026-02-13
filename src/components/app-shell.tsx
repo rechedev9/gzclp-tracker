@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useSyncExternalStore } from 'react';
 import { loadInstanceMap, loadDataCompat } from '@/lib/storage-v2';
 import { Dashboard } from './dashboard';
 import { GZCLPApp } from './gzclp-app';
@@ -14,11 +14,11 @@ interface ShellState {
   readonly instanceMap: ProgramInstanceMap | null;
 }
 
-function readInitialState(): ShellState {
-  if (typeof window === 'undefined') {
-    return { view: 'dashboard', instanceMap: null };
-  }
+const emptySubscribe = (): (() => void) => () => {};
+const returnTrue = (): boolean => true;
+const returnFalse = (): boolean => false;
 
+function loadInstanceMapWithCompat(): ProgramInstanceMap | null {
   let map = loadInstanceMap();
 
   // If no new-format data, try legacy migration
@@ -27,11 +27,17 @@ function readInitialState(): ShellState {
     map = loadInstanceMap(); // re-read after migration
   }
 
-  return { view: 'dashboard', instanceMap: map };
+  return map;
 }
 
 export function AppShell(): React.ReactNode {
-  const [state, setState] = useState<ShellState>(readInitialState);
+  // useSyncExternalStore returns false on server, true on client — no hydration mismatch
+  const isClient = useSyncExternalStore(emptySubscribe, returnTrue, returnFalse);
+
+  const [state, setState] = useState<ShellState>(() => ({
+    view: 'dashboard',
+    instanceMap: isClient ? loadInstanceMapWithCompat() : null,
+  }));
 
   // eslint-disable-next-line @typescript-eslint/no-unused-vars -- programId will route to different trackers in the future
   const handleSelectProgram = useCallback((programId: string): void => {
