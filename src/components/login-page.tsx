@@ -7,11 +7,9 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { useAuth } from '@/contexts/auth-context';
 import { sanitizeAuthError } from '@/lib/auth-errors';
 import { checkLeakedPassword } from '@/lib/password-check';
+import { useRateLimit } from '@/hooks/use-rate-limit';
 
 type AuthMode = 'sign-in' | 'sign-up';
-
-const MAX_ATTEMPTS = 5;
-const LOCKOUT_MS = 60_000;
 
 export function LoginPage(): React.ReactNode {
   const { user, signIn, signUp, signInWithGoogle } = useAuth();
@@ -25,8 +23,7 @@ export function LoginPage(): React.ReactNode {
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
-  const [attempts, setAttempts] = useState(0);
-  const [lockCountdown, setLockCountdown] = useState(0);
+  const { isLocked, lockCountdown, recordFailure, resetAttempts } = useRateLimit(5, 60_000);
   const emailRef = useRef<HTMLInputElement>(null);
 
   const switchMode = useCallback(
@@ -38,19 +35,6 @@ export function LoginPage(): React.ReactNode {
     },
     [router]
   );
-
-  // Decrement lockout countdown each second
-  useEffect(() => {
-    if (lockCountdown <= 0) return;
-    const timer = setTimeout(() => {
-      setLockCountdown((prev) => prev - 1);
-    }, 1000);
-    return (): void => {
-      clearTimeout(timer);
-    };
-  }, [lockCountdown]);
-
-  const isLocked = lockCountdown > 0;
 
   useEffect(() => {
     if (user) {
@@ -84,20 +68,12 @@ export function LoginPage(): React.ReactNode {
     setSubmitting(false);
 
     if (authError) {
-      const nextAttempts = attempts + 1;
-      setAttempts(nextAttempts);
-      if (nextAttempts >= MAX_ATTEMPTS) {
-        const lockSeconds = LOCKOUT_MS / 1000;
-        setLockCountdown(lockSeconds);
-        setAttempts(0);
-        setError(`Too many failed attempts. Try again in ${lockSeconds} seconds.`);
-      } else {
-        setError(sanitizeAuthError(authError.message));
-      }
+      const lockoutMessage = recordFailure();
+      setError(lockoutMessage ?? sanitizeAuthError(authError.message));
       return;
     }
 
-    setAttempts(0);
+    resetAttempts();
     if (mode === 'sign-up') {
       setSuccess('Check your email for a confirmation link.');
       return;
