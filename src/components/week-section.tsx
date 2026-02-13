@@ -73,8 +73,10 @@ export function WeekSection({
 
   return (
     <div className="mb-8 break-inside-avoid">
-      <div
-        className="bg-[var(--bg-header)] text-[var(--text-header)] px-5 py-3.5 text-[15px] font-bold flex justify-between items-center cursor-pointer select-none hover:opacity-90"
+      <button
+        type="button"
+        className="w-full bg-[var(--bg-header)] text-[var(--text-header)] px-5 py-3.5 text-[15px] font-bold flex justify-between items-center cursor-pointer select-none hover:opacity-90 border-none"
+        aria-expanded={!collapsed}
         onClick={() => setCollapsed(!collapsed)}
       >
         <span>
@@ -93,7 +95,7 @@ export function WeekSection({
         <span className="text-xs font-normal opacity-70">
           Workouts {startWo}&ndash;{endWo}
         </span>
-      </div>
+      </button>
 
       {!collapsed && (
         <LazyContent forceVisible={forceVisible}>
