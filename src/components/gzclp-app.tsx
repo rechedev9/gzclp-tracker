@@ -102,24 +102,26 @@ export function GZCLPApp({ onBackToDashboard, onGoToProfile }: GZCLPAppProps) {
 
   return (
     <>
-      <AppHeader
-        backLabel="Programs"
-        onBack={onBackToDashboard}
-        onGoToProfile={onGoToProfile}
-        syncStatus={syncStatus}
-        onSignOut={() => void handleSignOut()}
-      />
-
-      {startWeights && (
-        <Toolbar
-          completedCount={completedCount}
-          totalWorkouts={TOTAL_WORKOUTS}
-          undoCount={undoHistory.length}
-          onUndo={undoLast}
-          onJumpToCurrent={jumpToCurrent}
-          onReset={() => void handleReset()}
+      <div className="sticky top-0 z-50">
+        <AppHeader
+          backLabel="Programs"
+          onBack={onBackToDashboard}
+          onGoToProfile={onGoToProfile}
+          syncStatus={syncStatus}
+          onSignOut={() => void handleSignOut()}
         />
-      )}
+
+        {startWeights && (
+          <Toolbar
+            completedCount={completedCount}
+            totalWorkouts={TOTAL_WORKOUTS}
+            undoCount={undoHistory.length}
+            onUndo={undoLast}
+            onJumpToCurrent={jumpToCurrent}
+            onReset={() => void handleReset()}
+          />
+        )}
+      </div>
 
       <div className="max-w-[1300px] mx-auto px-5 pb-20">
         <SetupForm
