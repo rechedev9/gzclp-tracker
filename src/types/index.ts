@@ -13,11 +13,6 @@ export type ExportData = z.infer<typeof ExportDataSchema>;
 export type ResultValue = 'success' | 'fail';
 export type Tier = 't1' | 't2' | 't3';
 
-export interface TierState {
-  w: number;
-  s: number;
-}
-
 export interface WorkoutRow {
   index: number;
   dayName: string;
