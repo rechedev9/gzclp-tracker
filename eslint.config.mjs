@@ -39,6 +39,18 @@ const eslintConfig = defineConfig([
       ],
     },
   },
+  // E2E test files: same relaxed rules as unit tests
+  {
+    files: ['e2e/**/*.ts'],
+    rules: {
+      '@typescript-eslint/consistent-type-assertions': 'off',
+      '@typescript-eslint/no-non-null-assertion': 'off',
+      '@typescript-eslint/ban-ts-comment': [
+        'error',
+        { 'ts-ignore': true, 'ts-expect-error': false },
+      ],
+    },
+  },
 ]);
 
 export default eslintConfig;
