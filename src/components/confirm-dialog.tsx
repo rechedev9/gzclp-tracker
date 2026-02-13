@@ -5,7 +5,7 @@ import { useEffect, useRef, useCallback } from 'react';
 interface ConfirmDialogProps {
   open: boolean;
   title: string;
-  message: string;
+  message: React.ReactNode;
   confirmLabel?: string;
   cancelLabel?: string;
   variant?: 'danger' | 'default';
@@ -87,7 +87,7 @@ export function ConfirmDialog({
         <h3 id="confirm-dialog-title" className="text-sm font-bold text-[var(--text-header)] mb-2">
           {title}
         </h3>
-        <p className="text-xs text-[var(--text-muted)] mb-5 leading-relaxed">{message}</p>
+        <div className="text-xs text-[var(--text-muted)] mb-5 leading-relaxed">{message}</div>
         <div className="flex justify-end gap-3">
           <button ref={cancelRef} className={cancelBtnClass} onClick={onCancel}>
             {cancelLabel}

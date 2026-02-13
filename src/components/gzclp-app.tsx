@@ -1,13 +1,14 @@
 'use client';
 
 import { useState, useMemo, useCallback } from 'react';
-import type { Tier, ResultValue } from '@/types';
+import type { Tier, ResultValue, Results } from '@/types';
 import { useProgram } from '@/hooks/use-program';
 import { useCloudSync } from '@/hooks/use-cloud-sync';
 import { useAuth } from '@/contexts/auth-context';
 import { computeProgram } from '@/lib/engine';
 import { TOTAL_WORKOUTS, NAMES } from '@/lib/program';
 import { clearSyncMeta } from '@/lib/sync';
+import { createExportData } from '@/lib/storage-v2';
 import { useToast } from '@/contexts/toast-context';
 import { AppHeader } from './app-header';
 import { ToastContainer } from './toast';
@@ -125,6 +126,52 @@ export function GZCLPApp({ onBackToDashboard, onGoToProfile }: GZCLPAppProps) {
     }
     resetAll();
   }, [user, clearCloudData, resetAll]);
+
+  /** Count workouts with at least one tier result. */
+  const countWorkouts = useCallback((r: Results): number => {
+    return Object.keys(r).length;
+  }, []);
+
+  /** Auto-export a backup before discarding data during conflict resolution. */
+  const autoBackup = useCallback(
+    (label: string, data: { startWeights: typeof startWeights; results: Results }): void => {
+      if (!data.startWeights) return;
+      const exportData = createExportData({
+        startWeights: data.startWeights,
+        results: data.results,
+        undoHistory: [],
+      });
+      const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `gzclp-backup-${label}-${new Date().toISOString().slice(0, 10)}.json`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    },
+    []
+  );
+
+  const handleConflictResolve = useCallback(
+    (choice: 'local' | 'cloud'): void => {
+      // Auto-backup the version being discarded
+      if (choice === 'cloud' && startWeights) {
+        autoBackup('local', { startWeights, results });
+      } else if (choice === 'local' && conflict?.cloudData) {
+        autoBackup('cloud', {
+          startWeights: conflict.cloudData.startWeights,
+          results: conflict.cloudData.results,
+        });
+      }
+      resolveConflict(choice);
+    },
+    [startWeights, results, conflict, autoBackup, resolveConflict]
+  );
+
+  const localWorkoutCount = countWorkouts(results);
+  const cloudWorkoutCount = conflict ? countWorkouts(conflict.cloudData.results) : 0;
 
   return (
     <>
@@ -284,11 +331,28 @@ export function GZCLPApp({ onBackToDashboard, onGoToProfile }: GZCLPAppProps) {
       <ConfirmDialog
         open={conflict !== null}
         title="Data Conflict"
-        message="You have data on this device and in the cloud. Which version would you like to keep?"
+        message={
+          <>
+            <span>
+              Both this device and the cloud have different data. A backup of the discarded version
+              will be downloaded automatically.
+            </span>
+            <span className="flex gap-4 mt-3 text-[11px]">
+              <span className="flex-1 border border-[var(--border-color)] px-3 py-2 text-center">
+                <strong className="block mb-0.5">Local</strong>
+                {localWorkoutCount} workout{localWorkoutCount !== 1 ? 's' : ''} logged
+              </span>
+              <span className="flex-1 border border-[var(--border-color)] px-3 py-2 text-center">
+                <strong className="block mb-0.5">Cloud</strong>
+                {cloudWorkoutCount} workout{cloudWorkoutCount !== 1 ? 's' : ''} logged
+              </span>
+            </span>
+          </>
+        }
         confirmLabel="Use Cloud"
         cancelLabel="Keep Local"
-        onConfirm={() => resolveConflict('cloud')}
-        onCancel={() => resolveConflict('local')}
+        onConfirm={() => handleConflictResolve('cloud')}
+        onCancel={() => handleConflictResolve('local')}
       />
 
       <ToastContainer />
