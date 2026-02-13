@@ -6,10 +6,12 @@ import { useToast } from '@/contexts/toast-context';
 export function ToastContainer(): React.ReactNode {
   const { toasts, dismiss } = useToast();
 
-  if (toasts.length === 0) return null;
-
   return createPortal(
-    <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-[200] flex flex-col gap-2 items-center pointer-events-none">
+    <div
+      role="status"
+      aria-live="polite"
+      className="fixed bottom-6 left-1/2 -translate-x-1/2 z-[200] flex flex-col gap-2 items-center pointer-events-none"
+    >
       {toasts.map((t) => (
         <div
           key={t.id}
