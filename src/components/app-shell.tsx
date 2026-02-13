@@ -10,7 +10,7 @@ import type { ProgramInstanceMap } from '@/types/program';
 
 type View = 'dashboard' | 'tracker' | 'profile';
 
-const VALID_VIEWS = new Set<View>(['dashboard', 'tracker', 'profile']);
+const VALID_VIEWS: ReadonlySet<string> = new Set(['dashboard', 'tracker', 'profile']);
 
 interface ShellState {
   readonly view: View;
@@ -21,8 +21,12 @@ const emptySubscribe = (): (() => void) => () => {};
 const returnTrue = (): boolean => true;
 const returnFalse = (): boolean => false;
 
+function isView(value: string): value is View {
+  return VALID_VIEWS.has(value);
+}
+
 function parseViewParam(param: string | null): View {
-  if (param && VALID_VIEWS.has(param as View)) return param as View;
+  if (param && isView(param)) return param;
   // Legacy: ?view=programs maps to dashboard
   if (param === 'programs') return 'dashboard';
   return 'dashboard';

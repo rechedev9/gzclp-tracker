@@ -8,7 +8,7 @@ import type { RefObject } from 'react';
 export function useClickOutside(ref: RefObject<HTMLElement | null>, onClose: () => void): void {
   useEffect(() => {
     const handlePointer = (e: MouseEvent | TouchEvent): void => {
-      if (ref.current && !ref.current.contains(e.target as Node)) {
+      if (ref.current && e.target instanceof Node && !ref.current.contains(e.target)) {
         onClose();
       }
     };

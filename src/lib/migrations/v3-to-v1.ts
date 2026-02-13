@@ -42,6 +42,11 @@ function buildSlotTierMap(): Record<string, string> {
 
 const DAY_SLOT_MAP = buildDaySlotMap();
 const SLOT_TIER_MAP = buildSlotTierMap();
+const VALID_TIERS: ReadonlySet<string> = new Set(['t1', 't2', 't3']);
+
+function isTier(value: string): value is Tier {
+  return VALID_TIERS.has(value);
+}
 
 // ---------------------------------------------------------------------------
 // Conversion: old tier-keyed → new slot-keyed
@@ -110,20 +115,17 @@ export function convertResultsToLegacy(generic: GenericResults): Results {
     let hasData = false;
 
     for (const [slotId, slotResult] of Object.entries(slotResults)) {
-      const tier = SLOT_TIER_MAP[slotId];
-      if (!tier) continue;
+      const tierStr = SLOT_TIER_MAP[slotId];
+      if (!tierStr || !isTier(tierStr)) continue;
 
       if (slotResult.result !== undefined) {
-        if (tier === 't1') entry.t1 = slotResult.result;
-        else if (tier === 't2') entry.t2 = slotResult.result;
-        else if (tier === 't3') entry.t3 = slotResult.result;
+        entry[tierStr] = slotResult.result;
         hasData = true;
       }
-
-      if (slotResult.amrapReps !== undefined) {
-        if (tier === 't1') entry.t1Reps = slotResult.amrapReps;
-        else if (tier === 't3') entry.t3Reps = slotResult.amrapReps;
-      }
+      if (slotResult.amrapReps !== undefined && tierStr === 't1')
+        entry.t1Reps = slotResult.amrapReps;
+      if (slotResult.amrapReps !== undefined && tierStr === 't3')
+        entry.t3Reps = slotResult.amrapReps;
     }
 
     if (hasData) {
@@ -137,9 +139,9 @@ export function convertResultsToLegacy(generic: GenericResults): Results {
 export function convertUndoToLegacy(generic: GenericUndoHistory): UndoHistory {
   return generic
     .map((entry) => {
-      const tier = SLOT_TIER_MAP[entry.slotId];
-      if (!tier) return null;
-      return { i: entry.i, tier: tier as Tier, prev: entry.prev };
+      const tierStr = SLOT_TIER_MAP[entry.slotId];
+      if (!tierStr || !isTier(tierStr)) return null;
+      return { i: entry.i, tier: tierStr, prev: entry.prev };
     })
     .filter((e): e is NonNullable<typeof e> => e !== null);
 }
