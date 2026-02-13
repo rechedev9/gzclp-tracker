@@ -1,9 +1,9 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { useAuth } from '@/contexts/auth-context';
 import { sanitizeAuthError } from '@/lib/auth-errors';
 import { checkLeakedPassword } from '@/lib/password-check';
@@ -16,7 +16,10 @@ const LOCKOUT_MS = 60_000;
 export function LoginPage(): React.ReactNode {
   const { user, signIn, signUp, signInWithGoogle } = useAuth();
   const router = useRouter();
-  const [mode, setMode] = useState<AuthMode>('sign-in');
+  const searchParams = useSearchParams();
+  const [mode, setMode] = useState<AuthMode>(
+    searchParams.get('mode') === 'signup' ? 'sign-up' : 'sign-in'
+  );
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
@@ -25,6 +28,16 @@ export function LoginPage(): React.ReactNode {
   const [attempts, setAttempts] = useState(0);
   const [lockCountdown, setLockCountdown] = useState(0);
   const emailRef = useRef<HTMLInputElement>(null);
+
+  const switchMode = useCallback(
+    (next: AuthMode): void => {
+      setMode(next);
+      setError(null);
+      setSuccess(null);
+      router.replace(next === 'sign-up' ? '/login?mode=signup' : '/login', { scroll: false });
+    },
+    [router]
+  );
 
   // Decrement lockout countdown each second
   useEffect(() => {
@@ -255,11 +268,7 @@ export function LoginPage(): React.ReactNode {
                   Don&apos;t have an account?{' '}
                   <button
                     className="text-[var(--btn-text)] font-bold underline cursor-pointer bg-transparent border-none p-0"
-                    onClick={() => {
-                      setMode('sign-up');
-                      setError(null);
-                      setSuccess(null);
-                    }}
+                    onClick={() => switchMode('sign-up')}
                   >
                     Sign Up
                   </button>
@@ -269,11 +278,7 @@ export function LoginPage(): React.ReactNode {
                   Already have an account?{' '}
                   <button
                     className="text-[var(--btn-text)] font-bold underline cursor-pointer bg-transparent border-none p-0"
-                    onClick={() => {
-                      setMode('sign-in');
-                      setError(null);
-                      setSuccess(null);
-                    }}
+                    onClick={() => switchMode('sign-in')}
                   >
                     Sign In
                   </button>
