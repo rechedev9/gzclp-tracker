@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useCallback } from 'react';
+import { Button } from './button';
 import { ConfirmDialog } from './confirm-dialog';
 import { DropdownMenu, DropdownItem } from './dropdown-menu';
 
@@ -25,9 +26,6 @@ export function Toolbar({
   const [menuOpen, setMenuOpen] = useState(false);
   const closeMenu = useCallback((): void => setMenuOpen(false), []);
   const pct = Math.round((completedCount / totalWorkouts) * 100);
-
-  const btnClass =
-    'px-2 py-2 sm:px-3.5 sm:py-2.5 min-h-[44px] border-2 border-[var(--btn-border)] text-[10px] sm:text-xs font-bold cursor-pointer bg-[var(--btn-bg)] text-[var(--btn-text)] whitespace-nowrap transition-all hover:bg-[var(--btn-hover-bg)] hover:text-[var(--btn-hover-text)] disabled:opacity-25 disabled:cursor-not-allowed disabled:hover:bg-[var(--btn-bg)] disabled:hover:text-[var(--btn-text)]';
 
   return (
     <div className="bg-[var(--bg-card)] border-b border-[var(--border-color)] px-3 sm:px-5 py-2 sm:py-3 shadow-[0_2px_8px_var(--shadow-toolbar)]">
@@ -54,9 +52,9 @@ export function Toolbar({
       <div className="flex items-center gap-4 flex-wrap">
         {/* Left */}
         <div className="flex items-center gap-3 shrink-0">
-          <button className={btnClass} onClick={onUndo} disabled={undoCount === 0}>
+          <Button size="sm" onClick={onUndo} disabled={undoCount === 0}>
             Undo
-          </button>
+          </Button>
           {undoCount > 0 && (
             <span className="text-[11px] text-[var(--text-muted)]">{undoCount} undo</span>
           )}
@@ -84,21 +82,21 @@ export function Toolbar({
 
         {/* Right */}
         <div className="flex items-center gap-2.5 shrink-0">
-          <button className={btnClass} onClick={onJumpToCurrent}>
+          <Button size="sm" onClick={onJumpToCurrent}>
             Go to current
-          </button>
+          </Button>
 
           {/* Overflow menu */}
           <div className="relative">
-            <button
-              className={btnClass}
+            <Button
+              size="sm"
               onClick={() => setMenuOpen((prev) => !prev)}
               aria-label="More actions"
               aria-haspopup="true"
               aria-expanded={menuOpen}
             >
               &#8942;
-            </button>
+            </Button>
             <DropdownMenu open={menuOpen} onClose={closeMenu} align="right">
               <DropdownItem
                 variant="danger"

@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useRef, useCallback } from 'react';
+import { Button } from './button';
 
 interface ConfirmDialogProps {
   open: boolean;
@@ -64,13 +65,6 @@ export function ConfirmDialog({
 
   if (!open) return null;
 
-  const dangerBtn =
-    'px-4 py-2.5 min-h-[44px] text-xs font-bold cursor-pointer border-2 border-[var(--border-badge-no)] bg-[var(--bg-badge-no)] text-[var(--text-badge-no)] hover:bg-[var(--text-badge-no)] hover:text-[var(--bg-body)] transition-all';
-  const defaultBtn =
-    'px-4 py-2.5 min-h-[44px] text-xs font-bold cursor-pointer border-2 border-[var(--btn-border)] bg-[var(--btn-bg)] text-[var(--btn-text)] hover:bg-[var(--btn-hover-bg)] hover:text-[var(--btn-hover-text)] transition-all';
-  const cancelBtnClass =
-    'px-4 py-2.5 min-h-[44px] text-xs font-bold cursor-pointer border-2 border-[var(--border-color)] bg-[var(--bg-card)] text-[var(--text-muted)] hover:bg-[var(--bg-hover-row)] hover:text-[var(--text-main)] transition-all';
-
   return (
     <div
       className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60"
@@ -89,16 +83,16 @@ export function ConfirmDialog({
         </h3>
         <div className="text-xs text-[var(--text-muted)] mb-5 leading-relaxed">{message}</div>
         <div className="flex justify-end gap-3">
-          <button ref={cancelRef} className={cancelBtnClass} onClick={onCancel}>
+          <Button ref={cancelRef} variant="ghost" onClick={onCancel}>
             {cancelLabel}
-          </button>
-          <button
+          </Button>
+          <Button
             ref={confirmRef}
-            className={variant === 'danger' ? dangerBtn : defaultBtn}
+            variant={variant === 'danger' ? 'danger' : 'default'}
             onClick={onConfirm}
           >
             {confirmLabel}
-          </button>
+          </Button>
         </div>
       </div>
     </div>

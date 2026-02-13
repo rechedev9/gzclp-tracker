@@ -5,6 +5,7 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useAuth } from '@/contexts/auth-context';
+import { Button } from './button';
 import { sanitizeAuthError } from '@/lib/auth-errors';
 import { checkLeakedPassword } from '@/lib/password-check';
 import { useRateLimit } from '@/hooks/use-rate-limit';
@@ -90,8 +91,6 @@ export function LoginPage(): React.ReactNode {
 
   const inputClass =
     'w-full px-4 py-3 min-h-[48px] text-sm bg-[var(--bg-body)] border-2 border-[var(--border-color)] text-[var(--text-main)] placeholder:text-[var(--text-muted)] focus:border-[var(--btn-border)] focus:outline-none transition-colors';
-  const primaryBtn =
-    'w-full px-4 py-3 min-h-[48px] text-sm font-bold cursor-pointer border-2 border-[var(--btn-border)] bg-[var(--btn-hover-bg)] text-[var(--btn-hover-text)] hover:opacity-90 transition-all disabled:opacity-40 disabled:cursor-not-allowed';
   const googleBtn =
     'w-full px-4 py-3 min-h-[48px] text-sm font-bold cursor-pointer border-2 border-[var(--border-color)] bg-[var(--bg-card)] text-[var(--text-main)] hover:border-[var(--border-light)] hover:bg-[var(--bg-hover-row)] transition-all flex items-center justify-center gap-3';
 
@@ -226,7 +225,7 @@ export function LoginPage(): React.ReactNode {
                 </div>
               )}
 
-              <button type="submit" className={primaryBtn} disabled={submitting || isLocked}>
+              <Button type="submit" variant="primary" size="lg" disabled={submitting || isLocked}>
                 {isLocked
                   ? `Locked (${lockCountdown}s)`
                   : submitting
@@ -234,7 +233,7 @@ export function LoginPage(): React.ReactNode {
                     : mode === 'sign-in'
                       ? 'Sign In'
                       : 'Create Account'}
-              </button>
+              </Button>
             </form>
 
             {/* Toggle mode */}
