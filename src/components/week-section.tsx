@@ -60,7 +60,6 @@ export function WeekSection({
 }: WeekSectionProps) {
   const isDeload = week % 4 === 0;
   const weekDone = rows.every((r) => r.result.t1 && r.result.t2 && r.result.t3);
-  const [collapsed, setCollapsed] = useState(weekDone);
 
   const startWo = rows[0].index + 1;
   const endWo = rows[rows.length - 1].index + 1;
@@ -68,6 +67,9 @@ export function WeekSection({
   // Force-render current week and neighbors immediately
   const currentWeek = firstPendingIdx >= 0 ? Math.floor(firstPendingIdx / 3) + 1 : 1;
   const forceVisible = Math.abs(week - currentWeek) <= 1;
+
+  // Only expand current week and its neighbors; all others start collapsed
+  const [collapsed, setCollapsed] = useState(!forceVisible);
 
   return (
     <div className="mb-8 break-inside-avoid">
