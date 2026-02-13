@@ -63,6 +63,8 @@ export function AvatarDropdown({
         onClick={() => setOpen((prev) => !prev)}
         className="w-9 h-9 rounded-full bg-[var(--btn-hover-bg)] text-[var(--btn-hover-text)] text-sm font-extrabold cursor-pointer transition-opacity hover:opacity-80 flex items-center justify-center"
         aria-label="User menu"
+        aria-haspopup="true"
+        aria-expanded={open}
       >
         {initial}
       </button>

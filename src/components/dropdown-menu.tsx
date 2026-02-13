@@ -24,6 +24,7 @@ export function DropdownMenu({
   return (
     <div
       ref={ref}
+      role="menu"
       className={`absolute top-full mt-1.5 z-50 min-w-[180px] bg-[var(--bg-card)] border border-[var(--border-color)] shadow-lg py-1 ${
         align === 'right' ? 'right-0' : 'left-0'
       }`}
@@ -47,6 +48,7 @@ export function DropdownItem({
 }: DropdownItemProps): React.ReactNode {
   return (
     <button
+      role="menuitem"
       onClick={onClick}
       className={`w-full text-left px-4 py-2.5 text-xs font-bold cursor-pointer transition-colors ${
         variant === 'danger'
