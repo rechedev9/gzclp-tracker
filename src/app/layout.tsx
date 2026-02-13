@@ -1,4 +1,4 @@
-import type { Metadata } from 'next';
+import type { Metadata, Viewport } from 'next';
 import { Geist } from 'next/font/google';
 import { Providers } from '@/components/providers';
 import './globals.css';
@@ -10,11 +10,21 @@ const geistSans = Geist({
 
 const SITE_URL = 'https://hyperbolictimechamber.app';
 
+export const viewport: Viewport = {
+  width: 'device-width',
+  initialScale: 1,
+  themeColor: '#c8a84e',
+};
+
 export const metadata: Metadata = {
   title: 'The Real Hyperbolic Time Chamber',
   description:
     'Train smarter, progress faster. Science-backed training programs with automatic progression.',
   metadataBase: new URL(SITE_URL),
+  manifest: '/manifest.webmanifest',
+  icons: {
+    apple: '/logo.webp',
+  },
   alternates: { canonical: '/' },
   openGraph: {
     title: 'The Real Hyperbolic Time Chamber',
@@ -44,7 +54,7 @@ export default function RootLayout({
       <head>
         <meta
           httpEquiv="Content-Security-Policy"
-          content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; connect-src 'self' https://*.supabase.co; font-src 'self'; img-src 'self' data:; object-src 'none'; base-uri 'self'; form-action 'self'"
+          content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; connect-src 'self' https://*.supabase.co; font-src 'self'; img-src 'self' data:; object-src 'none'; base-uri 'self'; form-action 'self'; worker-src 'self'"
         />
         <script
           type="application/ld+json"
@@ -64,6 +74,11 @@ export default function RootLayout({
       </head>
       <body className={`${geistSans.variable} antialiased`}>
         <Providers>{children}</Providers>
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `if('serviceWorker' in navigator){window.addEventListener('load',function(){navigator.serviceWorker.register('/service-worker.js')})}`,
+          }}
+        />
       </body>
     </html>
   );
