@@ -17,6 +17,7 @@ import { WeekSection } from './week-section';
 import { StatsPanel } from './stats-panel';
 import { StageTag } from './stage-tag';
 import { ConfirmDialog } from './confirm-dialog';
+import { ErrorBoundary } from './error-boundary';
 
 interface GZCLPAppProps {
   readonly onBackToDashboard?: () => void;
@@ -259,7 +260,23 @@ export function GZCLPApp({ onBackToDashboard, onGoToProfile }: GZCLPAppProps) {
               </>
             )}
 
-            {activeTab === 'stats' && <StatsPanel startWeights={startWeights} results={results} />}
+            {activeTab === 'stats' && (
+              <ErrorBoundary
+                fallback={({ reset }) => (
+                  <div className="text-center py-16">
+                    <p className="text-[var(--text-muted)] mb-4">Stats could not be loaded.</p>
+                    <button
+                      onClick={reset}
+                      className="px-5 py-2 bg-[var(--fill-progress)] text-white font-bold cursor-pointer"
+                    >
+                      Retry
+                    </button>
+                  </div>
+                )}
+              >
+                <StatsPanel startWeights={startWeights} results={results} />
+              </ErrorBoundary>
+            )}
           </>
         )}
       </div>
