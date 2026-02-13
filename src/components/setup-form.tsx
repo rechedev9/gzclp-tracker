@@ -4,6 +4,7 @@ import { useState, useCallback } from 'react';
 import { StartWeightsSchema } from '@/lib/schemas';
 import type { StartWeights } from '@/types';
 import { ConfirmDialog } from './confirm-dialog';
+import { WeightField } from './weight-field';
 
 interface SetupFormProps {
   initialWeights?: StartWeights | null;
@@ -143,76 +144,21 @@ export function SetupForm({ initialWeights, onGenerate, onUpdateWeights }: Setup
       </p>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
-        {FIELDS.map((f) => {
-          const fieldError = touched[f.key] ? fieldErrors[f.key] : null;
-          const isValid = touched[f.key] && !fieldError;
-          const fieldId = `weight-${f.key}`;
-          const errorId = `${f.key}-error`;
-          return (
-            <div key={f.key}>
-              <label
-                htmlFor={fieldId}
-                className="block text-xs font-bold uppercase tracking-wide text-[var(--text-label)] mb-1.5"
-              >
-                {f.label}
-              </label>
-              <div className="flex items-stretch">
-                <button
-                  type="button"
-                  onClick={() => adjustWeight(f.key, -STEP)}
-                  className="px-2.5 border-2 border-r-0 border-[var(--border-color)] bg-[var(--bg-card)] text-[var(--btn-text)] text-lg font-bold cursor-pointer hover:bg-[var(--bg-hover-row)] transition-colors"
-                  aria-label={`Decrease ${f.label}`}
-                >
-                  &minus;
-                </button>
-                <input
-                  id={fieldId}
-                  type="number"
-                  inputMode="decimal"
-                  value={values[f.key]}
-                  onChange={(e) => handleChange(f.key, e.target.value)}
-                  onBlur={() => handleBlur(f.key, values[f.key])}
-                  onKeyDown={(e) => e.key === 'Enter' && handleSubmit()}
-                  step="any"
-                  min="2.5"
-                  max="500"
-                  aria-invalid={fieldError ? 'true' : undefined}
-                  aria-describedby={fieldError ? errorId : undefined}
-                  className={`flex-1 min-w-0 px-3 py-2.5 border-2 text-base font-semibold bg-[var(--bg-card)] text-[var(--text-main)] text-center focus:outline-none transition-colors ${
-                    fieldError
-                      ? 'border-[var(--border-error)] focus:border-[var(--border-error)]'
-                      : isValid
-                        ? 'border-[var(--border-badge-ok)] focus:border-[var(--border-badge-ok)]'
-                        : 'border-[var(--border-color)] focus:border-[var(--fill-progress)]'
-                  }`}
-                />
-                <button
-                  type="button"
-                  onClick={() => adjustWeight(f.key, STEP)}
-                  className="px-2.5 border-2 border-l-0 border-[var(--border-color)] bg-[var(--bg-card)] text-[var(--btn-text)] text-lg font-bold cursor-pointer hover:bg-[var(--bg-hover-row)] transition-colors"
-                  aria-label={`Increase ${f.label}`}
-                >
-                  +
-                </button>
-              </div>
-              {fieldError ? (
-                <p
-                  id={errorId}
-                  role="alert"
-                  className="flex items-center gap-1 text-[11px] font-bold text-[var(--text-error)] mt-1"
-                >
-                  <span aria-hidden="true">&#9888;</span> {fieldError}
-                </p>
-              ) : isValid ? (
-                <p className="flex items-center gap-1 text-[11px] font-bold text-[var(--text-badge-ok)] mt-1">
-                  <span aria-hidden="true">&#10003;</span> Valid
-                </p>
-              ) : (
-                <p className="text-[10px] text-[var(--text-muted)] mt-1">Min 2.5 kg</p>
-              )}
-            </div>
-          );
-        })}
+        {FIELDS.map((f) => (
+          <WeightField
+            key={f.key}
+            fieldKey={f.key}
+            label={f.label}
+            value={values[f.key]}
+            touched={!!touched[f.key]}
+            fieldError={touched[f.key] ? (fieldErrors[f.key] ?? null) : null}
+            step={STEP}
+            onChange={handleChange}
+            onBlur={handleBlur}
+            onAdjust={adjustWeight}
+            onSubmit={handleSubmit}
+          />
+        ))}
       </div>
 
       {error && (
