@@ -153,5 +153,12 @@ export function LineChart({ data, label }: LineChartProps) {
     }
   }, [data, label]);
 
-  return <canvas ref={canvasRef} className="w-full h-[200px]" />;
+  return (
+    <canvas
+      ref={canvasRef}
+      role="img"
+      aria-label={`${label} weight progression chart`}
+      className="w-full h-[200px]"
+    />
+  );
 }
