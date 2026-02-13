@@ -130,7 +130,12 @@ export function Dashboard({
           </h2>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             {presets.map((def) => (
-              <ProgramCard key={def.id} definition={def} onSelect={() => onSelectProgram(def.id)} />
+              <ProgramCard
+                key={def.id}
+                definition={def}
+                isActive={activeInstance?.programId === def.id}
+                onSelect={() => onSelectProgram(def.id)}
+              />
             ))}
             <ProgramCard
               definition={COMING_SOON_CARD}

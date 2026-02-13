@@ -6,6 +6,7 @@ interface ProgramCardProps {
   readonly definition: ProgramDefinition;
   readonly disabled?: boolean;
   readonly disabledLabel?: string;
+  readonly isActive?: boolean;
   readonly onSelect: () => void;
 }
 
@@ -19,6 +20,7 @@ export function ProgramCard({
   definition,
   disabled = false,
   disabledLabel = 'Coming Soon',
+  isActive = false,
   onSelect,
 }: ProgramCardProps): React.ReactNode {
   const categoryLabel = CATEGORY_LABELS[definition.category] ?? definition.category;
@@ -53,9 +55,13 @@ export function ProgramCard({
       <button
         onClick={onSelect}
         disabled={disabled}
-        className="mt-auto px-4 py-2.5 text-xs font-bold border-2 border-[var(--btn-border)] bg-[var(--btn-bg)] text-[var(--btn-text)] cursor-pointer transition-all hover:bg-[var(--btn-hover-bg)] hover:text-[var(--btn-hover-text)] disabled:opacity-30 disabled:cursor-not-allowed disabled:hover:bg-[var(--btn-bg)] disabled:hover:text-[var(--btn-text)]"
+        className={`mt-auto px-4 py-2.5 text-xs font-bold border-2 cursor-pointer transition-all disabled:opacity-30 disabled:cursor-not-allowed ${
+          isActive
+            ? 'border-[var(--btn-border)] bg-[var(--btn-hover-bg)] text-[var(--btn-hover-text)] hover:opacity-90'
+            : 'border-[var(--btn-border)] bg-[var(--btn-bg)] text-[var(--btn-text)] hover:bg-[var(--btn-hover-bg)] hover:text-[var(--btn-hover-text)] disabled:hover:bg-[var(--btn-bg)] disabled:hover:text-[var(--btn-text)]'
+        }`}
       >
-        {disabled ? disabledLabel : 'Start Program'}
+        {disabled ? disabledLabel : isActive ? 'Continue Training' : 'Start Program'}
       </button>
     </div>
   );
