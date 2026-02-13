@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
+import { FEATURES, STEPS, METRICS, PERSONAS } from '@/lib/landing-page-data';
 
 function useFadeInOnScroll(): React.RefCallback<HTMLElement> {
   const observer = useRef<IntersectionObserver | null>(null);
@@ -77,167 +78,7 @@ const SECTION_IDS = ['features', 'how-it-works', 'programs'] as const;
 const NAV_LINKS = [
   { label: 'Features', href: '#features' },
   { label: 'How It Works', href: '#how-it-works' },
-  { label: "Who It's For", href: '#programs' },
-] as const;
-
-/* ── Data ──────────────────────────────────────── */
-
-const FEATURES = [
-  {
-    icon: (
-      <svg
-        width="36"
-        height="36"
-        viewBox="0 0 24 24"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="1.5"
-      >
-        <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z" strokeLinecap="round" strokeLinejoin="round" />
-      </svg>
-    ),
-    title: 'Smart Progression',
-    desc: 'The app decides when to add weight and how to handle failure. You just show up and lift.',
-  },
-  {
-    icon: (
-      <svg
-        width="36"
-        height="36"
-        viewBox="0 0 24 24"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="1.5"
-      >
-        <rect x="3" y="4" width="18" height="18" rx="2" strokeLinecap="round" />
-        <path d="M16 2v4M8 2v4M3 10h18" strokeLinecap="round" />
-      </svg>
-    ),
-    title: 'Proven Programs',
-    desc: 'Science-backed training programs with structured periodization. New programs added regularly.',
-  },
-  {
-    icon: (
-      <svg
-        width="36"
-        height="36"
-        viewBox="0 0 24 24"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="1.5"
-      >
-        <path d="M22 12h-4l-3 9L9 3l-3 9H2" strokeLinecap="round" strokeLinejoin="round" />
-      </svg>
-    ),
-    title: 'Stats & Charts',
-    desc: 'See your strength curve over time. Real data, not guesswork.',
-  },
-  {
-    icon: (
-      <svg
-        width="36"
-        height="36"
-        viewBox="0 0 24 24"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="1.5"
-      >
-        <path
-          d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-        />
-      </svg>
-    ),
-    title: 'Offline First',
-    desc: 'Works without internet. Your data stays on your device. Optional cloud sync if you want it.',
-  },
-] as const;
-
-const STEPS = [
-  {
-    num: '01',
-    title: 'Set Your Weights',
-    desc: 'Enter your starting weights for each lift. The program builds your entire 90-workout plan instantly.',
-    quote: '"I\'ll surpass my limits right here, right now."',
-    source: '— Goku, entering the Hyperbolic Time Chamber',
-  },
-  {
-    num: '02',
-    title: 'Follow the Program',
-    desc: 'Each workout tells you exactly what to do — exercise, sets, reps, weight. No guessing.',
-    quote: '"A year in here is only a day outside. Let\'s make every second count."',
-    source: '— Vegeta, Hyperbolic Time Chamber',
-  },
-  {
-    num: '03',
-    title: 'Progress Automatically',
-    desc: 'Hit your reps and weight goes up. Miss and the program adapts — adjusting volume to keep you moving.',
-    quote: '"The real training begins when you push past what you think is your limit."',
-    source: '— Goku, training Gohan',
-  },
-] as const;
-
-const METRICS = [
-  { value: '90', label: 'Workouts Planned', suffix: '' },
-  { value: '6', label: 'Core Lifts Tracked', suffix: '' },
-  { value: '3', label: 'Tier System', suffix: 'tiers' },
-] as const;
-
-const PERSONAS = [
-  {
-    icon: (
-      <svg
-        width="32"
-        height="32"
-        viewBox="0 0 24 24"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="1.5"
-      >
-        <path d="M12 2a10 10 0 1 0 10 10" strokeLinecap="round" />
-        <path d="M12 6v6l4 2" strokeLinecap="round" strokeLinejoin="round" />
-      </svg>
-    ),
-    title: 'Beginners',
-    desc: 'No experience needed. The program tells you exactly what to do every session — just follow along.',
-  },
-  {
-    icon: (
-      <svg
-        width="32"
-        height="32"
-        viewBox="0 0 24 24"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="1.5"
-      >
-        <path d="M6 18L18 6M8 6h10v10" strokeLinecap="round" strokeLinejoin="round" />
-      </svg>
-    ),
-    title: 'Intermediate Lifters',
-    desc: 'Break through plateaus with structured periodization. The tier system adapts when you stall.',
-  },
-  {
-    icon: (
-      <svg
-        width="32"
-        height="32"
-        viewBox="0 0 24 24"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="1.5"
-      >
-        <path
-          d="M9 12l2 2 4-4M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0z"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-        />
-      </svg>
-    ),
-    title: 'Program Hoppers',
-    desc: 'Stop jumping between programs. Stick with one proven system and watch the numbers climb.',
-  },
+  { label: 'Programs', href: '#programs' },
 ] as const;
 
 /* ── Gradient Divider ──────────────────────────── */
@@ -253,7 +94,7 @@ export function LandingPage(): React.ReactNode {
   const activeSection = useScrollSpy(SECTION_IDS);
 
   return (
-    <div className="min-h-dvh bg-[var(--bg-body)] overflow-x-clip">
+    <div className="min-h-dvh bg-[var(--bg-body)] overflow-x-hidden">
       <a
         href="#main-content"
         className="sr-only focus:not-sr-only focus:absolute focus:z-50 focus:top-2 focus:left-2 focus:px-4 focus:py-2 focus:bg-[var(--btn-hover-bg)] focus:text-[var(--btn-hover-text)] focus:text-sm focus:font-bold"
