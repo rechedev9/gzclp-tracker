@@ -1,5 +1,6 @@
 'use client';
 
+import { memo, useCallback } from 'react';
 import { NAMES } from '@/lib/program';
 import type { WorkoutRow as WorkoutRowType, Tier, ResultValue } from '@/types';
 import { StageTag } from './stage-tag';
@@ -42,7 +43,7 @@ function TierSection({
   onSetAmrapReps?: (reps: number | undefined) => void;
   onMark: (index: number, tier: Tier, value: ResultValue) => void;
   onUndo: (index: number, tier: Tier) => void;
-}) {
+}): React.ReactNode {
   return (
     <div className="py-2 border-b border-[var(--border-light)] last:border-b-0">
       <div className="flex items-center justify-between gap-2">
@@ -86,7 +87,33 @@ function TierSection({
   );
 }
 
-export function WorkoutRowCard({
+function areRowCardsEqual(prev: WorkoutRowCardProps, next: WorkoutRowCardProps): boolean {
+  if (prev.isCurrent !== next.isCurrent) return false;
+
+  const p = prev.row;
+  const n = next.row;
+
+  return (
+    p.index === n.index &&
+    p.t1Weight === n.t1Weight &&
+    p.t1Stage === n.t1Stage &&
+    p.t1Sets === n.t1Sets &&
+    p.t1Reps === n.t1Reps &&
+    p.t2Weight === n.t2Weight &&
+    p.t2Stage === n.t2Stage &&
+    p.t2Sets === n.t2Sets &&
+    p.t2Reps === n.t2Reps &&
+    p.t3Weight === n.t3Weight &&
+    p.isChanged === n.isChanged &&
+    p.result.t1 === n.result.t1 &&
+    p.result.t2 === n.result.t2 &&
+    p.result.t3 === n.result.t3 &&
+    p.result.t1Reps === n.result.t1Reps &&
+    p.result.t3Reps === n.result.t3Reps
+  );
+}
+
+export const WorkoutRowCard = memo(function WorkoutRowCard({
   row,
   isCurrent,
   onMark,
@@ -94,6 +121,16 @@ export function WorkoutRowCard({
   onUndo,
 }: WorkoutRowCardProps) {
   const allDone = row.result.t1 && row.result.t2 && row.result.t3;
+
+  const handleT1AmrapChange = useCallback(
+    (reps: number | undefined) => onSetAmrapReps(row.index, 't1Reps', reps),
+    [onSetAmrapReps, row.index]
+  );
+
+  const handleT3AmrapChange = useCallback(
+    (reps: number | undefined) => onSetAmrapReps(row.index, 't3Reps', reps),
+    [onSetAmrapReps, row.index]
+  );
 
   return (
     <div
@@ -121,7 +158,7 @@ export function WorkoutRowCard({
           tier="t1"
           result={row.result.t1}
           amrapReps={row.result.t1Reps}
-          onSetAmrapReps={(reps) => onSetAmrapReps(row.index, 't1Reps', reps)}
+          onSetAmrapReps={handleT1AmrapChange}
           onMark={onMark}
           onUndo={onUndo}
         />
@@ -152,11 +189,11 @@ export function WorkoutRowCard({
           tier="t3"
           result={row.result.t3}
           amrapReps={row.result.t3Reps}
-          onSetAmrapReps={(reps) => onSetAmrapReps(row.index, 't3Reps', reps)}
+          onSetAmrapReps={handleT3AmrapChange}
           onMark={onMark}
           onUndo={onUndo}
         />
       </div>
     </div>
   );
-}
+}, areRowCardsEqual);

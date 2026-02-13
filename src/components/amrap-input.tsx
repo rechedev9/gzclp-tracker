@@ -1,12 +1,14 @@
 'use client';
 
+import { memo } from 'react';
+
 interface AmrapInputProps {
   readonly value: number | undefined;
   readonly onChange: (reps: number | undefined) => void;
   readonly variant?: 'table' | 'card';
 }
 
-export function AmrapInput({
+export const AmrapInput = memo(function AmrapInput({
   value,
   onChange,
   variant = 'table',
@@ -29,4 +31,4 @@ export function AmrapInput({
       title="AMRAP reps"
     />
   );
-}
+});

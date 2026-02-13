@@ -1,5 +1,6 @@
 'use client';
 
+import { memo, useCallback } from 'react';
 import { NAMES } from '@/lib/program';
 import type { WorkoutRow as WorkoutRowType, Tier, ResultValue } from '@/types';
 import { StageTag } from './stage-tag';
@@ -14,8 +15,50 @@ interface WorkoutRowProps {
   onUndo: (index: number, tier: Tier) => void;
 }
 
-export function WorkoutRow({ row, isCurrent, onMark, onSetAmrapReps, onUndo }: WorkoutRowProps) {
+function areRowsEqual(prev: WorkoutRowProps, next: WorkoutRowProps): boolean {
+  if (prev.isCurrent !== next.isCurrent) return false;
+
+  const p = prev.row;
+  const n = next.row;
+
+  return (
+    p.index === n.index &&
+    p.t1Weight === n.t1Weight &&
+    p.t1Stage === n.t1Stage &&
+    p.t1Sets === n.t1Sets &&
+    p.t1Reps === n.t1Reps &&
+    p.t2Weight === n.t2Weight &&
+    p.t2Stage === n.t2Stage &&
+    p.t2Sets === n.t2Sets &&
+    p.t2Reps === n.t2Reps &&
+    p.t3Weight === n.t3Weight &&
+    p.isChanged === n.isChanged &&
+    p.result.t1 === n.result.t1 &&
+    p.result.t2 === n.result.t2 &&
+    p.result.t3 === n.result.t3 &&
+    p.result.t1Reps === n.result.t1Reps &&
+    p.result.t3Reps === n.result.t3Reps
+  );
+}
+
+export const WorkoutRow = memo(function WorkoutRow({
+  row,
+  isCurrent,
+  onMark,
+  onSetAmrapReps,
+  onUndo,
+}: WorkoutRowProps) {
   const allDone = row.result.t1 && row.result.t2 && row.result.t3;
+
+  const handleT1AmrapChange = useCallback(
+    (reps: number | undefined) => onSetAmrapReps(row.index, 't1Reps', reps),
+    [onSetAmrapReps, row.index]
+  );
+
+  const handleT3AmrapChange = useCallback(
+    (reps: number | undefined) => onSetAmrapReps(row.index, 't3Reps', reps),
+    [onSetAmrapReps, row.index]
+  );
 
   const rowClasses = [
     'transition-colors',
@@ -70,10 +113,7 @@ export function WorkoutRow({ row, isCurrent, onMark, onSetAmrapReps, onUndo }: W
         {row.result.t1 && (
           <div className="mt-1 flex items-center justify-center gap-1">
             <span className="text-[10px] text-[var(--text-muted)]">AMRAP</span>
-            <AmrapInput
-              value={row.result.t1Reps}
-              onChange={(reps) => onSetAmrapReps(row.index, 't1Reps', reps)}
-            />
+            <AmrapInput value={row.result.t1Reps} onChange={handleT1AmrapChange} />
           </div>
         )}
       </td>
@@ -136,13 +176,10 @@ export function WorkoutRow({ row, isCurrent, onMark, onSetAmrapReps, onUndo }: W
         {row.result.t3 && (
           <div className="mt-1 flex items-center justify-center gap-1">
             <span className="text-[10px] text-[var(--text-muted)]">AMRAP</span>
-            <AmrapInput
-              value={row.result.t3Reps}
-              onChange={(reps) => onSetAmrapReps(row.index, 't3Reps', reps)}
-            />
+            <AmrapInput value={row.result.t3Reps} onChange={handleT3AmrapChange} />
           </div>
         )}
       </td>
     </tr>
   );
-}
+}, areRowsEqual);

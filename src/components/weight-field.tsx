@@ -1,5 +1,7 @@
 'use client';
 
+import { memo } from 'react';
+
 interface WeightFieldProps {
   readonly fieldKey: string;
   readonly label: string;
@@ -13,7 +15,7 @@ interface WeightFieldProps {
   readonly onSubmit: () => void;
 }
 
-export function WeightField({
+export const WeightField = memo(function WeightField({
   fieldKey,
   label,
   value,
@@ -93,4 +95,4 @@ export function WeightField({
       )}
     </div>
   );
-}
+});

@@ -1,5 +1,7 @@
 'use client';
 
+import { memo } from 'react';
+
 const STAGE_STYLES = [
   'bg-[var(--stage-s1)] text-white border-[var(--stage-s1)]',
   'bg-[var(--stage-s2)] text-black border-[var(--stage-s2)]',
@@ -13,7 +15,10 @@ interface StageTagProps {
   size?: 'sm' | 'md';
 }
 
-export function StageTag({ stage, size = 'sm' }: StageTagProps): React.ReactNode {
+export const StageTag = memo(function StageTag({
+  stage,
+  size = 'sm',
+}: StageTagProps): React.ReactNode {
   const idx = Math.min(stage, 2);
   const cls = STAGE_STYLES[idx];
   const label = STAGE_LABELS[idx];
@@ -29,4 +34,4 @@ export function StageTag({ stage, size = 'sm' }: StageTagProps): React.ReactNode
       S{stage + 1}
     </span>
   );
-}
+});

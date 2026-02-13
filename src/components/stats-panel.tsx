@@ -1,5 +1,6 @@
 'use client';
 
+import { memo, useMemo } from 'react';
 import { NAMES } from '@/lib/program';
 import { extractChartData, calculateStats, T1_EXERCISES } from '@/lib/stats';
 import { LineChart } from './line-chart';
@@ -10,8 +11,8 @@ interface StatsPanelProps {
   results: Results;
 }
 
-export function StatsPanel({ startWeights, results }: StatsPanelProps) {
-  const chartData = extractChartData(startWeights, results);
+export const StatsPanel = memo(function StatsPanel({ startWeights, results }: StatsPanelProps) {
+  const chartData = useMemo(() => extractChartData(startWeights, results), [startWeights, results]);
   const hasAnyResults = T1_EXERCISES.some((ex) => chartData[ex].some((d) => d.result !== null));
 
   if (!hasAnyResults) {
@@ -59,4 +60,4 @@ export function StatsPanel({ startWeights, results }: StatsPanelProps) {
       </div>
     </div>
   );
-}
+});

@@ -1,6 +1,6 @@
 'use client';
 
-import { useRef, useEffect } from 'react';
+import { memo, useRef, useEffect } from 'react';
 import type { ChartDataPoint } from '@/types';
 
 interface LineChartProps {
@@ -8,7 +8,7 @@ interface LineChartProps {
   label: string;
 }
 
-export function LineChart({ data, label }: LineChartProps) {
+export const LineChart = memo(function LineChart({ data, label }: LineChartProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
   useEffect(() => {
@@ -161,4 +161,4 @@ export function LineChart({ data, label }: LineChartProps) {
       className="w-full h-[200px]"
     />
   );
-}
+});

@@ -1,5 +1,6 @@
 'use client';
 
+import { memo } from 'react';
 import type { Tier, ResultValue } from '@/types';
 
 interface ResultCellProps {
@@ -11,7 +12,7 @@ interface ResultCellProps {
   readonly onUndo: (index: number, tier: Tier) => void;
 }
 
-export function ResultCell({
+export const ResultCell = memo(function ResultCell({
   index,
   tier,
   result,
@@ -70,4 +71,4 @@ export function ResultCell({
       </button>
     </div>
   );
-}
+});
