@@ -1,13 +1,11 @@
 'use client';
 
-import { useEffect, useRef, useCallback, useState } from 'react';
+import { useEffect, useReducer, useRef, useCallback } from 'react';
 import type { User } from '@supabase/supabase-js';
 import { getSupabaseClient } from '@/lib/supabase';
 import { type StoredData, validateStoredData } from '@/lib/storage';
 import {
   type SyncStatus,
-  type InitialSyncResult,
-  type PushResult,
   fetchCloudData,
   pushToCloud,
   deleteCloudData,
@@ -17,18 +15,44 @@ import {
   markSynced,
   clearSyncMeta,
 } from '@/lib/sync';
+import {
+  type SyncState,
+  type ConflictState,
+  syncReducer,
+  deriveSyncStatus,
+  deriveConflict,
+  INITIAL_SYNC_STATE,
+  DEBOUNCE_MS,
+  SYNC_TIMEOUT_MS,
+  MAX_RETRIES,
+  retryDelay,
+} from '@/lib/sync-machine';
 
-const DEBOUNCE_MS = 2000;
 const SYNC_LOCK_NAME = 'gzclp-cloud-sync';
 
-/** Cross-tab mutex using Web Locks API. Skips if another tab holds the lock. */
+/** Cross-tab mutex using Web Locks API. Returns null if another tab holds the lock. */
 async function withSyncLock<T>(fn: () => Promise<T>): Promise<T | null> {
-  if (!navigator.locks) {
-    return fn(); // Fallback for old browsers without Web Locks
-  }
+  if (!navigator.locks) return fn();
   return navigator.locks.request(SYNC_LOCK_NAME, { ifAvailable: true }, async (lock) => {
-    if (!lock) return null; // Another tab holds the lock — skip
+    if (!lock) return null;
     return fn();
+  });
+}
+
+/** Races a promise against a timeout. Rejects with Error('TIMEOUT') on expiry. */
+function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T> {
+  return new Promise<T>((resolve, reject) => {
+    const timer = setTimeout(() => reject(new Error('TIMEOUT')), ms);
+    promise.then(
+      (val) => {
+        clearTimeout(timer);
+        resolve(val);
+      },
+      (err: unknown) => {
+        clearTimeout(timer);
+        reject(err);
+      }
+    );
   });
 }
 
@@ -47,11 +71,6 @@ interface UseCloudSyncReturn {
   readonly clearCloudData: () => Promise<void>;
 }
 
-interface ConflictState {
-  readonly cloudData: StoredData;
-  readonly cloudUpdatedAt: string;
-}
-
 export function useCloudSync({
   user,
   startWeights,
@@ -59,46 +78,26 @@ export function useCloudSync({
   undoHistory,
   onCloudDataReceived,
 }: UseCloudSyncOptions): UseCloudSyncReturn {
-  const [syncStatus, setSyncStatus] = useState<SyncStatus>('idle');
-  const [conflict, setConflict] = useState<ConflictState | null>(null);
-  const [isOnline, setIsOnline] = useState(() =>
-    typeof window !== 'undefined' ? navigator.onLine : true
+  const [state, dispatch] = useReducer(
+    syncReducer,
+    undefined,
+    (): SyncState => ({
+      ...INITIAL_SYNC_STATE,
+      isOnline: typeof navigator !== 'undefined' ? navigator.onLine : true,
+    })
   );
 
-  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const initialSyncDone = useRef(false);
-  const prevUserIdRef = useRef<string | null>(null);
-  const isSyncingRef = useRef(false);
-
-  // Shared push logic used by debounced push and reconnect sync
-  const executePush = useCallback(async (): Promise<void> => {
-    if (isSyncingRef.current) return;
-    const supabase = getSupabaseClient();
-    if (!supabase || !user || !startWeights) return;
-
-    isSyncingRef.current = true;
-    setSyncStatus('syncing');
-    try {
-      const result: PushResult = await pushToCloud(supabase, user.id, {
-        startWeights,
-        results,
-        undoHistory,
-      });
-      if (result.success) {
-        setSyncStatus('synced');
-      } else if (!result.retryable) {
-        setSyncStatus('error');
-      }
-      // retryable errors (rate limit): stay 'syncing', next debounce will retry
-    } finally {
-      isSyncingRef.current = false;
-    }
-  }, [user, startWeights, results, undoHistory]);
-
-  // Track online/offline
+  const stateRef = useRef(state);
   useEffect(() => {
-    const goOnline = (): void => setIsOnline(true);
-    const goOffline = (): void => setIsOnline(false);
+    stateRef.current = state;
+  });
+
+  const abortRef = useRef<AbortController | null>(null);
+
+  // --- Online / offline listener ---
+  useEffect(() => {
+    const goOnline = (): void => dispatch({ type: 'WENT_ONLINE' });
+    const goOffline = (): void => dispatch({ type: 'WENT_OFFLINE' });
     window.addEventListener('online', goOnline);
     window.addEventListener('offline', goOffline);
     return (): void => {
@@ -107,132 +106,167 @@ export function useCloudSync({
     };
   }, []);
 
-  // Initial sync on login
+  // --- User change detection (aborts in-flight sync on switch — bug fix #2) ---
   useEffect(() => {
-    if (!user) {
-      initialSyncDone.current = false;
-      prevUserIdRef.current = null;
-      return;
-    }
+    abortRef.current?.abort();
+    abortRef.current = null;
+    dispatch({ type: 'USER_CHANGED', userId: user?.id ?? null });
+  }, [user?.id]);
 
-    if (prevUserIdRef.current === user.id && initialSyncDone.current) return;
-    prevUserIdRef.current = user.id;
-
-    const supabase = getSupabaseClient();
-    if (!supabase || !isOnline) return;
-
-    const runInitialSync = async (): Promise<void> => {
-      if (isSyncingRef.current) return;
-      isSyncingRef.current = true;
-      try {
-        setSyncStatus('syncing');
-
-        const cloudResult = await fetchCloudData(supabase, user.id);
-        const localData: StoredData | null =
-          startWeights !== null ? { startWeights, results, undoHistory } : null;
-        const syncMeta = loadSyncMeta();
-
-        const decision: InitialSyncResult = determineInitialSync(localData, cloudResult, syncMeta);
-
-        switch (decision.action) {
-          case 'push':
-            if (localData) {
-              const pushResult = await pushToCloud(supabase, user.id, localData);
-              setSyncStatus(pushResult.success ? 'synced' : 'error');
-            } else {
-              setSyncStatus('synced');
-            }
-            break;
-
-          case 'pull':
-            onCloudDataReceived(decision.data);
-            markSynced();
-            setSyncStatus('synced');
-            break;
-
-          case 'conflict':
-            setConflict({
-              cloudData: decision.cloudData,
-              cloudUpdatedAt: decision.cloudUpdatedAt,
-            });
-            setSyncStatus('idle');
-            break;
-
-          case 'none':
-            setSyncStatus('synced');
-            break;
-        }
-
-        initialSyncDone.current = true;
-      } finally {
-        isSyncingRef.current = false;
-      }
-    };
-
-    void withSyncLock(runInitialSync);
-  }, [user, isOnline]); // eslint-disable-line react-hooks/exhaustive-deps
-
-  // Debounced push on data change
+  // --- Data change detection ---
   useEffect(() => {
-    if (!user || !startWeights || !initialSyncDone.current || !isOnline) return;
-
+    if (!state.initialSyncDone || !user || !startWeights) return;
     markLocalUpdated();
+    dispatch({ type: 'DATA_CHANGED' });
+  }, [state.initialSyncDone, user, startWeights, results, undoHistory]);
 
-    if (debounceRef.current) clearTimeout(debounceRef.current);
-
-    debounceRef.current = setTimeout(() => {
-      void withSyncLock(executePush);
-    }, DEBOUNCE_MS);
-
-    return (): void => {
-      if (debounceRef.current) clearTimeout(debounceRef.current);
-    };
-  }, [user, startWeights, results, undoHistory, isOnline, executePush]);
-
-  // Re-sync when coming back online
+  // --- Effect: initial sync when phase becomes 'initial-sync' ---
   useEffect(() => {
-    if (!isOnline || !user || !startWeights || !initialSyncDone.current) return;
+    if (state.phase.tag !== 'initial-sync' || !state.userId) return;
 
-    void withSyncLock(executePush);
-  }, [isOnline]); // eslint-disable-line react-hooks/exhaustive-deps
+    const abort = new AbortController();
+    abortRef.current = abort;
+    const userId = state.userId;
 
-  const resolveConflict = useCallback(
-    (choice: 'local' | 'cloud') => {
-      if (!conflict || !user) return;
-
+    const run = async (): Promise<void> => {
       const supabase = getSupabaseClient();
-      if (!supabase) return;
+      if (!supabase) {
+        dispatch({ type: 'INITIAL_SYNC_ERROR' });
+        return;
+      }
 
-      if (choice === 'cloud') {
-        const validated = validateStoredData(conflict.cloudData);
-        if (!validated) {
-          setSyncStatus('error');
-          setConflict(null);
+      try {
+        const decision = await withSyncLock(async () => {
+          const cloudResult = await withTimeout(fetchCloudData(supabase, userId), SYNC_TIMEOUT_MS);
+          if (abort.signal.aborted) return null;
+
+          const localData: StoredData | null =
+            startWeights !== null ? { startWeights, results, undoHistory } : null;
+          const syncMeta = loadSyncMeta();
+          return determineInitialSync(localData, cloudResult, syncMeta);
+        });
+
+        if (abort.signal.aborted) return;
+
+        if (decision === null) {
+          dispatch({ type: 'INITIAL_SYNC_ERROR' });
           return;
         }
-        onCloudDataReceived(validated);
-        markSynced();
-        setSyncStatus('synced');
-      } else {
-        if (startWeights) {
-          setSyncStatus('syncing');
-          void pushToCloud(supabase, user.id, { startWeights, results, undoHistory }).then(
-            (result: PushResult) => {
-              if (result.success) {
-                setSyncStatus('synced');
-              } else if (!result.retryable) {
-                setSyncStatus('error');
-              }
-            }
-          );
+
+        if (decision.action === 'pull') {
+          onCloudDataReceived(decision.data);
+          markSynced();
+        }
+
+        dispatch({ type: 'INITIAL_SYNC_RESULT', result: decision });
+      } catch {
+        if (!abort.signal.aborted) {
+          dispatch({ type: 'INITIAL_SYNC_ERROR' });
         }
       }
+    };
 
-      setConflict(null);
+    void run();
+    return (): void => {
+      abort.abort();
+    };
+  }, [state.phase.tag, state.userId]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // --- Effect: push when phase becomes 'pushing' ---
+  useEffect(() => {
+    if (state.phase.tag !== 'pushing' || !state.userId) return;
+
+    const abort = new AbortController();
+    abortRef.current = abort;
+    const userId = state.userId;
+    const currentStartWeights = startWeights;
+    const currentResults = results;
+    const currentUndoHistory = undoHistory;
+
+    const run = async (): Promise<void> => {
+      const supabase = getSupabaseClient();
+      if (!supabase || !currentStartWeights) {
+        dispatch({ type: 'PUSH_ERROR', retryable: false });
+        return;
+      }
+
+      try {
+        const pushResult = await withSyncLock(async () =>
+          withTimeout(
+            pushToCloud(supabase, userId, {
+              startWeights: currentStartWeights,
+              results: currentResults,
+              undoHistory: currentUndoHistory,
+            }),
+            SYNC_TIMEOUT_MS
+          )
+        );
+
+        if (abort.signal.aborted) return;
+
+        if (pushResult === null) {
+          dispatch({ type: 'PUSH_ERROR', retryable: true });
+          return;
+        }
+
+        if (pushResult.success) {
+          dispatch({ type: 'PUSH_SUCCESS' });
+        } else {
+          dispatch({ type: 'PUSH_ERROR', retryable: pushResult.retryable });
+        }
+      } catch {
+        if (!abort.signal.aborted) {
+          dispatch({ type: 'PUSH_ERROR', retryable: true });
+        }
+      }
+    };
+
+    void run();
+    return (): void => {
+      abort.abort();
+    };
+  }, [state.phase.tag, state.userId]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // --- Effect: debounce timer (resets on data change via deps) ---
+  useEffect(() => {
+    if (state.phase.tag !== 'debouncing') return;
+    const timer = setTimeout(() => dispatch({ type: 'DEBOUNCE_ELAPSED' }), DEBOUNCE_MS);
+    return (): void => {
+      clearTimeout(timer);
+    };
+  }, [state.phase.tag, startWeights, results, undoHistory]);
+
+  // --- Effect: retry timer with exponential backoff (bug fix #3) ---
+  useEffect(() => {
+    if (state.phase.tag !== 'error') return;
+    if (!state.phase.retryable || state.retryCount > MAX_RETRIES) return;
+
+    const delay = retryDelay(state.retryCount - 1);
+    const timer = setTimeout(() => dispatch({ type: 'RETRY' }), delay);
+    return (): void => {
+      clearTimeout(timer);
+    };
+  }, [state.phase.tag, state.retryCount]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // --- Conflict resolution ---
+  const resolveConflict = useCallback(
+    (choice: 'local' | 'cloud'): void => {
+      const currentState = stateRef.current;
+      if (currentState.phase.tag !== 'conflict' || !user) return;
+
+      if (choice === 'cloud') {
+        const validated = validateStoredData(currentState.phase.cloudData);
+        if (!validated) return;
+        onCloudDataReceived(validated);
+        markSynced();
+      }
+
+      dispatch({ type: 'CONFLICT_RESOLVED', choice });
     },
-    [conflict, user, startWeights, results, undoHistory, onCloudDataReceived]
+    [user, onCloudDataReceived]
   );
 
+  // --- Clear cloud data (independent of state machine) ---
   const clearCloudData = useCallback(async (): Promise<void> => {
     if (!user) return;
     const supabase = getSupabaseClient();
@@ -241,7 +275,10 @@ export function useCloudSync({
     clearSyncMeta();
   }, [user]);
 
-  const effectiveStatus: SyncStatus = !user ? 'idle' : !isOnline ? 'offline' : syncStatus;
-
-  return { syncStatus: effectiveStatus, conflict, resolveConflict, clearCloudData };
+  return {
+    syncStatus: deriveSyncStatus(state),
+    conflict: deriveConflict(state),
+    resolveConflict,
+    clearCloudData,
+  };
 }
