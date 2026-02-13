@@ -55,9 +55,18 @@ schemas.ts (Zod v4) → types/index.ts (z.infer<>) → engine.ts (pure computati
 
 - **`src/hooks/use-program.ts`** — Central state hook: start weights, results, undo history. Auto-persists to localStorage. Uses `useSyncExternalStore` to avoid hydration mismatch.
 
+### Error boundaries
+
+Two-tier strategy for crash recovery:
+
+- **Root boundary** (`providers.tsx`) — wraps the entire provider tree. Static fallback with page reload. Catches fatal provider/auth crashes.
+- **Stats boundary** (`gzclp-app.tsx`) — wraps `<StatsPanel>` (includes canvas charts). Render-function fallback with retry. Isolates stats/chart failures so the workout tracker stays functional.
+- Reusable component: **`src/components/error-boundary.tsx`** — class component (required by React API). Accepts `fallback: ReactNode | ((props: { error, reset }) => ReactNode)`.
+- When adding new isolated feature panels, wrap them with a granular `<ErrorBoundary>`.
+
 ### Component tree
 
-`RootLayout` → `Providers` (AuthProvider) → `GzclpApp` (setup vs. tracker routing) → workout rows, toolbar, stats panel, etc.
+`RootLayout` → `Providers` (ErrorBoundary + AuthProvider) → `GzclpApp` (setup vs. tracker routing) → workout rows, toolbar, stats panel, etc.
 
 ## Key domain concepts
 
