@@ -1,77 +1,10 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { FEATURES, STEPS, METRICS, PERSONAS } from '@/lib/landing-page-data';
-
-function useFadeInOnScroll(): React.RefCallback<HTMLElement> {
-  const observer = useRef<IntersectionObserver | null>(null);
-
-  const getObserver = (): IntersectionObserver => {
-    if (!observer.current) {
-      observer.current = new IntersectionObserver(
-        (entries) => {
-          for (const entry of entries) {
-            if (entry.isIntersecting) {
-              entry.target.classList.add('landing-visible');
-              observer.current?.unobserve(entry.target);
-            }
-          }
-        },
-        { threshold: 0.1, rootMargin: '0px 0px -20px 0px' }
-      );
-    }
-    return observer.current;
-  };
-
-  useEffect(() => {
-    if (window.location.hash) {
-      const sections = document.querySelectorAll('.landing-fade-in');
-      for (const section of sections) {
-        section.classList.add('landing-visible');
-      }
-    }
-
-    return (): void => {
-      observer.current?.disconnect();
-    };
-  }, []);
-
-  return (el: HTMLElement | null): void => {
-    if (el) {
-      getObserver().observe(el);
-    }
-  };
-}
-
-function useScrollSpy(sectionIds: readonly string[]): string | null {
-  const [activeId, setActiveId] = useState<string | null>(null);
-
-  useEffect(() => {
-    const observer = new IntersectionObserver(
-      (entries) => {
-        for (const entry of entries) {
-          if (entry.isIntersecting) {
-            setActiveId(entry.target.id);
-          }
-        }
-      },
-      { rootMargin: '-20% 0px -75% 0px', threshold: 0 }
-    );
-
-    for (const id of sectionIds) {
-      const el = document.getElementById(id);
-      if (el) observer.observe(el);
-    }
-
-    return (): void => {
-      observer.disconnect();
-    };
-  }, [sectionIds]);
-
-  return activeId;
-}
+import { useFadeInOnScroll } from '@/hooks/use-fade-in-on-scroll';
+import { useScrollSpy } from '@/hooks/use-scroll-spy';
 
 const SECTION_IDS = ['features', 'how-it-works', 'programs'] as const;
 
