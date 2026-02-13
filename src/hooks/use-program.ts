@@ -11,6 +11,8 @@ import {
   type StoredData,
 } from '@/lib/storage-v2';
 
+const MAX_UNDO_HISTORY = 50;
+
 function removeTierResult(results: Results, index: number, tier: Tier): Results {
   const updated = { ...results };
   if (updated[index]) {
@@ -82,7 +84,9 @@ export function useProgram(): UseProgramReturn {
 
   const markResult = useCallback(
     (index: number, tier: Tier, value: ResultValue) => {
-      setUndoHistory((prev) => [...prev, { i: index, tier, prev: results[index]?.[tier] }]);
+      setUndoHistory((prev) =>
+        [...prev, { i: index, tier, prev: results[index]?.[tier] }].slice(-MAX_UNDO_HISTORY)
+      );
       setResults((prev) => ({
         ...prev,
         [index]: { ...prev[index], [tier]: value },
@@ -111,7 +115,9 @@ export function useProgram(): UseProgramReturn {
       const currentValue = results[index]?.[tier];
       if (!currentValue) return;
 
-      setUndoHistory((prev) => [...prev, { i: index, tier, prev: currentValue }]);
+      setUndoHistory((prev) =>
+        [...prev, { i: index, tier, prev: currentValue }].slice(-MAX_UNDO_HISTORY)
+      );
       setResults((prev) => removeTierResult(prev, index, tier));
     },
     [results]
