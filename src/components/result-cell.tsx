@@ -28,6 +28,7 @@ export function ResultCell({
     return (
       <button
         onClick={() => onUndo(index, tier)}
+        aria-label={`Undo ${tier} ${isSuccess ? 'success' : 'fail'}`}
         className={`px-3${variant === 'table' ? '.5' : ''} py-1${variant === 'table' ? '.5' : ''} text-[13px] font-extrabold cursor-pointer border-3 rounded-sm ${badgeColor} ${
           variant === 'table'
             ? 'group relative inline-block transition-transform hover:scale-110'
@@ -55,12 +56,14 @@ export function ResultCell({
     <div className={`flex ${isCard ? 'gap-2.5' : 'gap-1 justify-center'}`}>
       <button
         onClick={() => onMark(index, tier, 'success')}
+        aria-label={`Mark ${tier} success`}
         className={`${isCard ? 'min-w-[48px] min-h-[48px] px-3 py-2 text-base' : 'px-3.5 py-2 text-sm'} font-extrabold border-2 border-[var(--border-badge-ok)] bg-transparent text-[var(--text-badge-ok)] rounded-sm cursor-pointer transition-all hover:bg-[var(--bg-badge-ok)]`}
       >
         &#10003;
       </button>
       <button
         onClick={() => onMark(index, tier, 'fail')}
+        aria-label={`Mark ${tier} fail`}
         className={`${isCard ? 'min-w-[48px] min-h-[48px] px-3 py-2 text-base' : 'px-3.5 py-2 text-sm'} font-extrabold border-2 border-[var(--border-badge-no)] bg-transparent text-[var(--text-badge-no)] rounded-sm cursor-pointer transition-all hover:bg-[var(--bg-badge-no)]`}
       >
         &#10007;
