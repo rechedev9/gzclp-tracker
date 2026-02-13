@@ -1,13 +1,16 @@
 'use client';
 
 import { useState, useMemo, useCallback } from 'react';
+import type { Tier, ResultValue } from '@/types';
 import { useProgram } from '@/hooks/use-program';
 import { useCloudSync } from '@/hooks/use-cloud-sync';
 import { useAuth } from '@/contexts/auth-context';
 import { computeProgram } from '@/lib/engine';
-import { TOTAL_WORKOUTS } from '@/lib/program';
+import { TOTAL_WORKOUTS, NAMES } from '@/lib/program';
 import { clearSyncMeta } from '@/lib/sync';
+import { useToast } from '@/contexts/toast-context';
 import { AppHeader } from './app-header';
+import { ToastContainer } from './toast';
 import { SetupForm } from './setup-form';
 import { Toolbar } from './toolbar';
 import { WeekSection } from './week-section';
@@ -45,6 +48,8 @@ export function GZCLPApp({ onBackToDashboard, onGoToProfile }: GZCLPAppProps) {
     onCloudDataReceived: loadFromCloud,
   });
 
+  const { toast } = useToast();
+
   const [activeTab, setActiveTab] = useState<'program' | 'stats'>('program');
 
   const rows = useMemo(
@@ -73,6 +78,26 @@ export function GZCLPApp({ onBackToDashboard, onGoToProfile }: GZCLPAppProps) {
     }
     return result;
   }, [rows]);
+
+  const handleMarkResult = useCallback(
+    (index: number, tier: Tier, value: ResultValue): void => {
+      markResult(index, tier, value);
+      const row = rows[index];
+      if (!row) return;
+      const exerciseKey =
+        tier === 't1' ? row.t1Exercise : tier === 't2' ? row.t2Exercise : row.t3Exercise;
+      const tierLabel = tier.toUpperCase();
+      const resultLabel = value === 'success' ? 'Success' : 'Fail';
+      toast({
+        message: `#${index + 1}: ${NAMES[exerciseKey]} ${tierLabel} — ${resultLabel}`,
+        action: {
+          label: 'Undo',
+          onClick: () => undoSpecific(index, tier),
+        },
+      });
+    },
+    [markResult, rows, toast, undoSpecific]
+  );
 
   const jumpToCurrent = useCallback(() => {
     const el = document.querySelector('[data-current-row]');
@@ -226,7 +251,7 @@ export function GZCLPApp({ onBackToDashboard, onGoToProfile }: GZCLPAppProps) {
                     week={week}
                     rows={weekRows}
                     firstPendingIdx={firstPendingIdx}
-                    onMark={markResult}
+                    onMark={handleMarkResult}
                     onSetAmrapReps={setAmrapReps}
                     onUndo={undoSpecific}
                   />
@@ -248,6 +273,8 @@ export function GZCLPApp({ onBackToDashboard, onGoToProfile }: GZCLPAppProps) {
         onConfirm={() => resolveConflict('cloud')}
         onCancel={() => resolveConflict('local')}
       />
+
+      <ToastContainer />
     </>
   );
 }

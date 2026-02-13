@@ -59,6 +59,18 @@
   animation: highlight-pulse 1s ease-out 2;
 }
 
+/* ── Toast animation ─────────────────────────── */
+@keyframes fadeSlideUp {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
 /* ── Landing page animations ──────────────────── */
 @keyframes landing-fade-up {
   from {
