@@ -26,6 +26,8 @@ export const T2_STAGES = [
   { sets: 3, reps: 6 },
 ] as const;
 
+export const T1_EXERCISES = ['squat', 'bench', 'deadlift', 'ohp'] as const;
+
 export const TOTAL_WORKOUTS = 90;
 
 /** T2 starting weight = T1 starting weight × this multiplier */

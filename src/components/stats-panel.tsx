@@ -12,6 +12,18 @@ interface StatsPanelProps {
 
 export function StatsPanel({ startWeights, results }: StatsPanelProps) {
   const chartData = extractChartData(startWeights, results);
+  const hasAnyResults = T1_EXERCISES.some((ex) => chartData[ex].some((d) => d.result !== null));
+
+  if (!hasAnyResults) {
+    return (
+      <div className="text-center py-16">
+        <p className="text-sm font-bold text-[var(--text-muted)] mb-2">No data yet</p>
+        <p className="text-xs text-[var(--text-muted)]">
+          Complete your first workout to see stats and charts.
+        </p>
+      </div>
+    );
+  }
 
   return (
     <div>

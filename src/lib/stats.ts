@@ -1,7 +1,12 @@
-import { DAYS, TOTAL_WORKOUTS, T1_MAX_STAGE, T1_DELOAD_MULTIPLIER, inc } from './program';
+import {
+  DAYS,
+  TOTAL_WORKOUTS,
+  T1_MAX_STAGE,
+  T1_DELOAD_MULTIPLIER,
+  T1_EXERCISES,
+  inc,
+} from './program';
 import type { StartWeights, Results, ChartDataPoint, ExerciseStats } from '@/types';
-
-const T1_EXERCISES = ['squat', 'bench', 'deadlift', 'ohp'] as const;
 
 export function extractChartData(
   startWeights: StartWeights,
@@ -50,18 +55,19 @@ export function calculateStats(data: ChartDataPoint[]): ExerciseStats {
   const marked = data.filter((d) => d.result !== null);
   const successes = marked.filter((d) => d.result === 'success');
   const fails = marked.filter((d) => d.result === 'fail');
-  const last = data.length > 0 ? data[data.length - 1] : null;
   const first = data.length > 0 ? data[0] : null;
+  // Use last marked point for actual stats, not the last projected point
+  const lastMarked = marked.length > 0 ? marked[marked.length - 1] : null;
 
   return {
     total: marked.length,
     successes: successes.length,
     fails: fails.length,
     rate: marked.length > 0 ? Math.round((successes.length / marked.length) * 100) : 0,
-    currentWeight: last ? last.weight : 0,
+    currentWeight: lastMarked ? lastMarked.weight : first ? first.weight : 0,
     startWeight: first ? first.weight : 0,
-    gained: last && first ? +(last.weight - first.weight).toFixed(1) : 0,
-    currentStage: last ? last.stage : 1,
+    gained: lastMarked && first ? +(lastMarked.weight - first.weight).toFixed(1) : 0,
+    currentStage: lastMarked ? lastMarked.stage : 1,
   };
 }
 

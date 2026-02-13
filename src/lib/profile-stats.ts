@@ -1,5 +1,12 @@
 import { computeProgram } from './engine';
-import { NAMES, TOTAL_WORKOUTS, T1_STAGES, T3_SETS, T3_PRESCRIBED_REPS } from './program';
+import {
+  NAMES,
+  TOTAL_WORKOUTS,
+  T1_STAGES,
+  T1_EXERCISES,
+  T3_SETS,
+  T3_PRESCRIBED_REPS,
+} from './program';
 import type { StartWeights, Results, WorkoutRow } from '@/types';
 
 // ─── Types ──────────────────────────────────────────────────────────
@@ -36,10 +43,6 @@ export interface ProfileData {
   readonly volume: VolumeStats;
   readonly completion: CompletionStats;
 }
-
-// ─── Constants ──────────────────────────────────────────────────────
-
-const T1_EXERCISES = ['squat', 'bench', 'deadlift', 'ohp'] as const;
 
 // ─── Sub-computations ───────────────────────────────────────────────
 
