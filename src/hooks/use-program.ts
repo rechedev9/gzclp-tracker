@@ -11,9 +11,19 @@ import {
   type StoredData,
 } from '@/lib/storage-v2';
 
-const emptySubscribe = (): (() => void) => () => {};
-const returnTrue = (): boolean => true;
-const returnFalse = (): boolean => false;
+function removeTierResult(results: Results, index: number, tier: Tier): Results {
+  const updated = { ...results };
+  if (updated[index]) {
+    const entry = { ...updated[index] };
+    delete entry[tier];
+    if (Object.keys(entry).length === 0) {
+      delete updated[index];
+    } else {
+      updated[index] = entry;
+    }
+  }
+  return updated;
+}
 
 interface UseProgramReturn {
   startWeights: StartWeights | null;
@@ -33,7 +43,11 @@ interface UseProgramReturn {
 
 export function useProgram(): UseProgramReturn {
   // useSyncExternalStore returns false on server, true on client — no hydration mismatch
-  const isClient = useSyncExternalStore(emptySubscribe, returnTrue, returnFalse);
+  const isClient = useSyncExternalStore(
+    () => () => {},
+    () => true,
+    () => false
+  );
 
   const [startWeights, setStartWeights] = useState<StartWeights | null>(() =>
     isClient ? (loadData()?.startWeights ?? null) : null
@@ -98,19 +112,7 @@ export function useProgram(): UseProgramReturn {
       if (!currentValue) return;
 
       setUndoHistory((prev) => [...prev, { i: index, tier, prev: currentValue }]);
-      setResults((prev) => {
-        const updated = { ...prev };
-        if (updated[index]) {
-          const entry = { ...updated[index] };
-          delete entry[tier];
-          if (Object.keys(entry).length === 0) {
-            delete updated[index];
-          } else {
-            updated[index] = entry;
-          }
-        }
-        return updated;
-      });
+      setResults((prev) => removeTierResult(prev, index, tier));
     },
     [results]
   );
@@ -122,27 +124,17 @@ export function useProgram(): UseProgramReturn {
     setUndoHistory((prev) => prev.slice(0, -1));
 
     setResults((prev) => {
-      const updated = { ...prev };
       if (lastEntry.prev === undefined) {
-        // Remove the result
-        if (updated[lastEntry.i]) {
-          const entry = { ...updated[lastEntry.i] };
-          const tier: Tier = lastEntry.tier;
-          delete entry[tier];
-          if (Object.keys(entry).length === 0) {
-            delete updated[lastEntry.i];
-          } else {
-            updated[lastEntry.i] = entry;
-          }
-        }
-      } else {
-        // Restore the previous value
-        updated[lastEntry.i] = {
-          ...updated[lastEntry.i],
-          [lastEntry.tier]: lastEntry.prev,
-        };
+        return removeTierResult(prev, lastEntry.i, lastEntry.tier);
       }
-      return updated;
+      // Restore the previous value
+      return {
+        ...prev,
+        [lastEntry.i]: {
+          ...prev[lastEntry.i],
+          [lastEntry.tier]: lastEntry.prev,
+        },
+      };
     });
   }, [undoHistory]);
 
@@ -153,7 +145,7 @@ export function useProgram(): UseProgramReturn {
     clearData();
   }, []);
 
-  const exportDataFn = useCallback(() => {
+  const exportData = useCallback(() => {
     if (!startWeights) return;
     const data = createExportData({ results, startWeights, undoHistory });
     const blob = new Blob([JSON.stringify(data, null, 2)], {
@@ -169,7 +161,7 @@ export function useProgram(): UseProgramReturn {
     URL.revokeObjectURL(url);
   }, [results, startWeights, undoHistory]);
 
-  const importDataFn = useCallback((json: string): boolean => {
+  const importData = useCallback((json: string): boolean => {
     const data = parseImportData(json);
     if (!data) return false;
     setStartWeights(data.startWeights);
@@ -195,8 +187,8 @@ export function useProgram(): UseProgramReturn {
     undoSpecific,
     undoLast,
     resetAll,
-    exportData: exportDataFn,
-    importData: importDataFn,
+    exportData,
+    importData,
     loadFromCloud,
   };
 }
