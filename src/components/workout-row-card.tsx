@@ -96,7 +96,10 @@ function TierSection({
           <div className="text-[11px] font-bold uppercase text-[var(--text-muted)]">{label}</div>
           <div className="text-[13px] font-bold truncate">{exercise}</div>
         </div>
-        <div className="text-center shrink-0">
+        <div
+          className="text-center shrink-0"
+          title={tier === 't3' ? 'T3 weight increases when AMRAP set reaches 25+ reps' : undefined}
+        >
           <div className="text-[15px] font-extrabold tabular-nums">{weight} kg</div>
           <div className="text-[12px] font-semibold text-[var(--text-muted)]">
             {scheme}

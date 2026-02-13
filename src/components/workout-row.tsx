@@ -165,7 +165,10 @@ export function WorkoutRow({ row, isCurrent, onMark, onSetAmrapReps, onUndo }: W
       <td className="border border-[var(--border-light)] px-2 py-3 text-left align-middle font-bold text-[13px]">
         {NAMES[row.t3Exercise]}
       </td>
-      <td className="border border-[var(--border-light)] px-2 py-3 text-center align-middle font-extrabold text-[15px] tabular-nums">
+      <td
+        className="border border-[var(--border-light)] px-2 py-3 text-center align-middle font-extrabold text-[15px] tabular-nums"
+        title="T3 weight increases when AMRAP set reaches 25+ reps"
+      >
         {row.t3Weight}
         <br />
         <span className="text-[10px] text-[var(--text-muted)] font-normal">3&times;15</span>
