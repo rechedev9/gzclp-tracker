@@ -3,6 +3,8 @@
 import { NAMES } from '@/lib/program';
 import type { WorkoutRow as WorkoutRowType, Tier, ResultValue } from '@/types';
 import { StageTag } from './stage-tag';
+import { ResultCell } from './result-cell';
+import { AmrapInput } from './amrap-input';
 
 interface WorkoutRowCardProps {
   row: WorkoutRowType;
@@ -10,54 +12,6 @@ interface WorkoutRowCardProps {
   onMark: (index: number, tier: Tier, value: ResultValue) => void;
   onSetAmrapReps: (index: number, field: 't1Reps' | 't3Reps', reps: number | undefined) => void;
   onUndo: (index: number, tier: Tier) => void;
-}
-
-function CardResultCell({
-  index,
-  tier,
-  result,
-  onMark,
-  onUndo,
-}: {
-  index: number;
-  tier: Tier;
-  result?: ResultValue;
-  onMark: (index: number, tier: Tier, value: ResultValue) => void;
-  onUndo: (index: number, tier: Tier) => void;
-}) {
-  if (result) {
-    const isSuccess = result === 'success';
-    return (
-      <button
-        onClick={() => onUndo(index, tier)}
-        className={`px-3 py-1 text-[13px] font-extrabold cursor-pointer border-3 rounded-sm ${
-          isSuccess
-            ? 'bg-[var(--bg-badge-ok)] border-[var(--border-badge-ok)] text-[var(--text-badge-ok)]'
-            : 'bg-[var(--bg-badge-no)] border-[var(--border-badge-no)] text-[var(--text-badge-no)]'
-        }`}
-      >
-        {isSuccess ? '\u2713' : '\u2717'}{' '}
-        <span className="text-[10px] font-normal opacity-70">undo</span>
-      </button>
-    );
-  }
-
-  return (
-    <div className="flex gap-2.5">
-      <button
-        onClick={() => onMark(index, tier, 'success')}
-        className="min-w-[48px] min-h-[48px] px-3 py-2 text-base font-extrabold border-2 border-[var(--border-badge-ok)] bg-transparent text-[var(--text-badge-ok)] rounded-sm cursor-pointer transition-all hover:bg-[var(--bg-badge-ok)]"
-      >
-        &#10003;
-      </button>
-      <button
-        onClick={() => onMark(index, tier, 'fail')}
-        className="min-w-[48px] min-h-[48px] px-3 py-2 text-base font-extrabold border-2 border-[var(--border-badge-no)] bg-transparent text-[var(--text-badge-no)] rounded-sm cursor-pointer transition-all hover:bg-[var(--bg-badge-no)]"
-      >
-        &#10007;
-      </button>
-    </div>
-  );
 }
 
 function TierSection({
@@ -112,10 +66,11 @@ function TierSection({
           </div>
         </div>
         <div className="shrink-0">
-          <CardResultCell
+          <ResultCell
             index={index}
             tier={tier}
             result={result}
+            variant="card"
             onMark={onMark}
             onUndo={onUndo}
           />
@@ -124,19 +79,7 @@ function TierSection({
       {result && onSetAmrapReps && (
         <div className="mt-1.5 flex items-center gap-2 pl-1">
           <span className="text-[10px] text-[var(--text-muted)]">AMRAP reps:</span>
-          <input
-            type="number"
-            inputMode="numeric"
-            min="0"
-            max="99"
-            placeholder="—"
-            value={amrapReps ?? ''}
-            onChange={(e) => {
-              const v = e.target.value;
-              onSetAmrapReps(v === '' ? undefined : Math.max(0, parseInt(v, 10) || 0));
-            }}
-            className="w-12 px-1.5 py-1 text-center text-[12px] font-bold bg-transparent border border-[var(--border-color)] text-[var(--text-main)] focus:border-[var(--fill-progress)] focus:outline-none tabular-nums"
-          />
+          <AmrapInput value={amrapReps} onChange={onSetAmrapReps} variant="card" />
         </div>
       )}
     </div>

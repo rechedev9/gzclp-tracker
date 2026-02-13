@@ -3,6 +3,8 @@
 import { NAMES } from '@/lib/program';
 import type { WorkoutRow as WorkoutRowType, Tier, ResultValue } from '@/types';
 import { StageTag } from './stage-tag';
+import { ResultCell } from './result-cell';
+import { AmrapInput } from './amrap-input';
 
 interface WorkoutRowProps {
   row: WorkoutRowType;
@@ -10,81 +12,6 @@ interface WorkoutRowProps {
   onMark: (index: number, tier: Tier, value: ResultValue) => void;
   onSetAmrapReps: (index: number, field: 't1Reps' | 't3Reps', reps: number | undefined) => void;
   onUndo: (index: number, tier: Tier) => void;
-}
-
-function ResultCell({
-  index,
-  tier,
-  result,
-  onMark,
-  onUndo,
-}: {
-  index: number;
-  tier: Tier;
-  result?: ResultValue;
-  onMark: (index: number, tier: Tier, value: ResultValue) => void;
-  onUndo: (index: number, tier: Tier) => void;
-}) {
-  if (result) {
-    const isSuccess = result === 'success';
-    return (
-      <button
-        onClick={() => onUndo(index, tier)}
-        className={`group relative inline-block px-3.5 py-1.5 text-[13px] font-extrabold cursor-pointer transition-transform hover:scale-110 border-3 rounded-sm ${
-          isSuccess
-            ? 'bg-[var(--bg-badge-ok)] border-[var(--border-badge-ok)] text-[var(--text-badge-ok)]'
-            : 'bg-[var(--bg-badge-no)] border-[var(--border-badge-no)] text-[var(--text-badge-no)]'
-        }`}
-      >
-        {isSuccess ? '\u2713' : '\u2717'}
-        <span className="absolute -top-5.5 left-1/2 -translate-x-1/2 text-[10px] font-bold whitespace-nowrap bg-[var(--bg-tooltip)] text-[var(--text-tooltip)] px-2 py-0.5 pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity">
-          undo
-        </span>
-      </button>
-    );
-  }
-
-  return (
-    <div className="flex gap-1 justify-center">
-      <button
-        onClick={() => onMark(index, tier, 'success')}
-        className="px-3.5 py-2 text-sm font-extrabold border-2 border-[var(--border-badge-ok)] bg-transparent text-[var(--text-badge-ok)] rounded-sm cursor-pointer transition-all hover:bg-[var(--bg-badge-ok)]"
-      >
-        &#10003;
-      </button>
-      <button
-        onClick={() => onMark(index, tier, 'fail')}
-        className="px-3.5 py-2 text-sm font-extrabold border-2 border-[var(--border-badge-no)] bg-transparent text-[var(--text-badge-no)] rounded-sm cursor-pointer transition-all hover:bg-[var(--bg-badge-no)]"
-      >
-        &#10007;
-      </button>
-    </div>
-  );
-}
-
-function AmrapInput({
-  value,
-  onChange,
-}: {
-  value: number | undefined;
-  onChange: (reps: number | undefined) => void;
-}) {
-  return (
-    <input
-      type="number"
-      inputMode="numeric"
-      min="0"
-      max="99"
-      placeholder="—"
-      value={value ?? ''}
-      onChange={(e) => {
-        const v = e.target.value;
-        onChange(v === '' ? undefined : Math.max(0, parseInt(v, 10) || 0));
-      }}
-      className="w-10 px-1 py-0.5 text-center text-[11px] font-bold bg-transparent border border-[var(--border-color)] text-[var(--text-main)] focus:border-[var(--fill-progress)] focus:outline-none tabular-nums"
-      title="AMRAP reps"
-    />
-  );
 }
 
 export function WorkoutRow({ row, isCurrent, onMark, onSetAmrapReps, onUndo }: WorkoutRowProps) {
@@ -136,6 +63,7 @@ export function WorkoutRow({ row, isCurrent, onMark, onSetAmrapReps, onUndo }: W
           index={row.index}
           tier="t1"
           result={row.result.t1}
+          variant="table"
           onMark={onMark}
           onUndo={onUndo}
         />
@@ -175,6 +103,7 @@ export function WorkoutRow({ row, isCurrent, onMark, onSetAmrapReps, onUndo }: W
           index={row.index}
           tier="t2"
           result={row.result.t2}
+          variant="table"
           onMark={onMark}
           onUndo={onUndo}
         />
@@ -200,6 +129,7 @@ export function WorkoutRow({ row, isCurrent, onMark, onSetAmrapReps, onUndo }: W
           index={row.index}
           tier="t3"
           result={row.result.t3}
+          variant="table"
           onMark={onMark}
           onUndo={onUndo}
         />
