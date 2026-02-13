@@ -36,6 +36,23 @@ export function LineChart({ data, label }: LineChartProps) {
     ctx.fillStyle = bgColor;
     ctx.fillRect(0, 0, W, H);
 
+    // Find last data point with a marked result
+    let lastMarkedIdx = -1;
+    for (let i = data.length - 1; i >= 0; i--) {
+      if (data[i].result !== null) {
+        lastMarkedIdx = i;
+        break;
+      }
+    }
+
+    if (lastMarkedIdx < 0) {
+      ctx.fillStyle = textColor;
+      ctx.font = '13px sans-serif';
+      ctx.textAlign = 'center';
+      ctx.fillText('Complete workouts to see chart', W / 2, H / 2);
+      return;
+    }
+
     if (data.length < 2) {
       ctx.fillStyle = textColor;
       ctx.font = '13px sans-serif';
@@ -80,15 +97,32 @@ export function LineChart({ data, label }: LineChartProps) {
       ctx.fillText(`#${data[i].workout}`, x(i), H - 8);
     }
 
-    // Line
+    // Actual line (solid, up to last marked result)
     ctx.strokeStyle = lineColor;
     ctx.lineWidth = 2;
     ctx.beginPath();
     ctx.moveTo(x(0), y(data[0].weight));
-    for (let i = 1; i < data.length; i++) {
+    for (let i = 1; i <= lastMarkedIdx; i++) {
       ctx.lineTo(x(i), y(data[i].weight));
     }
     ctx.stroke();
+
+    // Projected line (dashed, reduced opacity, after last marked result)
+    if (lastMarkedIdx < data.length - 1) {
+      ctx.save();
+      ctx.globalAlpha = 0.3;
+      ctx.strokeStyle = lineColor;
+      ctx.lineWidth = 2;
+      ctx.setLineDash([6, 4]);
+      ctx.beginPath();
+      ctx.moveTo(x(lastMarkedIdx), y(data[lastMarkedIdx].weight));
+      for (let i = lastMarkedIdx + 1; i < data.length; i++) {
+        ctx.lineTo(x(i), y(data[i].weight));
+      }
+      ctx.stroke();
+      ctx.setLineDash([]);
+      ctx.restore();
+    }
 
     // Dots
     for (let i = 0; i < data.length; i++) {
