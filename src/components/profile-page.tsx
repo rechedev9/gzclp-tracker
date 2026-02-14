@@ -3,7 +3,7 @@
 import { useMemo } from 'react';
 import { useProgram } from '@/hooks/use-program';
 import { useAuth } from '@/contexts/auth-context';
-import { computeProfileData, formatVolume } from '@/lib/profile-stats';
+import { computeProfileData } from '@/lib/profile-stats';
 import { extractChartData, calculateStats, T1_EXERCISES } from '@/lib/stats';
 import { NAMES } from '@/lib/program';
 import { ProfileStatCard } from './profile-stat-card';
@@ -66,16 +66,11 @@ export function ProfilePage({ onBack }: ProfilePageProps): React.ReactNode {
               <h2 className="text-xs font-bold uppercase tracking-[0.15em] text-[var(--text-muted)] mb-3">
                 Overview
               </h2>
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+              <div className="grid grid-cols-3 gap-3">
                 <ProfileStatCard
                   value={String(profileData.completion.workoutsCompleted)}
                   label="Workouts"
                   sublabel={`of ${profileData.completion.totalWorkouts}`}
-                />
-                <ProfileStatCard
-                  value={`${formatVolume(profileData.volume.totalVolume)} kg`}
-                  label="Total Volume"
-                  sublabel={`${formatVolume(profileData.volume.totalSets)} sets`}
                 />
                 <ProfileStatCard
                   value={`${profileData.completion.overallSuccessRate}%`}
