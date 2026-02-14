@@ -3,6 +3,7 @@
 import { memo, useCallback } from 'react';
 import { NAMES } from '@/lib/program';
 import type { WorkoutRow as WorkoutRowType, Tier, ResultValue } from '@/types';
+import { buildGoogleCalendarUrl } from '@/lib/calendar';
 import { StageTag } from './stage-tag';
 import { ResultCell } from './result-cell';
 import { AmrapInput } from './amrap-input';
@@ -143,6 +144,17 @@ export const WorkoutRowCard = memo(function WorkoutRowCard({
     >
       <div className="flex items-center justify-between mb-2">
         <span className="text-[15px] font-extrabold">#{row.index + 1}</span>
+        {!allDone && (
+          <a
+            href={buildGoogleCalendarUrl(row).calendarUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            title="Add to Google Calendar"
+            className="text-[10px] text-[var(--text-muted)] hover:text-[var(--fill-progress)] transition-colors"
+          >
+            ↗ Cal
+          </a>
+        )}
         <span className="text-xs font-semibold text-[var(--text-muted)]">{row.dayName}</span>
       </div>
 
