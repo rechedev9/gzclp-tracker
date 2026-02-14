@@ -79,7 +79,6 @@ export function ProfilePage({ onBack }: ProfilePageProps): React.ReactNode {
                 <ProfileStatCard
                   value={`${profileData.completion.completionPct}%`}
                   label="Completion"
-                  sublabel={`${profileData.completion.workoutsCompleted} of ${profileData.completion.totalWorkouts}`}
                   progress={{
                     value: profileData.completion.completionPct,
                     label: `${profileData.completion.workoutsCompleted} of ${profileData.completion.totalWorkouts} workouts`,
