@@ -97,6 +97,18 @@ export const LineChart = memo(function LineChart({ data, label }: LineChartProps
       ctx.fillText(`#${data[i].workout}`, x(i), H - 8);
     }
 
+    // Deload region highlights (weight dropped AND stage reset)
+    for (let i = 1; i <= lastMarkedIdx; i++) {
+      if (data[i].weight < data[i - 1].weight && data[i].stage < data[i - 1].stage) {
+        ctx.save();
+        ctx.globalAlpha = 0.08;
+        ctx.fillStyle = failColor;
+        const bandW = plotW / (data.length - 1);
+        ctx.fillRect(x(i) - bandW / 2, pad.top, bandW, plotH);
+        ctx.restore();
+      }
+    }
+
     // Actual line (solid, up to last marked result)
     ctx.strokeStyle = lineColor;
     ctx.lineWidth = 2;
