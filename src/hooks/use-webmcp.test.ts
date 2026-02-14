@@ -9,14 +9,29 @@ import type { StartWeights, Results, WorkoutRow } from '@/types';
 // Helpers
 // ---------------------------------------------------------------------------
 
-type ToolExecuteFn = (
-  input: unknown
-) => Promise<{ success: boolean; data?: unknown; error?: string }>;
-
 interface CapturedTool {
   readonly name: string;
   readonly description: string;
-  readonly execute: ToolExecuteFn;
+  readonly inputSchema: unknown;
+  readonly annotations?: { readonly readOnlyHint?: boolean };
+  readonly execute: (input: unknown, client: unknown) => Promise<ModelContextToolResponse>;
+}
+
+/** Parse the MCP content response into a convenient shape for assertions. */
+function parseResponse(resp: ModelContextToolResponse): { text: string; parsed: unknown } {
+  const block = resp.content[0];
+  const text = block.text;
+  return { text, parsed: JSON.parse(text) as unknown };
+}
+
+/** Check if parsed response is an error (has .error field). */
+function isErrorResponse(parsed: unknown): parsed is { error: string } {
+  return (
+    typeof parsed === 'object' &&
+    parsed !== null &&
+    'error' in parsed &&
+    typeof (parsed as Record<string, unknown>).error === 'string'
+  );
 }
 
 function buildOptions(overrides?: {
@@ -47,20 +62,23 @@ function buildOptions(overrides?: {
 }
 
 let capturedTools: CapturedTool[] = [];
-let unregisterFns: Array<ReturnType<typeof mock>> = [];
+let mockRegisterTool: ReturnType<typeof mock>;
+let mockUnregisterTool: ReturnType<typeof mock>;
 let originalModelContext: unknown;
 
 function installMockModelContext(): void {
   capturedTools = [];
-  unregisterFns = [];
-  const addTool = mock((tool: CapturedTool) => {
+  mockRegisterTool = mock((tool: CapturedTool) => {
     capturedTools.push(tool);
-    const unregister = mock();
-    unregisterFns.push(unregister);
-    return { unregister };
   });
+  mockUnregisterTool = mock();
   Object.defineProperty(navigator, 'modelContext', {
-    value: { addTool },
+    value: {
+      registerTool: mockRegisterTool,
+      unregisterTool: mockUnregisterTool,
+      provideContext: mock(),
+      clearContext: mock(),
+    },
     writable: true,
     configurable: true,
   });
@@ -105,12 +123,12 @@ describe('useWebMcp', () => {
   });
 
   describe('tool registration', () => {
-    it('should register all 7 tools', () => {
+    it('should register all 7 tools via registerTool', () => {
       installMockModelContext();
       const opts = buildOptions();
       renderHook(() => useWebMcp(opts));
 
-      expect(capturedTools).toHaveLength(7);
+      expect(mockRegisterTool).toHaveBeenCalledTimes(7);
       const names = capturedTools.map((t) => t.name);
       expect(names).toContain('getCurrentWorkout');
       expect(names).toContain('getProgram');
@@ -121,16 +139,59 @@ describe('useWebMcp', () => {
       expect(names).toContain('initializeProgram');
     });
 
-    it('should unregister all tools on unmount', () => {
+    it('should unregister all tools by name on unmount', () => {
       installMockModelContext();
       const opts = buildOptions();
       const { unmount } = renderHook(() => useWebMcp(opts));
 
       unmount();
 
-      for (const fn of unregisterFns) {
-        expect(fn).toHaveBeenCalledTimes(1);
+      expect(mockUnregisterTool).toHaveBeenCalledTimes(7);
+      expect(mockUnregisterTool).toHaveBeenCalledWith('getCurrentWorkout');
+      expect(mockUnregisterTool).toHaveBeenCalledWith('getProgram');
+      expect(mockUnregisterTool).toHaveBeenCalledWith('getStats');
+      expect(mockUnregisterTool).toHaveBeenCalledWith('getProgress');
+      expect(mockUnregisterTool).toHaveBeenCalledWith('logResult');
+      expect(mockUnregisterTool).toHaveBeenCalledWith('undoLastResult');
+      expect(mockUnregisterTool).toHaveBeenCalledWith('initializeProgram');
+    });
+
+    it('should mark read-only tools with readOnlyHint annotation', () => {
+      installMockModelContext();
+      const opts = buildOptions();
+      renderHook(() => useWebMcp(opts));
+
+      const readTools = ['getCurrentWorkout', 'getProgram', 'getStats', 'getProgress'];
+      for (const name of readTools) {
+        const tool = findTool(name);
+        expect(tool.annotations?.readOnlyHint).toBe(true);
       }
+    });
+
+    it('should not mark write tools with readOnlyHint annotation', () => {
+      installMockModelContext();
+      const opts = buildOptions();
+      renderHook(() => useWebMcp(opts));
+
+      const writeTools = ['logResult', 'undoLastResult', 'initializeProgram'];
+      for (const name of writeTools) {
+        const tool = findTool(name);
+        expect(tool.annotations?.readOnlyHint).toBeUndefined();
+      }
+    });
+  });
+
+  describe('MCP response format', () => {
+    it('should return content array with text type', async () => {
+      installMockModelContext();
+      const opts = buildOptions();
+      renderHook(() => useWebMcp(opts));
+
+      const resp = await findTool('getProgress').execute({}, {});
+
+      expect(resp.content).toHaveLength(1);
+      expect(resp.content[0].type).toBe('text');
+      expect(typeof resp.content[0].text).toBe('string');
     });
   });
 
@@ -140,10 +201,10 @@ describe('useWebMcp', () => {
       const opts = buildOptions({ startWeights: null });
       renderHook(() => useWebMcp(opts));
 
-      const result = await findTool('getCurrentWorkout').execute({});
+      const resp = await findTool('getCurrentWorkout').execute({}, {});
+      const { parsed } = parseResponse(resp);
 
-      expect(result.success).toBe(false);
-      expect(result.error).toContain('No program initialized');
+      expect(isErrorResponse(parsed)).toBe(true);
     });
 
     it('should return the first incomplete workout', async () => {
@@ -151,10 +212,10 @@ describe('useWebMcp', () => {
       const opts = buildOptions();
       renderHook(() => useWebMcp(opts));
 
-      const result = await findTool('getCurrentWorkout').execute({});
+      const resp = await findTool('getCurrentWorkout').execute({}, {});
+      const { parsed } = parseResponse(resp);
+      const data = parsed as Record<string, unknown>;
 
-      expect(result.success).toBe(true);
-      const data = result.data as Record<string, unknown>;
       expect(data.index).toBe(0);
       expect(data.dayName).toBe('Day 1');
     });
@@ -168,10 +229,10 @@ describe('useWebMcp', () => {
       const opts = buildOptions({ results });
       renderHook(() => useWebMcp(opts));
 
-      const result = await findTool('getCurrentWorkout').execute({});
+      const resp = await findTool('getCurrentWorkout').execute({}, {});
+      const { parsed } = parseResponse(resp);
+      const data = parsed as Record<string, unknown>;
 
-      expect(result.success).toBe(true);
-      const data = result.data as Record<string, unknown>;
       expect(data.completed).toBe(true);
     });
   });
@@ -182,9 +243,10 @@ describe('useWebMcp', () => {
       const opts = buildOptions({ startWeights: null });
       renderHook(() => useWebMcp(opts));
 
-      const result = await findTool('getProgram').execute({});
+      const resp = await findTool('getProgram').execute({}, {});
+      const { parsed } = parseResponse(resp);
 
-      expect(result.success).toBe(false);
+      expect(isErrorResponse(parsed)).toBe(true);
     });
 
     it('should return all 90 rows by default', async () => {
@@ -192,10 +254,10 @@ describe('useWebMcp', () => {
       const opts = buildOptions();
       renderHook(() => useWebMcp(opts));
 
-      const result = await findTool('getProgram').execute({});
+      const resp = await findTool('getProgram').execute({}, {});
+      const { parsed } = parseResponse(resp);
 
-      expect(result.success).toBe(true);
-      expect(result.data).toHaveLength(90);
+      expect(parsed).toHaveLength(90);
     });
 
     it('should return a range when startIndex and endIndex are provided', async () => {
@@ -203,10 +265,10 @@ describe('useWebMcp', () => {
       const opts = buildOptions();
       renderHook(() => useWebMcp(opts));
 
-      const result = await findTool('getProgram').execute({ startIndex: 0, endIndex: 2 });
+      const resp = await findTool('getProgram').execute({ startIndex: 0, endIndex: 2 }, {});
+      const { parsed } = parseResponse(resp);
 
-      expect(result.success).toBe(true);
-      expect(result.data).toHaveLength(3);
+      expect(parsed).toHaveLength(3);
     });
 
     it('should return error for invalid startIndex', async () => {
@@ -214,10 +276,13 @@ describe('useWebMcp', () => {
       const opts = buildOptions();
       renderHook(() => useWebMcp(opts));
 
-      const result = await findTool('getProgram').execute({ startIndex: -1 });
+      const resp = await findTool('getProgram').execute({ startIndex: -1 }, {});
+      const { parsed } = parseResponse(resp);
 
-      expect(result.success).toBe(false);
-      expect(result.error).toContain('startIndex');
+      expect(isErrorResponse(parsed)).toBe(true);
+      if (isErrorResponse(parsed)) {
+        expect(parsed.error).toContain('startIndex');
+      }
     });
 
     it('should return error when startIndex > endIndex', async () => {
@@ -225,10 +290,13 @@ describe('useWebMcp', () => {
       const opts = buildOptions();
       renderHook(() => useWebMcp(opts));
 
-      const result = await findTool('getProgram').execute({ startIndex: 5, endIndex: 2 });
+      const resp = await findTool('getProgram').execute({ startIndex: 5, endIndex: 2 }, {});
+      const { parsed } = parseResponse(resp);
 
-      expect(result.success).toBe(false);
-      expect(result.error).toContain('startIndex must be <= endIndex');
+      expect(isErrorResponse(parsed)).toBe(true);
+      if (isErrorResponse(parsed)) {
+        expect(parsed.error).toContain('startIndex must be <= endIndex');
+      }
     });
   });
 
@@ -238,9 +306,10 @@ describe('useWebMcp', () => {
       const opts = buildOptions({ startWeights: null });
       renderHook(() => useWebMcp(opts));
 
-      const result = await findTool('getStats').execute({});
+      const resp = await findTool('getStats').execute({}, {});
+      const { parsed } = parseResponse(resp);
 
-      expect(result.success).toBe(false);
+      expect(isErrorResponse(parsed)).toBe(true);
     });
 
     it('should return stats for all exercises when no exercise specified', async () => {
@@ -248,10 +317,10 @@ describe('useWebMcp', () => {
       const opts = buildOptions();
       renderHook(() => useWebMcp(opts));
 
-      const result = await findTool('getStats').execute({});
+      const resp = await findTool('getStats').execute({}, {});
+      const { parsed } = parseResponse(resp);
+      const data = parsed as Record<string, unknown>;
 
-      expect(result.success).toBe(true);
-      const data = result.data as Record<string, unknown>;
       expect(data).toHaveProperty('squat');
       expect(data).toHaveProperty('bench');
       expect(data).toHaveProperty('deadlift');
@@ -263,10 +332,10 @@ describe('useWebMcp', () => {
       const opts = buildOptions();
       renderHook(() => useWebMcp(opts));
 
-      const result = await findTool('getStats').execute({ exercise: 'squat' });
+      const resp = await findTool('getStats').execute({ exercise: 'squat' }, {});
+      const { parsed } = parseResponse(resp);
+      const data = parsed as Record<string, unknown>;
 
-      expect(result.success).toBe(true);
-      const data = result.data as Record<string, unknown>;
       expect(data).toHaveProperty('squat');
       expect(data).not.toHaveProperty('bench');
     });
@@ -276,10 +345,13 @@ describe('useWebMcp', () => {
       const opts = buildOptions();
       renderHook(() => useWebMcp(opts));
 
-      const result = await findTool('getStats').execute({ exercise: 'curl' });
+      const resp = await findTool('getStats').execute({ exercise: 'curl' }, {});
+      const { parsed } = parseResponse(resp);
 
-      expect(result.success).toBe(false);
-      expect(result.error).toContain('Invalid exercise');
+      expect(isErrorResponse(parsed)).toBe(true);
+      if (isErrorResponse(parsed)) {
+        expect(parsed.error).toContain('Invalid exercise');
+      }
     });
   });
 
@@ -289,9 +361,10 @@ describe('useWebMcp', () => {
       const opts = buildOptions({ startWeights: null });
       renderHook(() => useWebMcp(opts));
 
-      const result = await findTool('getProgress').execute({});
+      const resp = await findTool('getProgress').execute({}, {});
+      const { parsed } = parseResponse(resp);
 
-      expect(result.success).toBe(false);
+      expect(isErrorResponse(parsed)).toBe(true);
     });
 
     it('should return correct progress for a fresh program', async () => {
@@ -299,10 +372,10 @@ describe('useWebMcp', () => {
       const opts = buildOptions();
       renderHook(() => useWebMcp(opts));
 
-      const result = await findTool('getProgress').execute({});
+      const resp = await findTool('getProgress').execute({}, {});
+      const { parsed } = parseResponse(resp);
+      const data = parsed as Record<string, unknown>;
 
-      expect(result.success).toBe(true);
-      const data = result.data as Record<string, unknown>;
       expect(data.total).toBe(90);
       expect(data.completed).toBe(0);
       expect(data.percentage).toBe(0);
@@ -316,13 +389,13 @@ describe('useWebMcp', () => {
       const opts = buildOptions({ startWeights: null });
       renderHook(() => useWebMcp(opts));
 
-      const result = await findTool('logResult').execute({
-        index: 0,
-        tier: 't1',
-        result: 'success',
-      });
+      const resp = await findTool('logResult').execute(
+        { index: 0, tier: 't1', result: 'success' },
+        {}
+      );
+      const { parsed } = parseResponse(resp);
 
-      expect(result.success).toBe(false);
+      expect(isErrorResponse(parsed)).toBe(true);
     });
 
     it('should call markResult with validated input', async () => {
@@ -330,13 +403,13 @@ describe('useWebMcp', () => {
       const opts = buildOptions();
       renderHook(() => useWebMcp(opts));
 
-      const result = await findTool('logResult').execute({
-        index: 0,
-        tier: 't1',
-        result: 'success',
-      });
+      const resp = await findTool('logResult').execute(
+        { index: 0, tier: 't1', result: 'success' },
+        {}
+      );
+      const { parsed } = parseResponse(resp);
 
-      expect(result.success).toBe(true);
+      expect(isErrorResponse(parsed)).toBe(false);
       expect(opts.markResult).toHaveBeenCalledWith(0, 't1', 'success');
     });
 
@@ -345,12 +418,10 @@ describe('useWebMcp', () => {
       const opts = buildOptions();
       renderHook(() => useWebMcp(opts));
 
-      await findTool('logResult').execute({
-        index: 0,
-        tier: 't1',
-        result: 'success',
-        amrapReps: 8,
-      });
+      await findTool('logResult').execute(
+        { index: 0, tier: 't1', result: 'success', amrapReps: 8 },
+        {}
+      );
 
       expect(opts.setAmrapReps).toHaveBeenCalledWith(0, 't1Reps', 8);
     });
@@ -360,12 +431,10 @@ describe('useWebMcp', () => {
       const opts = buildOptions();
       renderHook(() => useWebMcp(opts));
 
-      await findTool('logResult').execute({
-        index: 0,
-        tier: 't3',
-        result: 'success',
-        amrapReps: 25,
-      });
+      await findTool('logResult').execute(
+        { index: 0, tier: 't3', result: 'success', amrapReps: 25 },
+        {}
+      );
 
       expect(opts.setAmrapReps).toHaveBeenCalledWith(0, 't3Reps', 25);
     });
@@ -375,14 +444,16 @@ describe('useWebMcp', () => {
       const opts = buildOptions();
       renderHook(() => useWebMcp(opts));
 
-      const result = await findTool('logResult').execute({
-        index: 0,
-        tier: 't4',
-        result: 'success',
-      });
+      const resp = await findTool('logResult').execute(
+        { index: 0, tier: 't4', result: 'success' },
+        {}
+      );
+      const { parsed } = parseResponse(resp);
 
-      expect(result.success).toBe(false);
-      expect(result.error).toContain('tier');
+      expect(isErrorResponse(parsed)).toBe(true);
+      if (isErrorResponse(parsed)) {
+        expect(parsed.error).toContain('tier');
+      }
     });
 
     it('should return error for invalid result value', async () => {
@@ -390,10 +461,16 @@ describe('useWebMcp', () => {
       const opts = buildOptions();
       renderHook(() => useWebMcp(opts));
 
-      const result = await findTool('logResult').execute({ index: 0, tier: 't1', result: 'maybe' });
+      const resp = await findTool('logResult').execute(
+        { index: 0, tier: 't1', result: 'maybe' },
+        {}
+      );
+      const { parsed } = parseResponse(resp);
 
-      expect(result.success).toBe(false);
-      expect(result.error).toContain('result');
+      expect(isErrorResponse(parsed)).toBe(true);
+      if (isErrorResponse(parsed)) {
+        expect(parsed.error).toContain('result');
+      }
     });
 
     it('should return error for out-of-range index', async () => {
@@ -401,14 +478,16 @@ describe('useWebMcp', () => {
       const opts = buildOptions();
       renderHook(() => useWebMcp(opts));
 
-      const result = await findTool('logResult').execute({
-        index: 90,
-        tier: 't1',
-        result: 'success',
-      });
+      const resp = await findTool('logResult').execute(
+        { index: 90, tier: 't1', result: 'success' },
+        {}
+      );
+      const { parsed } = parseResponse(resp);
 
-      expect(result.success).toBe(false);
-      expect(result.error).toContain('index');
+      expect(isErrorResponse(parsed)).toBe(true);
+      if (isErrorResponse(parsed)) {
+        expect(parsed.error).toContain('index');
+      }
     });
 
     it('should return error for non-object input', async () => {
@@ -416,9 +495,10 @@ describe('useWebMcp', () => {
       const opts = buildOptions();
       renderHook(() => useWebMcp(opts));
 
-      const result = await findTool('logResult').execute('not an object');
+      const resp = await findTool('logResult').execute('not an object', {});
+      const { parsed } = parseResponse(resp);
 
-      expect(result.success).toBe(false);
+      expect(isErrorResponse(parsed)).toBe(true);
     });
 
     it('should return error for invalid amrapReps', async () => {
@@ -426,15 +506,16 @@ describe('useWebMcp', () => {
       const opts = buildOptions();
       renderHook(() => useWebMcp(opts));
 
-      const result = await findTool('logResult').execute({
-        index: 0,
-        tier: 't1',
-        result: 'success',
-        amrapReps: -1,
-      });
+      const resp = await findTool('logResult').execute(
+        { index: 0, tier: 't1', result: 'success', amrapReps: -1 },
+        {}
+      );
+      const { parsed } = parseResponse(resp);
 
-      expect(result.success).toBe(false);
-      expect(result.error).toContain('amrapReps');
+      expect(isErrorResponse(parsed)).toBe(true);
+      if (isErrorResponse(parsed)) {
+        expect(parsed.error).toContain('amrapReps');
+      }
     });
   });
 
@@ -444,9 +525,10 @@ describe('useWebMcp', () => {
       const opts = buildOptions({ startWeights: null });
       renderHook(() => useWebMcp(opts));
 
-      const result = await findTool('undoLastResult').execute({});
+      const resp = await findTool('undoLastResult').execute({}, {});
+      const { parsed } = parseResponse(resp);
 
-      expect(result.success).toBe(false);
+      expect(isErrorResponse(parsed)).toBe(true);
     });
 
     it('should call undoLast', async () => {
@@ -454,9 +536,11 @@ describe('useWebMcp', () => {
       const opts = buildOptions();
       renderHook(() => useWebMcp(opts));
 
-      const result = await findTool('undoLastResult').execute({});
+      const resp = await findTool('undoLastResult').execute({}, {});
+      const { parsed } = parseResponse(resp);
+      const data = parsed as Record<string, unknown>;
 
-      expect(result.success).toBe(true);
+      expect(data.undone).toBe(true);
       expect(opts.undoLast).toHaveBeenCalledTimes(1);
     });
   });
@@ -467,10 +551,13 @@ describe('useWebMcp', () => {
       const opts = buildOptions();
       renderHook(() => useWebMcp(opts));
 
-      const result = await findTool('initializeProgram').execute(DEFAULT_WEIGHTS);
+      const resp = await findTool('initializeProgram').execute(DEFAULT_WEIGHTS, {});
+      const { parsed } = parseResponse(resp);
 
-      expect(result.success).toBe(false);
-      expect(result.error).toContain('already initialized');
+      expect(isErrorResponse(parsed)).toBe(true);
+      if (isErrorResponse(parsed)) {
+        expect(parsed.error).toContain('already initialized');
+      }
     });
 
     it('should call generateProgram with valid weights', async () => {
@@ -478,9 +565,10 @@ describe('useWebMcp', () => {
       const opts = buildOptions({ startWeights: null });
       renderHook(() => useWebMcp(opts));
 
-      const result = await findTool('initializeProgram').execute(DEFAULT_WEIGHTS);
+      const resp = await findTool('initializeProgram').execute(DEFAULT_WEIGHTS, {});
+      const { parsed } = parseResponse(resp);
 
-      expect(result.success).toBe(true);
+      expect(isErrorResponse(parsed)).toBe(false);
       expect(opts.generateProgram).toHaveBeenCalledWith(DEFAULT_WEIGHTS);
     });
 
@@ -489,17 +577,23 @@ describe('useWebMcp', () => {
       const opts = buildOptions({ startWeights: null });
       renderHook(() => useWebMcp(opts));
 
-      const result = await findTool('initializeProgram').execute({
-        squat: 60,
-        bench: 40,
-        deadlift: 80,
-        ohp: 25,
-        latpulldown: 30,
-        // missing dbrow
-      });
+      const resp = await findTool('initializeProgram').execute(
+        {
+          squat: 60,
+          bench: 40,
+          deadlift: 80,
+          ohp: 25,
+          latpulldown: 30,
+          // missing dbrow
+        },
+        {}
+      );
+      const { parsed } = parseResponse(resp);
 
-      expect(result.success).toBe(false);
-      expect(result.error).toContain('dbrow');
+      expect(isErrorResponse(parsed)).toBe(true);
+      if (isErrorResponse(parsed)) {
+        expect(parsed.error).toContain('dbrow');
+      }
     });
 
     it('should return error for weight below minimum', async () => {
@@ -507,17 +601,16 @@ describe('useWebMcp', () => {
       const opts = buildOptions({ startWeights: null });
       renderHook(() => useWebMcp(opts));
 
-      const result = await findTool('initializeProgram').execute({
-        squat: 1,
-        bench: 40,
-        deadlift: 80,
-        ohp: 25,
-        latpulldown: 30,
-        dbrow: 15,
-      });
+      const resp = await findTool('initializeProgram').execute(
+        { squat: 1, bench: 40, deadlift: 80, ohp: 25, latpulldown: 30, dbrow: 15 },
+        {}
+      );
+      const { parsed } = parseResponse(resp);
 
-      expect(result.success).toBe(false);
-      expect(result.error).toContain('squat');
+      expect(isErrorResponse(parsed)).toBe(true);
+      if (isErrorResponse(parsed)) {
+        expect(parsed.error).toContain('squat');
+      }
     });
 
     it('should return error for non-object input', async () => {
@@ -525,9 +618,10 @@ describe('useWebMcp', () => {
       const opts = buildOptions({ startWeights: null });
       renderHook(() => useWebMcp(opts));
 
-      const result = await findTool('initializeProgram').execute('not an object');
+      const resp = await findTool('initializeProgram').execute('not an object', {});
+      const { parsed } = parseResponse(resp);
 
-      expect(result.success).toBe(false);
+      expect(isErrorResponse(parsed)).toBe(true);
     });
   });
 });

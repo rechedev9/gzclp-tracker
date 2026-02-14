@@ -20,19 +20,21 @@ interface UseWebMcpOptions {
   readonly undoLast: () => void;
 }
 
-interface ToolResult {
-  readonly success: boolean;
-  readonly data?: unknown;
-  readonly error?: string;
+// ---------------------------------------------------------------------------
+// MCP-aligned response helpers
+// ---------------------------------------------------------------------------
+
+function textResponse(data: unknown): ModelContextToolResponse {
+  return { content: [{ type: 'text', text: JSON.stringify(data) }] };
 }
 
-function ok(data: unknown): ToolResult {
-  return { success: true, data };
+function errorResponse(error: string): ModelContextToolResponse {
+  return { content: [{ type: 'text', text: JSON.stringify({ error }) }] };
 }
 
-function err(error: string): ToolResult {
-  return { success: false, error };
-}
+// ---------------------------------------------------------------------------
+// Validation helpers
+// ---------------------------------------------------------------------------
 
 const VALID_EXERCISES = new Set<string>(T1_EXERCISES);
 
@@ -50,6 +52,24 @@ function isValidIndex(value: unknown): value is number {
   );
 }
 
+// ---------------------------------------------------------------------------
+// Tool name constants (used for registerTool / unregisterTool)
+// ---------------------------------------------------------------------------
+
+const TOOL_NAMES = [
+  'getCurrentWorkout',
+  'getProgram',
+  'getStats',
+  'getProgress',
+  'logResult',
+  'undoLastResult',
+  'initializeProgram',
+] as const;
+
+// ---------------------------------------------------------------------------
+// Hook
+// ---------------------------------------------------------------------------
+
 export function useWebMcp(options: UseWebMcpOptions): void {
   const stateRef = useRef(options);
 
@@ -63,30 +83,25 @@ export function useWebMcp(options: UseWebMcpOptions): void {
     }
 
     const mc = navigator.modelContext;
-    const unregisters: Array<() => void> = [];
-
-    const register = (tool: ModelContextTool): void => {
-      const handle = mc.addTool(tool);
-      unregisters.push(handle.unregister);
-    };
 
     // --- Read-only tools ---
 
-    register({
+    mc.registerTool({
       name: 'getCurrentWorkout',
       description:
         'Get the next incomplete workout in the GZCLP program. Returns the workout details including exercises, weights, sets, reps, and any partial results.',
-      input: { type: 'object', properties: {} },
-      execute: async (): Promise<ToolResult> => {
+      inputSchema: { type: 'object', properties: {} },
+      annotations: { readOnlyHint: true },
+      execute: async (): Promise<ModelContextToolResponse> => {
         const { rows, startWeights } = stateRef.current;
         if (!startWeights) {
-          return err('No program initialized. Use initializeProgram first.');
+          return errorResponse('No program initialized. Use initializeProgram first.');
         }
         const current = rows.find((r) => !r.result.t1 || !r.result.t2 || !r.result.t3);
         if (!current) {
-          return ok({ message: 'All 90 workouts completed!', completed: true });
+          return textResponse({ message: 'All 90 workouts completed!', completed: true });
         }
-        return ok({
+        return textResponse({
           index: current.index,
           dayName: current.dayName,
           t1: {
@@ -116,40 +131,41 @@ export function useWebMcp(options: UseWebMcpOptions): void {
       },
     });
 
-    register({
+    mc.registerTool({
       name: 'getProgram',
       description:
         'Get workout rows from the GZCLP program. Optionally pass startIndex and endIndex (0-89) to get a range. Returns all 90 rows by default.',
-      input: {
+      inputSchema: {
         type: 'object',
         properties: {
           startIndex: { type: 'number', description: 'First workout index (0-89), default 0' },
           endIndex: { type: 'number', description: 'Last workout index (0-89), default 89' },
         },
       },
-      execute: async (input: unknown): Promise<ToolResult> => {
+      annotations: { readOnlyHint: true },
+      execute: async (input: unknown): Promise<ModelContextToolResponse> => {
         const { rows, startWeights } = stateRef.current;
         if (!startWeights) {
-          return err('No program initialized. Use initializeProgram first.');
+          return errorResponse('No program initialized. Use initializeProgram first.');
         }
         let start = 0;
         let end = TOTAL_WORKOUTS - 1;
         if (isRecord(input)) {
           if (input.startIndex !== undefined) {
             if (!isValidIndex(input.startIndex)) {
-              return err('startIndex must be an integer between 0 and 89.');
+              return errorResponse('startIndex must be an integer between 0 and 89.');
             }
             start = input.startIndex;
           }
           if (input.endIndex !== undefined) {
             if (!isValidIndex(input.endIndex)) {
-              return err('endIndex must be an integer between 0 and 89.');
+              return errorResponse('endIndex must be an integer between 0 and 89.');
             }
             end = input.endIndex;
           }
         }
         if (start > end) {
-          return err('startIndex must be <= endIndex.');
+          return errorResponse('startIndex must be <= endIndex.');
         }
         const slice = rows.slice(start, end + 1).map((r) => ({
           index: r.index,
@@ -159,15 +175,15 @@ export function useWebMcp(options: UseWebMcpOptions): void {
           t3: { exercise: NAMES[r.t3Exercise], weight: r.t3Weight },
           completed: Boolean(r.result.t1 && r.result.t2 && r.result.t3),
         }));
-        return ok(slice);
+        return textResponse(slice);
       },
     });
 
-    register({
+    mc.registerTool({
       name: 'getStats',
       description:
         'Get performance statistics for one or all T1 exercises (squat, bench, deadlift, ohp). Includes success rate, current weight, weight gained, and current stage.',
-      input: {
+      inputSchema: {
         type: 'object',
         properties: {
           exercise: {
@@ -176,22 +192,23 @@ export function useWebMcp(options: UseWebMcpOptions): void {
           },
         },
       },
-      execute: async (input: unknown): Promise<ToolResult> => {
+      annotations: { readOnlyHint: true },
+      execute: async (input: unknown): Promise<ModelContextToolResponse> => {
         const { startWeights } = stateRef.current;
         if (!startWeights) {
-          return err('No program initialized. Use initializeProgram first.');
+          return errorResponse('No program initialized. Use initializeProgram first.');
         }
         const chartData = extractChartData(startWeights, stateRef.current.results);
         if (isRecord(input) && typeof input.exercise === 'string') {
           const ex = input.exercise.toLowerCase();
           if (!VALID_EXERCISES.has(ex)) {
-            return err(`Invalid exercise. Must be one of: ${T1_EXERCISES.join(', ')}`);
+            return errorResponse(`Invalid exercise. Must be one of: ${T1_EXERCISES.join(', ')}`);
           }
           const points = chartData[ex];
           if (!points) {
-            return err(`No data found for exercise: ${ex}`);
+            return errorResponse(`No data found for exercise: ${ex}`);
           }
-          return ok({ [ex]: calculateStats(points) });
+          return textResponse({ [ex]: calculateStats(points) });
         }
         const allStats: Record<string, unknown> = {};
         for (const ex of T1_EXERCISES) {
@@ -200,23 +217,24 @@ export function useWebMcp(options: UseWebMcpOptions): void {
             allStats[ex] = calculateStats(points);
           }
         }
-        return ok(allStats);
+        return textResponse(allStats);
       },
     });
 
-    register({
+    mc.registerTool({
       name: 'getProgress',
       description:
         'Get overall program progress: total workouts, completed count, percentage, and next workout index.',
-      input: { type: 'object', properties: {} },
-      execute: async (): Promise<ToolResult> => {
+      inputSchema: { type: 'object', properties: {} },
+      annotations: { readOnlyHint: true },
+      execute: async (): Promise<ModelContextToolResponse> => {
         const { rows, startWeights } = stateRef.current;
         if (!startWeights) {
-          return err('No program initialized. Use initializeProgram first.');
+          return errorResponse('No program initialized. Use initializeProgram first.');
         }
         const completed = rows.filter((r) => r.result.t1 && r.result.t2 && r.result.t3).length;
         const next = rows.find((r) => !r.result.t1 || !r.result.t2 || !r.result.t3);
-        return ok({
+        return textResponse({
           total: TOTAL_WORKOUTS,
           completed,
           percentage: Math.round((completed / TOTAL_WORKOUTS) * 100),
@@ -227,11 +245,11 @@ export function useWebMcp(options: UseWebMcpOptions): void {
 
     // --- Write tools ---
 
-    register({
+    mc.registerTool({
       name: 'logResult',
       description:
         'Log a success or fail result for a tier (t1, t2, t3) at a specific workout index. Optionally set AMRAP reps for t1 or t3.',
-      input: {
+      inputSchema: {
         type: 'object',
         properties: {
           index: { type: 'number', description: 'Workout index (0-89)' },
@@ -244,22 +262,22 @@ export function useWebMcp(options: UseWebMcpOptions): void {
         },
         required: ['index', 'tier', 'result'],
       },
-      execute: async (input: unknown): Promise<ToolResult> => {
+      execute: async (input: unknown): Promise<ModelContextToolResponse> => {
         if (!stateRef.current.startWeights) {
-          return err('No program initialized. Use initializeProgram first.');
+          return errorResponse('No program initialized. Use initializeProgram first.');
         }
         if (!isRecord(input)) {
-          return err('Input must be an object with index, tier, and result.');
+          return errorResponse('Input must be an object with index, tier, and result.');
         }
         const { index, tier, result, amrapReps } = input;
         if (!isValidIndex(index)) {
-          return err('index must be an integer between 0 and 89.');
+          return errorResponse('index must be an integer between 0 and 89.');
         }
         if (!isTier(tier)) {
-          return err('tier must be one of: t1, t2, t3.');
+          return errorResponse('tier must be one of: t1, t2, t3.');
         }
         if (!isResultValue(result)) {
-          return err('result must be "success" or "fail".');
+          return errorResponse('result must be "success" or "fail".');
         }
         stateRef.current.markResult(index, tier, result);
         if (amrapReps !== undefined) {
@@ -269,7 +287,7 @@ export function useWebMcp(options: UseWebMcpOptions): void {
             amrapReps < 0 ||
             amrapReps > 999
           ) {
-            return err('amrapReps must be an integer between 0 and 999.');
+            return errorResponse('amrapReps must be an integer between 0 and 999.');
           }
           if (tier === 't1') {
             stateRef.current.setAmrapReps(index, 't1Reps', amrapReps);
@@ -277,28 +295,28 @@ export function useWebMcp(options: UseWebMcpOptions): void {
             stateRef.current.setAmrapReps(index, 't3Reps', amrapReps);
           }
         }
-        return ok({ logged: { index, tier, result, amrapReps: amrapReps ?? null } });
+        return textResponse({ logged: { index, tier, result, amrapReps: amrapReps ?? null } });
       },
     });
 
-    register({
+    mc.registerTool({
       name: 'undoLastResult',
       description: 'Undo the most recent result change.',
-      input: { type: 'object', properties: {} },
-      execute: async (): Promise<ToolResult> => {
+      inputSchema: { type: 'object', properties: {} },
+      execute: async (): Promise<ModelContextToolResponse> => {
         if (!stateRef.current.startWeights) {
-          return err('No program initialized. Use initializeProgram first.');
+          return errorResponse('No program initialized. Use initializeProgram first.');
         }
         stateRef.current.undoLast();
-        return ok({ undone: true });
+        return textResponse({ undone: true });
       },
     });
 
-    register({
+    mc.registerTool({
       name: 'initializeProgram',
       description:
         'Initialize the GZCLP program with starting weights (kg) for all six exercises. Only works when no program exists.',
-      input: {
+      inputSchema: {
         type: 'object',
         properties: {
           squat: { type: 'number', description: 'Squat starting weight in kg (min 2.5)' },
@@ -313,12 +331,12 @@ export function useWebMcp(options: UseWebMcpOptions): void {
         },
         required: ['squat', 'bench', 'deadlift', 'ohp', 'latpulldown', 'dbrow'],
       },
-      execute: async (input: unknown): Promise<ToolResult> => {
+      execute: async (input: unknown): Promise<ModelContextToolResponse> => {
         if (stateRef.current.startWeights) {
-          return err('Program already initialized. Cannot re-initialize.');
+          return errorResponse('Program already initialized. Cannot re-initialize.');
         }
         if (!isRecord(input)) {
-          return err(
+          return errorResponse(
             'Input must be an object with squat, bench, deadlift, ohp, latpulldown, dbrow.'
           );
         }
@@ -326,10 +344,9 @@ export function useWebMcp(options: UseWebMcpOptions): void {
         for (const ex of fields) {
           const val = input[ex];
           if (typeof val !== 'number' || val < 2.5) {
-            return err(`${ex} must be a number >= 2.5.`);
+            return errorResponse(`${ex} must be a number >= 2.5.`);
           }
         }
-        // All fields validated as numbers above
         const s = input.squat;
         const b = input.bench;
         const d = input.deadlift;
@@ -344,7 +361,7 @@ export function useWebMcp(options: UseWebMcpOptions): void {
           typeof lp !== 'number' ||
           typeof dr !== 'number'
         ) {
-          return err('All weights must be numbers.');
+          return errorResponse('All weights must be numbers.');
         }
         const weights: StartWeights = {
           squat: s,
@@ -355,13 +372,13 @@ export function useWebMcp(options: UseWebMcpOptions): void {
           dbrow: dr,
         };
         stateRef.current.generateProgram(weights);
-        return ok({ initialized: true, weights });
+        return textResponse({ initialized: true, weights });
       },
     });
 
     return (): void => {
-      for (const unregister of unregisters) {
-        unregister();
+      for (const name of TOOL_NAMES) {
+        mc.unregisterTool(name);
       }
     };
   }, []);
