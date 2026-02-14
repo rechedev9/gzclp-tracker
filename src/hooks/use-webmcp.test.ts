@@ -123,12 +123,12 @@ describe('useWebMcp', () => {
   });
 
   describe('tool registration', () => {
-    it('should register all 7 tools via registerTool', () => {
+    it('should register all 8 tools via registerTool', () => {
       installMockModelContext();
       const opts = buildOptions();
       renderHook(() => useWebMcp(opts));
 
-      expect(mockRegisterTool).toHaveBeenCalledTimes(7);
+      expect(mockRegisterTool).toHaveBeenCalledTimes(8);
       const names = capturedTools.map((t) => t.name);
       expect(names).toContain('getCurrentWorkout');
       expect(names).toContain('getProgram');
@@ -137,6 +137,7 @@ describe('useWebMcp', () => {
       expect(names).toContain('logResult');
       expect(names).toContain('undoLastResult');
       expect(names).toContain('initializeProgram');
+      expect(names).toContain('scheduleNextWorkout');
     });
 
     it('should unregister all tools by name on unmount', () => {
@@ -146,7 +147,7 @@ describe('useWebMcp', () => {
 
       unmount();
 
-      expect(mockUnregisterTool).toHaveBeenCalledTimes(7);
+      expect(mockUnregisterTool).toHaveBeenCalledTimes(8);
       expect(mockUnregisterTool).toHaveBeenCalledWith('getCurrentWorkout');
       expect(mockUnregisterTool).toHaveBeenCalledWith('getProgram');
       expect(mockUnregisterTool).toHaveBeenCalledWith('getStats');
@@ -154,6 +155,7 @@ describe('useWebMcp', () => {
       expect(mockUnregisterTool).toHaveBeenCalledWith('logResult');
       expect(mockUnregisterTool).toHaveBeenCalledWith('undoLastResult');
       expect(mockUnregisterTool).toHaveBeenCalledWith('initializeProgram');
+      expect(mockUnregisterTool).toHaveBeenCalledWith('scheduleNextWorkout');
     });
 
     it('should mark read-only tools with readOnlyHint annotation', () => {
@@ -161,7 +163,13 @@ describe('useWebMcp', () => {
       const opts = buildOptions();
       renderHook(() => useWebMcp(opts));
 
-      const readTools = ['getCurrentWorkout', 'getProgram', 'getStats', 'getProgress'];
+      const readTools = [
+        'getCurrentWorkout',
+        'getProgram',
+        'getStats',
+        'getProgress',
+        'scheduleNextWorkout',
+      ];
       for (const name of readTools) {
         const tool = findTool(name);
         expect(tool.annotations?.readOnlyHint).toBe(true);
@@ -542,6 +550,185 @@ describe('useWebMcp', () => {
 
       expect(data.undone).toBe(true);
       expect(opts.undoLast).toHaveBeenCalledTimes(1);
+    });
+  });
+
+  describe('scheduleNextWorkout', () => {
+    it('should return error when no program initialized', async () => {
+      installMockModelContext();
+      const opts = buildOptions({ startWeights: null });
+      renderHook(() => useWebMcp(opts));
+
+      const resp = await findTool('scheduleNextWorkout').execute({}, {});
+      const { parsed } = parseResponse(resp);
+
+      expect(isErrorResponse(parsed)).toBe(true);
+    });
+
+    it('should return a valid Google Calendar URL for the next workout', async () => {
+      installMockModelContext();
+      const opts = buildOptions();
+      renderHook(() => useWebMcp(opts));
+
+      const resp = await findTool('scheduleNextWorkout').execute(
+        { date: '2026-02-15', startHour: 7, durationMinutes: 60 },
+        {}
+      );
+      const { parsed } = parseResponse(resp);
+      const data = parsed as Record<string, unknown>;
+
+      expect(typeof data.calendarUrl).toBe('string');
+      expect(
+        (data.calendarUrl as string).startsWith(
+          'https://calendar.google.com/calendar/render?action=TEMPLATE'
+        )
+      ).toBe(true);
+    });
+
+    it('should include correct exercise names in the title', async () => {
+      installMockModelContext();
+      const opts = buildOptions();
+      renderHook(() => useWebMcp(opts));
+
+      const resp = await findTool('scheduleNextWorkout').execute({ date: '2026-02-15' }, {});
+      const { parsed } = parseResponse(resp);
+      const data = parsed as Record<string, unknown>;
+
+      // Day 1: Squat (T1) / Bench Press (T2) / Lat Pulldown (T3)
+      expect(data.title).toBe('GZCLP Day 1 — Squat / Bench Press / Lat Pulldown');
+    });
+
+    it('should format date range correctly in the URL', async () => {
+      installMockModelContext();
+      const opts = buildOptions();
+      renderHook(() => useWebMcp(opts));
+
+      const resp = await findTool('scheduleNextWorkout').execute(
+        { date: '2026-02-15', startHour: 18, durationMinutes: 90 },
+        {}
+      );
+      const { parsed } = parseResponse(resp);
+      const data = parsed as Record<string, unknown>;
+      const url = data.calendarUrl as string;
+
+      // Start: 20260215T180000, End: 20260215T193000
+      expect(url).toContain('dates=20260215T180000/20260215T193000');
+      expect(data.startTime).toBe('18:00');
+      expect(data.endTime).toBe('19:30');
+    });
+
+    it('should accept custom workoutIndex', async () => {
+      installMockModelContext();
+      const opts = buildOptions();
+      renderHook(() => useWebMcp(opts));
+
+      const resp = await findTool('scheduleNextWorkout').execute(
+        { workoutIndex: 1, date: '2026-02-16' },
+        {}
+      );
+      const { parsed } = parseResponse(resp);
+      const data = parsed as Record<string, unknown>;
+
+      expect(data.workoutIndex).toBe(1);
+      // Day 2: OHP (T1) / Deadlift (T2) / DB Row (T3)
+      expect(data.title).toBe('GZCLP Day 2 — OHP / Deadlift / DB Row');
+    });
+
+    it('should use defaults when no input is provided', async () => {
+      installMockModelContext();
+      const opts = buildOptions();
+      renderHook(() => useWebMcp(opts));
+
+      const resp = await findTool('scheduleNextWorkout').execute({}, {});
+      const { parsed } = parseResponse(resp);
+      const data = parsed as Record<string, unknown>;
+
+      expect(data.workoutIndex).toBe(0);
+      expect(data.startTime).toBe('07:00');
+      expect(data.endTime).toBe('08:00');
+    });
+
+    it('should return error for invalid workoutIndex', async () => {
+      installMockModelContext();
+      const opts = buildOptions();
+      renderHook(() => useWebMcp(opts));
+
+      const resp = await findTool('scheduleNextWorkout').execute({ workoutIndex: 90 }, {});
+      const { parsed } = parseResponse(resp);
+
+      expect(isErrorResponse(parsed)).toBe(true);
+      if (isErrorResponse(parsed)) {
+        expect(parsed.error).toContain('workoutIndex');
+      }
+    });
+
+    it('should return error for invalid date string', async () => {
+      installMockModelContext();
+      const opts = buildOptions();
+      renderHook(() => useWebMcp(opts));
+
+      const resp = await findTool('scheduleNextWorkout').execute({ date: 'not-a-date' }, {});
+      const { parsed } = parseResponse(resp);
+
+      expect(isErrorResponse(parsed)).toBe(true);
+      if (isErrorResponse(parsed)) {
+        expect(parsed.error).toContain('date');
+      }
+    });
+
+    it('should return error for invalid startHour', async () => {
+      installMockModelContext();
+      const opts = buildOptions();
+      renderHook(() => useWebMcp(opts));
+
+      const resp = await findTool('scheduleNextWorkout').execute({ startHour: 25 }, {});
+      const { parsed } = parseResponse(resp);
+
+      expect(isErrorResponse(parsed)).toBe(true);
+      if (isErrorResponse(parsed)) {
+        expect(parsed.error).toContain('startHour');
+      }
+    });
+
+    it('should return error for invalid durationMinutes', async () => {
+      installMockModelContext();
+      const opts = buildOptions();
+      renderHook(() => useWebMcp(opts));
+
+      const resp = await findTool('scheduleNextWorkout').execute({ durationMinutes: 0 }, {});
+      const { parsed } = parseResponse(resp);
+
+      expect(isErrorResponse(parsed)).toBe(true);
+      if (isErrorResponse(parsed)) {
+        expect(parsed.error).toContain('durationMinutes');
+      }
+    });
+
+    it('should include workout details in the calendar URL', async () => {
+      installMockModelContext();
+      const opts = buildOptions();
+      renderHook(() => useWebMcp(opts));
+
+      const resp = await findTool('scheduleNextWorkout').execute({ date: '2026-02-15' }, {});
+      const { parsed } = parseResponse(resp);
+      const url = (parsed as Record<string, unknown>).calendarUrl as string;
+
+      // The URL should contain encoded workout details
+      expect(url).toContain('details=');
+      const detailsParam = decodeURIComponent(url.split('details=')[1] as string);
+      expect(detailsParam).toContain('T1: Squat');
+      expect(detailsParam).toContain('T2: Bench Press');
+      expect(detailsParam).toContain('T3: Lat Pulldown');
+      expect(detailsParam).toContain('60kg');
+    });
+
+    it('should have readOnlyHint annotation', () => {
+      installMockModelContext();
+      const opts = buildOptions();
+      renderHook(() => useWebMcp(opts));
+
+      const tool = findTool('scheduleNextWorkout');
+      expect(tool.annotations?.readOnlyHint).toBe(true);
     });
   });
 

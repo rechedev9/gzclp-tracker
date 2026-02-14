@@ -2,7 +2,15 @@
 
 import { useEffect, useRef } from 'react';
 import type { StartWeights, Results, WorkoutRow, ResultValue, Tier } from '@/types';
-import { TOTAL_WORKOUTS, T1_EXERCISES, NAMES } from '@/lib/program';
+import {
+  TOTAL_WORKOUTS,
+  T1_EXERCISES,
+  NAMES,
+  T1_STAGES,
+  T2_STAGES,
+  T3_SETS,
+  T3_PRESCRIBED_REPS,
+} from '@/lib/program';
 import { extractChartData, calculateStats } from '@/lib/stats';
 import { isRecord } from '@/lib/type-guards';
 
@@ -53,6 +61,29 @@ function isValidIndex(value: unknown): value is number {
 }
 
 // ---------------------------------------------------------------------------
+// Date formatting helpers
+// ---------------------------------------------------------------------------
+
+/** Format a Date as YYYY-MM-DD. */
+function formatDateISO(d: Date): string {
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${y}-${m}-${day}`;
+}
+
+/** Format a Date as YYYYMMDDTHHmmSS for Google Calendar URL (local time, no Z). */
+function formatGoogleDate(d: Date): string {
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  const h = String(d.getHours()).padStart(2, '0');
+  const min = String(d.getMinutes()).padStart(2, '0');
+  const sec = String(d.getSeconds()).padStart(2, '0');
+  return `${y}${m}${day}T${h}${min}${sec}`;
+}
+
+// ---------------------------------------------------------------------------
 // Tool name constants (used for registerTool / unregisterTool)
 // ---------------------------------------------------------------------------
 
@@ -64,6 +95,7 @@ const TOOL_NAMES = [
   'logResult',
   'undoLastResult',
   'initializeProgram',
+  'scheduleNextWorkout',
 ] as const;
 
 // ---------------------------------------------------------------------------
@@ -373,6 +405,146 @@ export function useWebMcp(options: UseWebMcpOptions): void {
         };
         stateRef.current.generateProgram(weights);
         return textResponse({ initialized: true, weights });
+      },
+    });
+
+    mc.registerTool({
+      name: 'scheduleNextWorkout',
+      description:
+        'Generate a Google Calendar URL to schedule a GZCLP workout. Opens a pre-filled event creation page — no OAuth or API keys needed.',
+      inputSchema: {
+        type: 'object',
+        properties: {
+          workoutIndex: {
+            type: 'number',
+            description: 'Workout index (0-89). Defaults to the next incomplete workout.',
+          },
+          date: {
+            type: 'string',
+            description: 'ISO date string (e.g. "2026-02-15"). Defaults to tomorrow.',
+          },
+          startHour: {
+            type: 'number',
+            description: 'Start hour 0-23. Defaults to 7.',
+          },
+          durationMinutes: {
+            type: 'number',
+            description: 'Duration in minutes (1-480). Defaults to 60.',
+          },
+        },
+      },
+      annotations: { readOnlyHint: true },
+      execute: async (input: unknown): Promise<ModelContextToolResponse> => {
+        const { rows, startWeights } = stateRef.current;
+        if (!startWeights) {
+          return errorResponse('No program initialized. Use initializeProgram first.');
+        }
+
+        let workoutIndex: number;
+        let dateStr: string;
+        let startHour = 7;
+        let durationMinutes = 60;
+
+        if (isRecord(input)) {
+          if (input.workoutIndex !== undefined) {
+            if (!isValidIndex(input.workoutIndex)) {
+              return errorResponse('workoutIndex must be an integer between 0 and 89.');
+            }
+            workoutIndex = input.workoutIndex;
+          } else {
+            const next = rows.find((r) => !r.result.t1 || !r.result.t2 || !r.result.t3);
+            if (!next) {
+              return errorResponse('All 90 workouts completed. No workout to schedule.');
+            }
+            workoutIndex = next.index;
+          }
+
+          if (input.date !== undefined) {
+            if (typeof input.date !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(input.date)) {
+              return errorResponse('date must be a valid ISO date string (YYYY-MM-DD).');
+            }
+            const parsed = new Date(input.date + 'T00:00:00');
+            if (Number.isNaN(parsed.getTime())) {
+              return errorResponse('date must be a valid ISO date string (YYYY-MM-DD).');
+            }
+            dateStr = input.date;
+          } else {
+            const tomorrow = new Date();
+            tomorrow.setDate(tomorrow.getDate() + 1);
+            dateStr = formatDateISO(tomorrow);
+          }
+
+          if (input.startHour !== undefined) {
+            if (
+              typeof input.startHour !== 'number' ||
+              !Number.isInteger(input.startHour) ||
+              input.startHour < 0 ||
+              input.startHour > 23
+            ) {
+              return errorResponse('startHour must be an integer between 0 and 23.');
+            }
+            startHour = input.startHour;
+          }
+
+          if (input.durationMinutes !== undefined) {
+            if (
+              typeof input.durationMinutes !== 'number' ||
+              !Number.isInteger(input.durationMinutes) ||
+              input.durationMinutes < 1 ||
+              input.durationMinutes > 480
+            ) {
+              return errorResponse('durationMinutes must be an integer between 1 and 480.');
+            }
+            durationMinutes = input.durationMinutes;
+          }
+        } else {
+          const next = rows.find((r) => !r.result.t1 || !r.result.t2 || !r.result.t3);
+          if (!next) {
+            return errorResponse('All 90 workouts completed. No workout to schedule.');
+          }
+          workoutIndex = next.index;
+          const tomorrow = new Date();
+          tomorrow.setDate(tomorrow.getDate() + 1);
+          dateStr = formatDateISO(tomorrow);
+        }
+
+        const row = rows[workoutIndex];
+        if (!row) {
+          return errorResponse('workoutIndex must be an integer between 0 and 89.');
+        }
+
+        const title = `GZCLP ${row.dayName} — ${NAMES[row.t1Exercise]} / ${NAMES[row.t2Exercise]} / ${NAMES[row.t3Exercise]}`;
+
+        const t1Stage = T1_STAGES[row.t1Stage] ?? T1_STAGES[0];
+        const t2Stage = T2_STAGES[row.t2Stage] ?? T2_STAGES[0];
+        const description = [
+          `Workout #${workoutIndex + 1} — ${row.dayName}`,
+          '',
+          `T1: ${NAMES[row.t1Exercise]} — ${row.t1Weight}kg (${t1Stage.sets}×${t1Stage.reps}, Stage ${row.t1Stage + 1})`,
+          `T2: ${NAMES[row.t2Exercise]} — ${row.t2Weight}kg (${t2Stage.sets}×${t2Stage.reps}, Stage ${row.t2Stage + 1})`,
+          `T3: ${NAMES[row.t3Exercise]} — ${row.t3Weight}kg (${T3_SETS}×${T3_PRESCRIBED_REPS})`,
+        ].join('\n');
+
+        const startDate = new Date(`${dateStr}T${String(startHour).padStart(2, '0')}:00:00`);
+        const endDate = new Date(startDate.getTime() + durationMinutes * 60 * 1000);
+
+        const calendarUrl =
+          'https://calendar.google.com/calendar/render?action=TEMPLATE' +
+          `&text=${encodeURIComponent(title)}` +
+          `&dates=${formatGoogleDate(startDate)}/${formatGoogleDate(endDate)}` +
+          `&details=${encodeURIComponent(description)}`;
+
+        const endHour = endDate.getHours();
+        const endMinute = endDate.getMinutes();
+
+        return textResponse({
+          calendarUrl,
+          title,
+          workoutIndex,
+          date: dateStr,
+          startTime: `${String(startHour).padStart(2, '0')}:00`,
+          endTime: `${String(endHour).padStart(2, '0')}:${String(endMinute).padStart(2, '0')}`,
+        });
       },
     });
 
