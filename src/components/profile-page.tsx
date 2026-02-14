@@ -112,32 +112,6 @@ export function ProfilePage({ onBack }: ProfilePageProps): React.ReactNode {
               </div>
             </section>
 
-            {/* Streaks & Progress */}
-            <section className="mb-10">
-              <h2 className="text-xs font-bold uppercase tracking-[0.15em] text-[var(--text-muted)] mb-3">
-                Streaks & Progress
-              </h2>
-              <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-                <ProfileStatCard
-                  value={String(profileData.streak.current)}
-                  label="Current Streak"
-                  sublabel="consecutive workouts"
-                />
-                <ProfileStatCard
-                  value={String(profileData.streak.longest)}
-                  label="Best Streak"
-                  sublabel="consecutive workouts"
-                />
-                {profileData.completion.totalWeightGained > 0 && (
-                  <ProfileStatCard
-                    value={`+${profileData.completion.totalWeightGained} kg`}
-                    label="Weight Gained"
-                    sublabel="across all T1 lifts"
-                  />
-                )}
-              </div>
-            </section>
-
             {/* Weight Progression Charts */}
             {chartData && (
               <section className="mb-10">
