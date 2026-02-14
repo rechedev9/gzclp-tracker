@@ -157,13 +157,28 @@ export const LineChart = memo(function LineChart({ data, label }: LineChartProps
       ctx.restore();
     }
 
-    // Dots
+    // Dots (success = filled circle, fail = X mark for accessibility)
     for (let i = 0; i < data.length; i++) {
-      if (data[i].result) {
+      if (data[i].result === 'success') {
         ctx.beginPath();
         ctx.arc(x(i), y(data[i].weight), 4, 0, Math.PI * 2);
-        ctx.fillStyle = data[i].result === 'success' ? successColor : failColor;
+        ctx.fillStyle = successColor;
         ctx.fill();
+      } else if (data[i].result === 'fail') {
+        const cx = x(i);
+        const cy = y(data[i].weight);
+        const arm = 3.5;
+        ctx.save();
+        ctx.strokeStyle = failColor;
+        ctx.lineWidth = 2;
+        ctx.lineCap = 'round';
+        ctx.beginPath();
+        ctx.moveTo(cx - arm, cy - arm);
+        ctx.lineTo(cx + arm, cy + arm);
+        ctx.moveTo(cx + arm, cy - arm);
+        ctx.lineTo(cx - arm, cy + arm);
+        ctx.stroke();
+        ctx.restore();
       }
     }
 
