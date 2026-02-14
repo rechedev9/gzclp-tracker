@@ -19,6 +19,7 @@ import { StatsPanel } from './stats-panel';
 import { StageTag } from './stage-tag';
 import { ConfirmDialog } from './confirm-dialog';
 import { ErrorBoundary } from './error-boundary';
+import { useWebMcp } from '@/hooks/use-webmcp';
 
 interface GZCLPAppProps {
   readonly onBackToDashboard?: () => void;
@@ -58,6 +59,8 @@ export function GZCLPApp({ onBackToDashboard, onGoToProfile }: GZCLPAppProps) {
     () => (startWeights ? computeProgram(startWeights, results) : []),
     [startWeights, results]
   );
+
+  useWebMcp({ startWeights, results, rows, generateProgram, markResult, setAmrapReps, undoLast });
 
   const completedCount = useMemo(
     () => rows.filter((r) => r.result.t1 && r.result.t2 && r.result.t3).length,
