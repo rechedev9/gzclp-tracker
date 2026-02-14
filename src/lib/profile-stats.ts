@@ -15,6 +15,7 @@ export interface PersonalRecord {
   readonly exercise: string;
   readonly displayName: string;
   readonly weight: number;
+  readonly startWeight: number;
   readonly workoutIndex: number;
 }
 
@@ -66,6 +67,7 @@ function computePersonalRecords(
     exercise: ex,
     displayName: NAMES[ex] ?? ex,
     weight: best[ex].weight,
+    startWeight: startWeights[ex],
     workoutIndex: best[ex].workoutIndex,
   }));
 }
@@ -219,6 +221,8 @@ export function computeProfileData(startWeights: StartWeights, results: Results)
   return { personalRecords, streak, volume, completion };
 }
 
+const volumeFormatter = new Intl.NumberFormat('en-US', { maximumFractionDigits: 0 });
+
 export function formatVolume(kg: number): string {
-  return kg.toLocaleString(undefined, { maximumFractionDigits: 0 });
+  return volumeFormatter.format(kg);
 }

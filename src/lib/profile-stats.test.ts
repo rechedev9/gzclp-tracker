@@ -32,6 +32,14 @@ describe('computeProfileData', () => {
         expect(pr.weight).toBe(DEFAULT_WEIGHTS[pr.exercise as keyof typeof DEFAULT_WEIGHTS]);
       }
     });
+
+    it('should include startWeight on every PR matching the starting weights', () => {
+      const profile = computeProfileData(DEFAULT_WEIGHTS, {});
+
+      for (const pr of profile.personalRecords) {
+        expect(pr.startWeight).toBe(DEFAULT_WEIGHTS[pr.exercise as keyof typeof DEFAULT_WEIGHTS]);
+      }
+    });
   });
 
   describe('personal records', () => {
@@ -154,13 +162,12 @@ describe('computeProfileData', () => {
 // formatVolume — locale-aware formatting
 // ---------------------------------------------------------------------------
 describe('formatVolume', () => {
+  it('should use comma as thousands separator regardless of locale', () => {
+    expect(formatVolume(75264)).toBe('75,264');
+  });
+
   it('should strip fractional digits', () => {
-    // formatVolume uses toLocaleString with maximumFractionDigits: 0
-    // The exact output is locale-dependent (e.g. "12,346" or "12.346")
-    // but the digits "12346" (rounded from 12345.6) should be present
-    const formatted = formatVolume(12345.6);
-    const digitsOnly = formatted.replace(/\D/g, '');
-    expect(digitsOnly).toBe('12346');
+    expect(formatVolume(12345.6)).toBe('12,346');
   });
 
   it('should format zero', () => {
