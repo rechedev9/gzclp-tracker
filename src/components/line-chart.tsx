@@ -134,6 +134,22 @@ export const LineChart = memo(function LineChart({ data, label }: LineChartProps
       }
     }
 
+    // PR dot (highest successful weight — tie-break: latest workout)
+    let prIdx = -1;
+    let prWeight = -Infinity;
+    for (let i = 0; i <= lastMarkedIdx; i++) {
+      if (data[i].result === 'success' && data[i].weight >= prWeight) {
+        prWeight = data[i].weight;
+        prIdx = i;
+      }
+    }
+    if (prIdx >= 0) {
+      ctx.beginPath();
+      ctx.arc(x(prIdx), y(data[prIdx].weight), 6, 0, Math.PI * 2);
+      ctx.fillStyle = lineColor;
+      ctx.fill();
+    }
+
     // Stage change markers
     for (let i = 1; i < data.length; i++) {
       if (data[i].stage !== data[i - 1].stage) {
