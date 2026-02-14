@@ -119,6 +119,27 @@ export const LineChart = memo(function LineChart({ data, label }: LineChartProps
     }
     ctx.stroke();
 
+    // Gradient fill beneath actual progress line
+    {
+      ctx.save();
+      const plotFloor = pad.top + plotH;
+      const grad = ctx.createLinearGradient(0, pad.top, 0, plotFloor);
+      const fillHex = lineColor.startsWith('#') ? lineColor : '#333';
+      grad.addColorStop(0, fillHex + '1F'); // ~12% opacity
+      grad.addColorStop(1, fillHex + '00'); // fully transparent
+      ctx.beginPath();
+      ctx.moveTo(x(0), y(data[0].weight));
+      for (let i = 1; i <= lastMarkedIdx; i++) {
+        ctx.lineTo(x(i), y(data[i].weight));
+      }
+      ctx.lineTo(x(lastMarkedIdx), plotFloor);
+      ctx.lineTo(x(0), plotFloor);
+      ctx.closePath();
+      ctx.fillStyle = grad;
+      ctx.fill();
+      ctx.restore();
+    }
+
     // Projected line (dashed, reduced opacity, after last marked result)
     if (lastMarkedIdx < data.length - 1) {
       ctx.save();
