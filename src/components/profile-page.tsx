@@ -4,7 +4,7 @@ import { useMemo } from 'react';
 import { useProgram } from '@/hooks/use-program';
 import { useAuth } from '@/contexts/auth-context';
 import { computeProfileData, formatVolume } from '@/lib/profile-stats';
-import { extractChartData, T1_EXERCISES } from '@/lib/stats';
+import { extractChartData, calculateStats, T1_EXERCISES } from '@/lib/stats';
 import { NAMES } from '@/lib/program';
 import { ProfileStatCard } from './profile-stat-card';
 import { LineChart } from './line-chart';
@@ -84,6 +84,11 @@ export function ProfilePage({ onBack }: ProfilePageProps): React.ReactNode {
                 <ProfileStatCard
                   value={`${profileData.completion.completionPct}%`}
                   label="Completion"
+                  sublabel={`${profileData.completion.workoutsCompleted} of ${profileData.completion.totalWorkouts}`}
+                  progress={{
+                    value: profileData.completion.completionPct,
+                    label: `${profileData.completion.workoutsCompleted} of ${profileData.completion.totalWorkouts} workouts`,
+                  }}
                 />
               </div>
             </section>
@@ -94,25 +99,31 @@ export function ProfilePage({ onBack }: ProfilePageProps): React.ReactNode {
                 Personal Records (T1)
               </h2>
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                {profileData.personalRecords.map((pr) => (
-                  <ProfileStatCard
-                    key={pr.exercise}
-                    value={`${pr.weight} kg`}
-                    label={NAMES[pr.exercise] ?? pr.exercise}
-                    sublabel={
-                      pr.workoutIndex >= 0 ? `Workout #${pr.workoutIndex + 1}` : 'Starting weight'
-                    }
-                  />
-                ))}
+                {profileData.personalRecords.map((pr) => {
+                  const delta = pr.weight - pr.startWeight;
+                  return (
+                    <ProfileStatCard
+                      key={pr.exercise}
+                      value={`${pr.weight} kg`}
+                      label={NAMES[pr.exercise] ?? pr.exercise}
+                      sublabel={
+                        pr.workoutIndex >= 0 ? `Workout #${pr.workoutIndex + 1}` : 'Starting weight'
+                      }
+                      accent
+                      badge={delta > 0 ? `+${delta} kg` : undefined}
+                      badgeVariant="success"
+                    />
+                  );
+                })}
               </div>
             </section>
 
-            {/* Streaks */}
+            {/* Streaks & Progress */}
             <section className="mb-10">
               <h2 className="text-xs font-bold uppercase tracking-[0.15em] text-[var(--text-muted)] mb-3">
-                Streaks
+                Streaks & Progress
               </h2>
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
                 <ProfileStatCard
                   value={String(profileData.streak.current)}
                   label="Current Streak"
@@ -123,24 +134,15 @@ export function ProfilePage({ onBack }: ProfilePageProps): React.ReactNode {
                   label="Best Streak"
                   sublabel="consecutive workouts"
                 />
-              </div>
-            </section>
-
-            {/* Weight Gained */}
-            {profileData.completion.totalWeightGained > 0 && (
-              <section className="mb-10">
-                <h2 className="text-xs font-bold uppercase tracking-[0.15em] text-[var(--text-muted)] mb-3">
-                  Progress
-                </h2>
-                <div className="grid grid-cols-2 gap-3">
+                {profileData.completion.totalWeightGained > 0 && (
                   <ProfileStatCard
                     value={`+${profileData.completion.totalWeightGained} kg`}
-                    label="Total Weight Gained"
+                    label="Weight Gained"
                     sublabel="across all T1 lifts"
                   />
-                </div>
-              </section>
-            )}
+                )}
+              </div>
+            </section>
 
             {/* Weight Progression Charts */}
             {chartData && (
@@ -149,17 +151,33 @@ export function ProfilePage({ onBack }: ProfilePageProps): React.ReactNode {
                   Weight Progression
                 </h2>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  {T1_EXERCISES.map((ex) => (
-                    <div
-                      key={ex}
-                      className="bg-[var(--bg-card)] border border-[var(--border-color)] p-4"
-                    >
-                      <h3 className="text-sm font-bold text-[var(--text-header)] mb-3">
-                        {NAMES[ex]}
-                      </h3>
-                      <LineChart data={chartData[ex]} label={NAMES[ex]} />
-                    </div>
-                  ))}
+                  {T1_EXERCISES.map((ex) => {
+                    const stats = calculateStats(chartData[ex]);
+                    const hasMark = stats.total > 0;
+                    return (
+                      <div
+                        key={ex}
+                        className="bg-[var(--bg-card)] border border-[var(--border-color)] p-4"
+                      >
+                        <h3 className="text-sm font-bold text-[var(--text-header)] mb-1">
+                          {NAMES[ex]}
+                        </h3>
+                        {hasMark && (
+                          <p className="text-[11px] text-[var(--text-muted)] mb-3">
+                            {stats.currentWeight} kg
+                            {stats.gained > 0 && (
+                              <span className="text-[var(--text-badge-ok)]">
+                                {' '}
+                                | +{stats.gained} kg
+                              </span>
+                            )}{' '}
+                            | {stats.rate}% success
+                          </p>
+                        )}
+                        <LineChart data={chartData[ex]} label={NAMES[ex]} />
+                      </div>
+                    );
+                  })}
                 </div>
               </section>
             )}
