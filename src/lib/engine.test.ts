@@ -1,15 +1,8 @@
 import { describe, it, expect } from 'bun:test';
-import { computeProgram } from './engine';
+import { computeProgram, roundToNearestHalf as round } from './engine';
 import { DAYS, T1_STAGES, T2_STAGES, TOTAL_WORKOUTS } from './program';
 import { DEFAULT_WEIGHTS, buildResults, buildSuccessfulResults } from '../../test/helpers/fixtures';
 import type { StartWeights, Results } from '@/types';
-
-// ---------------------------------------------------------------------------
-// Helper: round to nearest 0.5 (mirrors engine internals for expected values)
-// ---------------------------------------------------------------------------
-function round(v: number): number {
-  return Math.round(v * 2) / 2;
-}
 
 // ---------------------------------------------------------------------------
 // Structural invariants — these hold for ANY inputs

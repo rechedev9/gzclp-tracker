@@ -13,7 +13,7 @@ import {
 } from './program';
 import type { StartWeights, Results, WorkoutRow } from '@/types';
 
-function roundToNearestHalf(value: number): number {
+export function roundToNearestHalf(value: number): number {
   const rounded = Math.round(value * 2) / 2;
   if (!Number.isFinite(rounded) || rounded < 0) return 0;
   return rounded;
