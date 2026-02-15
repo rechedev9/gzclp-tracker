@@ -22,7 +22,7 @@ interface UseWebMcpOptions {
 }
 
 // ---------------------------------------------------------------------------
-// MCP-aligned response helpers
+// Helpers
 // ---------------------------------------------------------------------------
 
 function textResponse(data: unknown): ModelContextToolResponse {
@@ -33,11 +33,13 @@ function errorResponse(error: string): ModelContextToolResponse {
   return { content: [{ type: 'text', text: JSON.stringify({ error }) }] };
 }
 
-// ---------------------------------------------------------------------------
-// Validation helpers
-// ---------------------------------------------------------------------------
+function findNextIncomplete(rows: readonly WorkoutRow[]): WorkoutRow | undefined {
+  return rows.find((r) => !r.result.t1 || !r.result.t2 || !r.result.t3);
+}
 
 const VALID_EXERCISES = new Set<string>(T1_EXERCISES);
+const EXERCISE_FIELDS = ['squat', 'bench', 'deadlift', 'ohp', 'latpulldown', 'dbrow'] as const;
+const NO_PROGRAM = 'No program initialized. Use initializeProgram first.';
 
 function isTier(value: unknown): value is Tier {
   return value === 't1' || value === 't2' || value === 't3';
@@ -96,10 +98,8 @@ export function useWebMcp(options: UseWebMcpOptions): void {
       annotations: { readOnlyHint: true },
       execute: async (): Promise<ModelContextToolResponse> => {
         const { rows, startWeights } = stateRef.current;
-        if (!startWeights) {
-          return errorResponse('No program initialized. Use initializeProgram first.');
-        }
-        const current = rows.find((r) => !r.result.t1 || !r.result.t2 || !r.result.t3);
+        if (!startWeights) return errorResponse(NO_PROGRAM);
+        const current = findNextIncomplete(rows);
         if (!current) {
           return textResponse({ message: 'All 90 workouts completed!', completed: true });
         }
@@ -147,9 +147,7 @@ export function useWebMcp(options: UseWebMcpOptions): void {
       annotations: { readOnlyHint: true },
       execute: async (input: unknown): Promise<ModelContextToolResponse> => {
         const { rows, startWeights } = stateRef.current;
-        if (!startWeights) {
-          return errorResponse('No program initialized. Use initializeProgram first.');
-        }
+        if (!startWeights) return errorResponse(NO_PROGRAM);
         let start = 0;
         let end = TOTAL_WORKOUTS - 1;
         if (isRecord(input)) {
@@ -197,9 +195,7 @@ export function useWebMcp(options: UseWebMcpOptions): void {
       annotations: { readOnlyHint: true },
       execute: async (input: unknown): Promise<ModelContextToolResponse> => {
         const { startWeights } = stateRef.current;
-        if (!startWeights) {
-          return errorResponse('No program initialized. Use initializeProgram first.');
-        }
+        if (!startWeights) return errorResponse(NO_PROGRAM);
         const chartData = extractChartData(startWeights, stateRef.current.results);
         if (isRecord(input) && typeof input.exercise === 'string') {
           const ex = input.exercise.toLowerCase();
@@ -231,11 +227,9 @@ export function useWebMcp(options: UseWebMcpOptions): void {
       annotations: { readOnlyHint: true },
       execute: async (): Promise<ModelContextToolResponse> => {
         const { rows, startWeights } = stateRef.current;
-        if (!startWeights) {
-          return errorResponse('No program initialized. Use initializeProgram first.');
-        }
+        if (!startWeights) return errorResponse(NO_PROGRAM);
         const completed = rows.filter((r) => r.result.t1 && r.result.t2 && r.result.t3).length;
-        const next = rows.find((r) => !r.result.t1 || !r.result.t2 || !r.result.t3);
+        const next = findNextIncomplete(rows);
         return textResponse({
           total: TOTAL_WORKOUTS,
           completed,
@@ -265,9 +259,7 @@ export function useWebMcp(options: UseWebMcpOptions): void {
         required: ['index', 'tier', 'result'],
       },
       execute: async (input: unknown): Promise<ModelContextToolResponse> => {
-        if (!stateRef.current.startWeights) {
-          return errorResponse('No program initialized. Use initializeProgram first.');
-        }
+        if (!stateRef.current.startWeights) return errorResponse(NO_PROGRAM);
         if (!isRecord(input)) {
           return errorResponse('Input must be an object with index, tier, and result.');
         }
@@ -306,9 +298,7 @@ export function useWebMcp(options: UseWebMcpOptions): void {
       description: 'Undo the most recent result change.',
       inputSchema: { type: 'object', properties: {} },
       execute: async (): Promise<ModelContextToolResponse> => {
-        if (!stateRef.current.startWeights) {
-          return errorResponse('No program initialized. Use initializeProgram first.');
-        }
+        if (!stateRef.current.startWeights) return errorResponse(NO_PROGRAM);
         stateRef.current.undoLast();
         return textResponse({ undone: true });
       },
@@ -342,36 +332,21 @@ export function useWebMcp(options: UseWebMcpOptions): void {
             'Input must be an object with squat, bench, deadlift, ohp, latpulldown, dbrow.'
           );
         }
-        const fields = ['squat', 'bench', 'deadlift', 'ohp', 'latpulldown', 'dbrow'];
-        for (const ex of fields) {
-          const val = input[ex];
+        const validated: Record<string, number> = {};
+        for (const field of EXERCISE_FIELDS) {
+          const val = input[field];
           if (typeof val !== 'number' || val < 2.5) {
-            return errorResponse(`${ex} must be a number >= 2.5.`);
+            return errorResponse(`${field} must be a number >= 2.5.`);
           }
-        }
-        const s = input.squat;
-        const b = input.bench;
-        const d = input.deadlift;
-        const o = input.ohp;
-        const lp = input.latpulldown;
-        const dr = input.dbrow;
-        if (
-          typeof s !== 'number' ||
-          typeof b !== 'number' ||
-          typeof d !== 'number' ||
-          typeof o !== 'number' ||
-          typeof lp !== 'number' ||
-          typeof dr !== 'number'
-        ) {
-          return errorResponse('All weights must be numbers.');
+          validated[field] = val;
         }
         const weights: StartWeights = {
-          squat: s,
-          bench: b,
-          deadlift: d,
-          ohp: o,
-          latpulldown: lp,
-          dbrow: dr,
+          squat: validated.squat,
+          bench: validated.bench,
+          deadlift: validated.deadlift,
+          ohp: validated.ohp,
+          latpulldown: validated.latpulldown,
+          dbrow: validated.dbrow,
         };
         stateRef.current.generateProgram(weights);
         return textResponse({ initialized: true, weights });
@@ -406,11 +381,9 @@ export function useWebMcp(options: UseWebMcpOptions): void {
       annotations: { readOnlyHint: true },
       execute: async (input: unknown): Promise<ModelContextToolResponse> => {
         const { rows, startWeights } = stateRef.current;
-        if (!startWeights) {
-          return errorResponse('No program initialized. Use initializeProgram first.');
-        }
+        if (!startWeights) return errorResponse(NO_PROGRAM);
 
-        let workoutIndex: number;
+        let workoutIndex: number | undefined;
         let date: string | undefined;
         let startHour: number | undefined;
         let durationMinutes: number | undefined;
@@ -421,14 +394,7 @@ export function useWebMcp(options: UseWebMcpOptions): void {
               return errorResponse('workoutIndex must be an integer between 0 and 89.');
             }
             workoutIndex = input.workoutIndex;
-          } else {
-            const next = rows.find((r) => !r.result.t1 || !r.result.t2 || !r.result.t3);
-            if (!next) {
-              return errorResponse('All 90 workouts completed. No workout to schedule.');
-            }
-            workoutIndex = next.index;
           }
-
           if (input.date !== undefined) {
             if (typeof input.date !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(input.date)) {
               return errorResponse('date must be a valid ISO date string (YYYY-MM-DD).');
@@ -439,7 +405,6 @@ export function useWebMcp(options: UseWebMcpOptions): void {
             }
             date = input.date;
           }
-
           if (input.startHour !== undefined) {
             if (
               typeof input.startHour !== 'number' ||
@@ -451,7 +416,6 @@ export function useWebMcp(options: UseWebMcpOptions): void {
             }
             startHour = input.startHour;
           }
-
           if (input.durationMinutes !== undefined) {
             if (
               typeof input.durationMinutes !== 'number' ||
@@ -463,8 +427,10 @@ export function useWebMcp(options: UseWebMcpOptions): void {
             }
             durationMinutes = input.durationMinutes;
           }
-        } else {
-          const next = rows.find((r) => !r.result.t1 || !r.result.t2 || !r.result.t3);
+        }
+
+        if (workoutIndex === undefined) {
+          const next = findNextIncomplete(rows);
           if (!next) {
             return errorResponse('All 90 workouts completed. No workout to schedule.');
           }
