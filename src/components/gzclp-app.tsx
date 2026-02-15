@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo, useCallback } from 'react';
+import { useState, useMemo, useCallback, type ReactNode } from 'react';
 import type { Tier, ResultValue, Results } from '@/types';
 import { useProgram } from '@/hooks/use-program';
 import { useCloudSync } from '@/hooks/use-cloud-sync';
@@ -20,6 +20,29 @@ import { StageTag } from './stage-tag';
 import { ConfirmDialog } from './confirm-dialog';
 import { ErrorBoundary } from './error-boundary';
 import { useWebMcp } from '@/hooks/use-webmcp';
+
+function TabButton({
+  active,
+  onClick,
+  children,
+}: {
+  readonly active: boolean;
+  readonly onClick: () => void;
+  readonly children: ReactNode;
+}): ReactNode {
+  return (
+    <button
+      onClick={onClick}
+      className={`px-3 sm:px-6 py-3 text-xs sm:text-sm font-bold cursor-pointer transition-colors -mb-[2px] ${
+        active
+          ? 'border-b-2 border-[var(--fill-progress)] text-[var(--text-main)]'
+          : 'text-[var(--text-muted)] hover:text-[var(--text-main)]'
+      }`}
+    >
+      {children}
+    </button>
+  );
+}
 
 interface GZCLPAppProps {
   readonly onBackToDashboard?: () => void;
@@ -72,17 +95,14 @@ export function GZCLPApp({ onBackToDashboard, onGoToProfile }: GZCLPAppProps) {
     return pending ? pending.index : -1;
   }, [rows]);
 
-  // Group rows by week (3 workouts per week)
-  const weeks = useMemo(() => {
-    const result: { week: number; rows: typeof rows }[] = [];
-    for (let i = 0; i < rows.length; i += 3) {
-      result.push({
-        week: Math.floor(i / 3) + 1,
-        rows: rows.slice(i, i + 3),
-      });
-    }
-    return result;
-  }, [rows]);
+  const weeks = useMemo(
+    () =>
+      Array.from({ length: Math.ceil(rows.length / 3) }, (_, i) => ({
+        week: i + 1,
+        rows: rows.slice(i * 3, i * 3 + 3),
+      })),
+    [rows]
+  );
 
   const handleMarkResult = useCallback(
     (index: number, tier: Tier, value: ResultValue): void => {
@@ -130,11 +150,6 @@ export function GZCLPApp({ onBackToDashboard, onGoToProfile }: GZCLPAppProps) {
     resetAll();
   }, [user, clearCloudData, resetAll]);
 
-  /** Count workouts with at least one tier result. */
-  const countWorkouts = useCallback((r: Results): number => {
-    return Object.keys(r).length;
-  }, []);
-
   /** Auto-export a backup before discarding data during conflict resolution. */
   const autoBackup = useCallback(
     (label: string, data: { startWeights: typeof startWeights; results: Results }): void => {
@@ -173,8 +188,8 @@ export function GZCLPApp({ onBackToDashboard, onGoToProfile }: GZCLPAppProps) {
     [startWeights, results, conflict, autoBackup, resolveConflict]
   );
 
-  const localWorkoutCount = countWorkouts(results);
-  const cloudWorkoutCount = conflict ? countWorkouts(conflict.cloudData.results) : 0;
+  const localWorkoutCount = Object.keys(results).length;
+  const cloudWorkoutCount = conflict ? Object.keys(conflict.cloudData.results).length : 0;
 
   return (
     <>
@@ -210,26 +225,12 @@ export function GZCLPApp({ onBackToDashboard, onGoToProfile }: GZCLPAppProps) {
           <>
             {/* Tabs */}
             <div className="flex gap-0 mb-6 border-b-2 border-[var(--border-color)]">
-              <button
-                onClick={() => setActiveTab('program')}
-                className={`px-3 sm:px-6 py-3 text-xs sm:text-sm font-bold cursor-pointer transition-colors -mb-[2px] ${
-                  activeTab === 'program'
-                    ? 'border-b-2 border-[var(--fill-progress)] text-[var(--text-main)]'
-                    : 'text-[var(--text-muted)] hover:text-[var(--text-main)]'
-                }`}
-              >
+              <TabButton active={activeTab === 'program'} onClick={() => setActiveTab('program')}>
                 Program
-              </button>
-              <button
-                onClick={() => setActiveTab('stats')}
-                className={`px-3 sm:px-6 py-3 text-xs sm:text-sm font-bold cursor-pointer transition-colors -mb-[2px] ${
-                  activeTab === 'stats'
-                    ? 'border-b-2 border-[var(--fill-progress)] text-[var(--text-main)]'
-                    : 'text-[var(--text-muted)] hover:text-[var(--text-main)]'
-                }`}
-              >
+              </TabButton>
+              <TabButton active={activeTab === 'stats'} onClick={() => setActiveTab('stats')}>
                 Stats &amp; Charts
-              </button>
+              </TabButton>
             </div>
 
             {activeTab === 'program' && (
