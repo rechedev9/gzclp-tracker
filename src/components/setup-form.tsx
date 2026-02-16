@@ -208,59 +208,49 @@ export function SetupForm({ initialWeights, onGenerate, onUpdateWeights }: Setup
     </>
   );
 
-  // Edit mode: show modal overlay when expanded, collapsed summary otherwise
-  if (isEditMode) {
-    return (
-      <>
-        <div className="bg-[var(--bg-card)] border border-[var(--border-color)] p-4 sm:p-7 mb-7">
-          <div className="flex items-center justify-between flex-wrap gap-3">
-            <div>
-              <h2 className="text-sm font-bold mb-1">Starting Weights</h2>
-              <p className="text-xs text-[var(--text-muted)]">
-                {FIELDS.map((f) => `${f.label.split(' (')[0]}: ${initialWeights[f.key]}kg`).join(
-                  ' · '
-                )}
-              </p>
-            </div>
-            <button
-              onClick={() => setIsExpanded(true)}
-              className="px-4 py-2.5 min-h-[44px] border-2 border-[var(--btn-border)] text-xs font-bold cursor-pointer bg-[var(--btn-bg)] text-[var(--btn-text)] whitespace-nowrap transition-all hover:bg-[var(--btn-hover-bg)] hover:text-[var(--btn-hover-text)]"
-            >
-              Edit Weights
-            </button>
-          </div>
-        </div>
-
-        {isExpanded && (
-          <div
-            className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60"
-            onClick={() => setIsExpanded(false)}
-          >
-            <div
-              className="bg-[var(--bg-card)] border border-[var(--border-color)] p-6 sm:p-8 max-w-2xl w-[calc(100%-2rem)] max-h-[90vh] overflow-y-auto shadow-lg"
-              onClick={(e) => e.stopPropagation()}
-            >
-              {formContent}
-            </div>
-          </div>
-        )}
-
-        <ConfirmDialog
-          open={showConfirm}
-          title="Update Starting Weights"
-          message="This will recalculate the entire program from the new starting weights. Your pass/fail history will be preserved, but projected weights will change. Continue?"
-          confirmLabel="Update Weights"
-          onConfirm={handleConfirmUpdate}
-          onCancel={handleCancelUpdate}
-        />
-      </>
-    );
-  }
-
-  // Initial setup: inline form
   return (
-    <div className="bg-[var(--bg-card)] border border-[var(--border-color)] p-4 sm:p-7 mb-7">
-      {formContent}
+    <>
+      {isEditMode ? (
+        <>
+          <div className="bg-[var(--bg-card)] border border-[var(--border-color)] p-4 sm:p-7 mb-7">
+            <div className="flex items-center justify-between flex-wrap gap-3">
+              <div>
+                <h2 className="text-sm font-bold mb-1">Starting Weights</h2>
+                <p className="text-xs text-[var(--text-muted)]">
+                  {FIELDS.map((f) => `${f.label.split(' (')[0]}: ${initialWeights[f.key]}kg`).join(
+                    ' · '
+                  )}
+                </p>
+              </div>
+              <button
+                onClick={() => setIsExpanded(true)}
+                className="px-4 py-2.5 min-h-[44px] border-2 border-[var(--btn-border)] text-xs font-bold cursor-pointer bg-[var(--btn-bg)] text-[var(--btn-text)] whitespace-nowrap transition-all hover:bg-[var(--btn-hover-bg)] hover:text-[var(--btn-hover-text)]"
+              >
+                Edit Weights
+              </button>
+            </div>
+          </div>
+
+          {isExpanded && (
+            <div
+              className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60"
+              onClick={() => setIsExpanded(false)}
+            >
+              <div
+                className="bg-[var(--bg-card)] border border-[var(--border-color)] p-6 sm:p-8 max-w-2xl w-[calc(100%-2rem)] max-h-[90vh] overflow-y-auto shadow-lg"
+                onClick={(e) => e.stopPropagation()}
+              >
+                {formContent}
+              </div>
+            </div>
+          )}
+        </>
+      ) : (
+        <div className="bg-[var(--bg-card)] border border-[var(--border-color)] p-4 sm:p-7 mb-7">
+          {formContent}
+        </div>
+      )}
+
       <ConfirmDialog
         open={showConfirm}
         title="Update Starting Weights"
@@ -269,6 +259,6 @@ export function SetupForm({ initialWeights, onGenerate, onUpdateWeights }: Setup
         onConfirm={handleConfirmUpdate}
         onCancel={handleCancelUpdate}
       />
-    </div>
+    </>
   );
 }
