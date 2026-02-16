@@ -63,13 +63,10 @@ export function AppShell(): React.ReactNode {
     [router]
   );
 
-  const handleSelectProgram = useCallback(
-    (_programId: string): void => {
-      // For now, only GZCLP is supported — programId will route to different trackers in the future
-      setView('tracker');
-    },
-    [setView]
-  );
+  const handleSelectProgram = useCallback((): void => {
+    // Only GZCLP is supported — programId will route to different trackers in the future
+    setView('tracker');
+  }, [setView]);
 
   const handleContinueProgram = useCallback((): void => {
     setView('tracker');
