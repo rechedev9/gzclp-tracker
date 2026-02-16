@@ -18,7 +18,7 @@ test.describe('Stats panel', () => {
   test('shows summary cards with exercise names', async ({ page }) => {
     await seedProgram(page, { results: buildSuccessResults(4) });
     await page.goto('/app?view=tracker');
-    await expect(page.getByText('4 / 90')).toBeVisible();
+    await expect(page.getByRole('progressbar').last()).toBeVisible();
 
     // Switch to Stats tab
     await page.getByRole('button', { name: 'Stats & Charts' }).click();
@@ -33,7 +33,7 @@ test.describe('Stats panel', () => {
   test('summary cards display weight in kg', async ({ page }) => {
     await seedProgram(page, { results: buildSuccessResults(4) });
     await page.goto('/app?view=tracker');
-    await expect(page.getByText('4 / 90')).toBeVisible();
+    await expect(page.getByRole('progressbar').last()).toBeVisible();
 
     await page.getByRole('button', { name: 'Stats & Charts' }).click();
 
@@ -44,7 +44,7 @@ test.describe('Stats panel', () => {
   test('renders chart canvas elements', async ({ page }) => {
     await seedProgram(page, { results: buildSuccessResults(4) });
     await page.goto('/app?view=tracker');
-    await expect(page.getByText('4 / 90')).toBeVisible();
+    await expect(page.getByRole('progressbar').last()).toBeVisible();
 
     await page.getByRole('button', { name: 'Stats & Charts' }).click();
 

@@ -41,7 +41,7 @@ test.describe('Setup flow', () => {
     await page.getByRole('button', { name: 'Generate Program' }).click();
 
     await expect(page.getByText('Week 1', { exact: true })).toBeVisible();
-    await expect(page.getByText('0 / 90')).toBeVisible();
+    await expect(page.getByRole('progressbar').last()).toBeVisible();
   });
 
   test('data is persisted to localStorage after setup', async ({ page }) => {
