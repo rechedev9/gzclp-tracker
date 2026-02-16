@@ -1,8 +1,8 @@
 'use client';
 
 import { memo, useMemo } from 'react';
-import { NAMES } from '@/lib/program';
-import { extractChartData, calculateStats, T1_EXERCISES } from '@/lib/stats';
+import { NAMES, T1_EXERCISES } from '@/lib/program';
+import { extractChartData, calculateStats } from '@/lib/stats';
 import { LineChart } from './line-chart';
 import type { StartWeights, Results } from '@/types';
 

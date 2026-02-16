@@ -41,5 +41,3 @@ export function calculateStats(data: ChartDataPoint[]): ExerciseStats {
     currentStage: lastMarked ? lastMarked.stage : 1,
   };
 }
-
-export { T1_EXERCISES };
