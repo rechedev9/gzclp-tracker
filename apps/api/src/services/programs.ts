@@ -113,14 +113,36 @@ export async function createInstance(
   return toResponse(instance, [], []);
 }
 
-export async function getInstances(userId: string): Promise<ProgramInstanceResponse[]> {
+export interface ProgramInstanceListItem {
+  readonly id: string;
+  readonly programId: string;
+  readonly name: string;
+  readonly status: string;
+  readonly createdAt: string;
+  readonly updatedAt: string;
+}
+
+export async function getInstances(userId: string): Promise<ProgramInstanceListItem[]> {
   const instances = await getDb()
-    .select()
+    .select({
+      id: programInstances.id,
+      programId: programInstances.programId,
+      name: programInstances.name,
+      status: programInstances.status,
+      createdAt: programInstances.createdAt,
+      updatedAt: programInstances.updatedAt,
+    })
     .from(programInstances)
     .where(eq(programInstances.userId, userId));
 
-  // For listing, return instances without full results (empty)
-  return instances.map((i) => toResponse(i, [], []));
+  return instances.map((i) => ({
+    id: i.id,
+    programId: i.programId,
+    name: i.name,
+    status: i.status,
+    createdAt: i.createdAt.toISOString(),
+    updatedAt: i.updatedAt.toISOString(),
+  }));
 }
 
 export async function getInstance(

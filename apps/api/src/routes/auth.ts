@@ -7,6 +7,7 @@
 import { Elysia, t } from 'elysia';
 import { jwtPlugin } from '../middleware/auth-guard';
 import { ApiError } from '../middleware/error-handler';
+import { rateLimit } from '../middleware/rate-limit';
 import {
   hashPassword,
   verifyPassword,
@@ -59,7 +60,8 @@ export const authRoutes = new Elysia({ prefix: '/auth' })
   // -----------------------------------------------------------------------
   .post(
     '/signup',
-    async ({ jwt, body, cookie }) => {
+    async ({ jwt, body, cookie, request }) => {
+      rateLimit(request.headers.get('x-forwarded-for') ?? 'unknown', '/auth/signup');
       const existing = await findUserByEmail(body.email);
       if (existing) {
         throw new ApiError(409, 'Email already registered', 'AUTH_EMAIL_EXISTS');
@@ -102,7 +104,8 @@ export const authRoutes = new Elysia({ prefix: '/auth' })
   // -----------------------------------------------------------------------
   .post(
     '/signin',
-    async ({ jwt, body, cookie }) => {
+    async ({ jwt, body, cookie, request }) => {
+      rateLimit(request.headers.get('x-forwarded-for') ?? 'unknown', '/auth/signin');
       const user = await findUserByEmail(body.email);
       if (!user) {
         throw new ApiError(401, 'Invalid email or password', 'AUTH_INVALID_CREDENTIALS');
