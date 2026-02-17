@@ -1,12 +1,16 @@
 'use client';
 
+import { useMemo } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { getAllPresetPrograms, getProgramDefinition } from '@gzclp/shared/programs/registry';
+import { queryKeys } from '@/lib/query-keys';
+import { fetchPrograms, fetchProgram } from '@/lib/api-functions';
+import { useAuth } from '@/contexts/auth-context';
 import { ProgramCard } from './program-card';
 import { AppHeader } from './app-header';
-import type { ProgramDefinition, ProgramInstanceMap } from '@gzclp/shared/types/program';
+import type { ProgramDefinition } from '@gzclp/shared/types/program';
 
 interface DashboardProps {
-  readonly instanceMap: ProgramInstanceMap | null;
   readonly onSelectProgram: (programId: string) => void;
   readonly onContinueProgram: () => void;
   readonly onGoToProfile?: () => void;
@@ -47,23 +51,37 @@ const COMING_SOON_CARD: ProgramDefinition = {
 };
 
 export function Dashboard({
-  instanceMap,
   onSelectProgram,
   onContinueProgram,
   onGoToProfile,
 }: DashboardProps): React.ReactNode {
+  const { user } = useAuth();
   const presets = getAllPresetPrograms();
 
-  // Active instance info
-  const activeInstanceId = instanceMap?.activeProgramId ?? null;
-  const activeInstance = activeInstanceId
-    ? (instanceMap?.instances[activeInstanceId] ?? null)
-    : null;
-  const activeDefinition = activeInstance
-    ? getProgramDefinition(activeInstance.programId)
+  // Fetch programs from API
+  const programsQuery = useQuery({
+    queryKey: queryKeys.programs.all,
+    queryFn: fetchPrograms,
+    enabled: user !== null,
+  });
+
+  const activeProgram = useMemo(() => {
+    if (!programsQuery.data) return null;
+    return programsQuery.data.find((p) => p.status === 'active') ?? null;
+  }, [programsQuery.data]);
+
+  // Fetch detail for progress info
+  const detailQuery = useQuery({
+    queryKey: queryKeys.programs.detail(activeProgram?.id ?? ''),
+    queryFn: () => fetchProgram(activeProgram?.id ?? ''),
+    enabled: activeProgram !== null,
+  });
+
+  const activeDefinition = activeProgram
+    ? getProgramDefinition(activeProgram.programId)
     : undefined;
 
-  const completedWorkouts = activeInstance ? Object.keys(activeInstance.results).length : 0;
+  const completedWorkouts = detailQuery.data ? Object.keys(detailQuery.data.results).length : 0;
   const totalWorkouts = activeDefinition?.totalWorkouts ?? 0;
   const progressPct = totalWorkouts > 0 ? Math.round((completedWorkouts / totalWorkouts) * 100) : 0;
 
@@ -73,7 +91,7 @@ export function Dashboard({
 
       <div className="max-w-3xl mx-auto px-5 sm:px-8 py-8 sm:py-12">
         {/* Active program card */}
-        {activeInstance && activeDefinition && (
+        {activeProgram && activeDefinition && (
           <section className="mb-10">
             <h2 className="text-xs font-bold uppercase tracking-[0.15em] text-[var(--text-muted)] mb-3">
               Your Program
@@ -126,14 +144,14 @@ export function Dashboard({
         {/* Program catalog */}
         <section>
           <h2 className="text-xs font-bold uppercase tracking-[0.15em] text-[var(--text-muted)] mb-3">
-            {activeInstance ? 'Start a New Program' : 'Choose a Program'}
+            {activeProgram ? 'Start a New Program' : 'Choose a Program'}
           </h2>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             {presets.map((def) => (
               <ProgramCard
                 key={def.id}
                 definition={def}
-                isActive={activeInstance?.programId === def.id}
+                isActive={activeProgram?.programId === def.id}
                 onSelect={() => onSelectProgram(def.id)}
               />
             ))}

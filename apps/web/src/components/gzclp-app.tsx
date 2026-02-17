@@ -1,14 +1,12 @@
 'use client';
 
 import { useState, useMemo, useCallback, type ReactNode } from 'react';
-import type { Tier, ResultValue, Results } from '@gzclp/shared/types';
+import { useQueryClient } from '@tanstack/react-query';
+import type { Tier, ResultValue } from '@gzclp/shared/types';
 import { useProgram } from '@/hooks/use-program';
-import { useCloudSync } from '@/hooks/use-cloud-sync';
 import { useAuth } from '@/contexts/auth-context';
 import { computeProgram } from '@gzclp/shared/engine';
 import { TOTAL_WORKOUTS, NAMES } from '@gzclp/shared/program';
-import { clearSyncMeta } from '@/lib/sync';
-import { createExportData } from '@/lib/storage-v2';
 import { useToast } from '@/contexts/toast-context';
 import { AppHeader } from './app-header';
 import { ToastContainer } from './toast';
@@ -17,7 +15,6 @@ import { Toolbar } from './toolbar';
 import { WeekSection } from './week-section';
 import { StatsPanel } from './stats-panel';
 import { StageTag } from './stage-tag';
-import { ConfirmDialog } from './confirm-dialog';
 import { ErrorBoundary } from './error-boundary';
 import { useWebMcp } from '@/hooks/use-webmcp';
 
@@ -63,16 +60,8 @@ export function GZCLPApp({ onBackToDashboard, onGoToProfile }: GZCLPAppProps) {
     resetAll,
   } = useProgram();
 
-  const { user, signOut } = useAuth();
-
-  const { syncStatus, conflict, resolveConflict, clearCloudData } = useCloudSync({
-    user,
-    startWeights,
-    results,
-    undoHistory,
-    onCloudDataReceived: () => {},
-  });
-
+  const { signOut } = useAuth();
+  const queryClient = useQueryClient();
   const { toast } = useToast();
 
   const [activeTab, setActiveTab] = useState<'program' | 'stats'>('program');
@@ -138,57 +127,12 @@ export function GZCLPApp({ onBackToDashboard, onGoToProfile }: GZCLPAppProps) {
 
   const handleSignOut = useCallback(async (): Promise<void> => {
     await signOut();
-    clearSyncMeta();
+    queryClient.clear();
+  }, [signOut, queryClient]);
+
+  const handleReset = useCallback((): void => {
     resetAll();
-  }, [signOut, resetAll]);
-
-  const handleReset = useCallback(async (): Promise<void> => {
-    if (user) {
-      await clearCloudData();
-    }
-    resetAll();
-  }, [user, clearCloudData, resetAll]);
-
-  /** Auto-export a backup before discarding data during conflict resolution. */
-  const autoBackup = useCallback(
-    (label: string, data: { startWeights: typeof startWeights; results: Results }): void => {
-      if (!data.startWeights) return;
-      const exportData = createExportData({
-        startWeights: data.startWeights,
-        results: data.results,
-        undoHistory: [],
-      });
-      const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: 'application/json' });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `gzclp-backup-${label}-${new Date().toISOString().slice(0, 10)}.json`;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      URL.revokeObjectURL(url);
-    },
-    []
-  );
-
-  const handleConflictResolve = useCallback(
-    (choice: 'local' | 'cloud'): void => {
-      // Auto-backup the version being discarded
-      if (choice === 'cloud' && startWeights) {
-        autoBackup('local', { startWeights, results });
-      } else if (choice === 'local' && conflict?.cloudData) {
-        autoBackup('cloud', {
-          startWeights: conflict.cloudData.startWeights,
-          results: conflict.cloudData.results,
-        });
-      }
-      resolveConflict(choice);
-    },
-    [startWeights, results, conflict, autoBackup, resolveConflict]
-  );
-
-  const localWorkoutCount = Object.keys(results).length;
-  const cloudWorkoutCount = conflict ? Object.keys(conflict.cloudData.results).length : 0;
+  }, [resetAll]);
 
   return (
     <>
@@ -197,7 +141,6 @@ export function GZCLPApp({ onBackToDashboard, onGoToProfile }: GZCLPAppProps) {
           backLabel="Programs"
           onBack={onBackToDashboard}
           onGoToProfile={onGoToProfile}
-          syncStatus={syncStatus}
           onSignOut={() => void handleSignOut()}
         />
 
@@ -208,7 +151,7 @@ export function GZCLPApp({ onBackToDashboard, onGoToProfile }: GZCLPAppProps) {
             undoCount={undoHistory.length}
             onUndo={undoLast}
             onJumpToCurrent={jumpToCurrent}
-            onReset={() => void handleReset()}
+            onReset={handleReset}
           />
         )}
       </div>
@@ -330,33 +273,6 @@ export function GZCLPApp({ onBackToDashboard, onGoToProfile }: GZCLPAppProps) {
           </>
         )}
       </div>
-
-      <ConfirmDialog
-        open={conflict !== null}
-        title="Data Conflict"
-        message={
-          <>
-            <span>
-              Both this device and the cloud have different data. A backup of the discarded version
-              will be downloaded automatically.
-            </span>
-            <span className="flex gap-4 mt-3 text-[11px]">
-              <span className="flex-1 border border-[var(--border-color)] px-3 py-2 text-center">
-                <strong className="block mb-0.5">Local</strong>
-                {localWorkoutCount} workout{localWorkoutCount !== 1 ? 's' : ''} logged
-              </span>
-              <span className="flex-1 border border-[var(--border-color)] px-3 py-2 text-center">
-                <strong className="block mb-0.5">Cloud</strong>
-                {cloudWorkoutCount} workout{cloudWorkoutCount !== 1 ? 's' : ''} logged
-              </span>
-            </span>
-          </>
-        }
-        confirmLabel="Use Cloud"
-        cancelLabel="Keep Local"
-        onConfirm={() => handleConflictResolve('cloud')}
-        onCancel={() => handleConflictResolve('local')}
-      />
 
       <ToastContainer />
     </>
