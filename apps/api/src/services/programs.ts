@@ -159,17 +159,6 @@ export async function updateInstance(
     config?: Record<string, number>;
   }
 ): Promise<ProgramInstanceResponse> {
-  // Verify ownership
-  const [existing] = await getDb()
-    .select()
-    .from(programInstances)
-    .where(and(eq(programInstances.id, instanceId), eq(programInstances.userId, userId)))
-    .limit(1);
-
-  if (!existing) {
-    throw new ApiError(404, 'Program instance not found', 'INSTANCE_NOT_FOUND');
-  }
-
   type ProgramInstanceUpdate = {
     updatedAt: Date;
     name?: string;
@@ -181,33 +170,31 @@ export async function updateInstance(
   if (updates.status !== undefined) updateValues.status = updates.status;
   if (updates.config !== undefined) updateValues.config = updates.config;
 
+  // Single UPDATE WHERE userId AND id — one round-trip instead of SELECT+UPDATE
   const [updated] = await getDb()
     .update(programInstances)
     .set(updateValues)
-    .where(eq(programInstances.id, instanceId))
+    .where(and(eq(programInstances.id, instanceId), eq(programInstances.userId, userId)))
     .returning();
 
   if (!updated) {
-    throw new ApiError(500, 'Failed to update program instance', 'UPDATE_FAILED');
+    throw new ApiError(404, 'Program instance not found', 'INSTANCE_NOT_FOUND');
   }
 
   return toResponse(updated, [], []);
 }
 
 export async function deleteInstance(userId: string, instanceId: string): Promise<void> {
-  // Verify ownership
-  const [existing] = await getDb()
-    .select()
-    .from(programInstances)
+  // Single DELETE WHERE userId AND id — one round-trip instead of SELECT+DELETE
+  // CASCADE deletes workout_results and undo_entries
+  const deleted = await getDb()
+    .delete(programInstances)
     .where(and(eq(programInstances.id, instanceId), eq(programInstances.userId, userId)))
-    .limit(1);
+    .returning({ id: programInstances.id });
 
-  if (!existing) {
+  if (deleted.length === 0) {
     throw new ApiError(404, 'Program instance not found', 'INSTANCE_NOT_FOUND');
   }
-
-  // CASCADE deletes workout_results and undo_entries
-  await getDb().delete(programInstances).where(eq(programInstances.id, instanceId));
 }
 
 // ---------------------------------------------------------------------------
