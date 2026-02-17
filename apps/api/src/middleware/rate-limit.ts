@@ -17,6 +17,12 @@ const buckets = new Map<string, Bucket>();
 export function rateLimit(ip: string, endpoint: string): void {
   const key = `${endpoint}:${ip}`;
   const now = Date.now();
+
+  // Lazy cleanup: sweep expired entries to keep the Map bounded
+  for (const [k, b] of buckets) {
+    if (now > b.resetAt) buckets.delete(k);
+  }
+
   const bucket = buckets.get(key);
 
   if (!bucket || now > bucket.resetAt) {

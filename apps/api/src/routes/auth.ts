@@ -61,7 +61,9 @@ export const authRoutes = new Elysia({ prefix: '/auth' })
   .post(
     '/signup',
     async ({ jwt, body, cookie, request, set }) => {
-      rateLimit(request.headers.get('x-forwarded-for') ?? 'unknown', '/auth/signup');
+      const rawIp = request.headers.get('x-forwarded-for') ?? 'unknown';
+      const ip = rawIp.split(',')[0]?.trim() ?? 'unknown';
+      rateLimit(ip, '/auth/signup');
       const existing = await findUserByEmail(body.email);
       if (existing) {
         throw new ApiError(409, 'Email already registered', 'AUTH_EMAIL_EXISTS');
@@ -106,7 +108,9 @@ export const authRoutes = new Elysia({ prefix: '/auth' })
   .post(
     '/signin',
     async ({ jwt, body, cookie, request }) => {
-      rateLimit(request.headers.get('x-forwarded-for') ?? 'unknown', '/auth/signin');
+      const rawIp = request.headers.get('x-forwarded-for') ?? 'unknown';
+      const ip = rawIp.split(',')[0]?.trim() ?? 'unknown';
+      rateLimit(ip, '/auth/signin');
       const user = await findUserByEmail(body.email);
       if (!user) {
         throw new ApiError(401, 'Invalid email or password', 'AUTH_INVALID_CREDENTIALS');
