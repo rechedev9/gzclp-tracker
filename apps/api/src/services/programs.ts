@@ -255,6 +255,22 @@ export async function importInstance(
   }
   const config = configResult.data;
 
+  // Validate workoutIndex bounds and slotIds against the program definition
+  const maxWorkoutIndex = definition.totalWorkouts - 1;
+  const validSlotIds = new Set(definition.days.flatMap((d) => d.slots.map((s) => s.id)));
+
+  for (const [indexStr, slots] of Object.entries(data.results)) {
+    const idx = Number(indexStr);
+    if (!Number.isInteger(idx) || idx < 0 || idx > maxWorkoutIndex) {
+      throw new ApiError(400, `Invalid workoutIndex: ${indexStr}`, 'INVALID_DATA');
+    }
+    for (const slotId of Object.keys(slots)) {
+      if (!validSlotIds.has(slotId)) {
+        throw new ApiError(400, `Unknown slotId: ${slotId}`, 'INVALID_DATA');
+      }
+    }
+  }
+
   // Wrap all inserts in a transaction — partial failure rolls back everything
   const instanceId = await db.transaction(async (tx) => {
     const [instance] = await tx
