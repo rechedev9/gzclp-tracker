@@ -16,7 +16,12 @@ export const resultRoutes = new Elysia({ prefix: '/programs/:id' })
     async ({ userId, params, body, set }) => {
       const result = await recordResult(userId, params.id, body);
       set.status = 201;
-      return result;
+      return {
+        workoutIndex: result.workoutIndex,
+        slotId: result.slotId,
+        result: result.result,
+        ...(result.amrapReps !== null ? { amrapReps: result.amrapReps } : {}),
+      };
     },
     {
       params: t.Object({ id: t.String() }),
@@ -51,9 +56,15 @@ export const resultRoutes = new Elysia({ prefix: '/programs/:id' })
     async ({ userId, params }) => {
       const entry = await undoLast(userId, params.id);
       if (!entry) {
-        return { message: 'nothing to undo' };
+        return { undone: null };
       }
-      return { undone: entry };
+      return {
+        undone: {
+          i: entry.workoutIndex,
+          slotId: entry.slotId,
+          ...(entry.prevResult !== null ? { prev: entry.prevResult } : {}),
+        },
+      };
     },
     {
       params: t.Object({ id: t.String() }),
