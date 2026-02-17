@@ -153,7 +153,11 @@ export async function getInstance(
 export async function updateInstance(
   userId: string,
   instanceId: string,
-  updates: { name?: string; status?: string; config?: Record<string, number> }
+  updates: {
+    name?: string;
+    status?: 'active' | 'completed' | 'archived';
+    config?: Record<string, number>;
+  }
 ): Promise<ProgramInstanceResponse> {
   // Verify ownership
   const [existing] = await db
@@ -166,10 +170,16 @@ export async function updateInstance(
     throw new ApiError(404, 'Program instance not found', 'INSTANCE_NOT_FOUND');
   }
 
-  const updateValues: Record<string, unknown> = { updatedAt: new Date() };
-  if (updates.name !== undefined) updateValues['name'] = updates.name;
-  if (updates.status !== undefined) updateValues['status'] = updates.status;
-  if (updates.config !== undefined) updateValues['config'] = updates.config;
+  type ProgramInstanceUpdate = {
+    updatedAt: Date;
+    name?: string;
+    status?: 'active' | 'completed' | 'archived';
+    config?: Record<string, number>;
+  };
+  const updateValues: ProgramInstanceUpdate = { updatedAt: new Date() };
+  if (updates.name !== undefined) updateValues.name = updates.name;
+  if (updates.status !== undefined) updateValues.status = updates.status;
+  if (updates.config !== undefined) updateValues.config = updates.config;
 
   const [updated] = await db
     .update(programInstances)
