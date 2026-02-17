@@ -47,9 +47,10 @@ export async function createUser(
   passwordHash: string,
   name?: string
 ): Promise<UserRow> {
+  const normalizedEmail = email.trim().toLowerCase();
   const [user] = await db
     .insert(users)
-    .values({ email, passwordHash, name: name ?? null })
+    .values({ email: normalizedEmail, passwordHash, name: name ?? null })
     .returning();
 
   if (!user) {
@@ -59,7 +60,8 @@ export async function createUser(
 }
 
 export async function findUserByEmail(email: string): Promise<UserRow | undefined> {
-  const [user] = await db.select().from(users).where(eq(users.email, email)).limit(1);
+  const normalizedEmail = email.trim().toLowerCase();
+  const [user] = await db.select().from(users).where(eq(users.email, normalizedEmail)).limit(1);
   return user;
 }
 
