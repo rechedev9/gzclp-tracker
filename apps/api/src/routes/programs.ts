@@ -9,7 +9,10 @@ import {
   getInstance,
   updateInstance,
   deleteInstance,
+  exportInstance,
+  importInstance,
 } from '../services/programs';
+import type { ExportedProgram } from '../services/programs';
 
 export const programRoutes = new Elysia({ prefix: '/programs' })
   .use(jwtPlugin)
@@ -82,6 +85,55 @@ export const programRoutes = new Elysia({ prefix: '/programs' })
     {
       params: t.Object({
         id: t.String(),
+      }),
+    }
+  )
+
+  // GET /programs/:id/export — export a program instance as JSON
+  .get(
+    '/:id/export',
+    async ({ userId, params }) => {
+      const data = await exportInstance(userId, params.id);
+      return data;
+    },
+    {
+      params: t.Object({
+        id: t.String(),
+      }),
+    }
+  )
+
+  // POST /programs/import — import a program from exported JSON
+  .post(
+    '/import',
+    async ({ userId, body }) => {
+      const instance = await importInstance(userId, body as ExportedProgram);
+      return instance;
+    },
+    {
+      body: t.Object({
+        version: t.Literal(1),
+        exportDate: t.String(),
+        programId: t.String({ minLength: 1 }),
+        name: t.String({ minLength: 1, maxLength: 100 }),
+        config: t.Record(t.String(), t.Number()),
+        results: t.Record(
+          t.String(),
+          t.Record(
+            t.String(),
+            t.Object({
+              result: t.Optional(t.Union([t.Literal('success'), t.Literal('fail')])),
+              amrapReps: t.Optional(t.Integer({ minimum: 0 })),
+            })
+          )
+        ),
+        undoHistory: t.Array(
+          t.Object({
+            i: t.Integer({ minimum: 0 }),
+            slotId: t.String({ minLength: 1 }),
+            prev: t.Optional(t.Union([t.Literal('success'), t.Literal('fail')])),
+          })
+        ),
       }),
     }
   );

@@ -198,3 +198,100 @@ export async function deleteInstance(userId: string, instanceId: string): Promis
   // CASCADE deletes workout_results and undo_entries
   await db.delete(programInstances).where(eq(programInstances.id, instanceId));
 }
+
+// ---------------------------------------------------------------------------
+// Export / Import
+// ---------------------------------------------------------------------------
+
+export interface ExportedProgram {
+  readonly version: 1;
+  readonly exportDate: string;
+  readonly programId: string;
+  readonly name: string;
+  readonly config: unknown;
+  readonly results: GenericResults;
+  readonly undoHistory: GenericUndoHistory;
+}
+
+export async function exportInstance(userId: string, instanceId: string): Promise<ExportedProgram> {
+  const instance = await getInstance(userId, instanceId);
+
+  return {
+    version: 1,
+    exportDate: new Date().toISOString(),
+    programId: instance.programId,
+    name: instance.name,
+    config: instance.config,
+    results: instance.results,
+    undoHistory: instance.undoHistory,
+  };
+}
+
+export async function importInstance(
+  userId: string,
+  data: ExportedProgram
+): Promise<ProgramInstanceResponse> {
+  // Validate program exists
+  const definition = getProgramDefinition(data.programId);
+  if (!definition) {
+    throw new ApiError(400, `Unknown program: ${data.programId}`, 'INVALID_PROGRAM');
+  }
+
+  // Create the instance
+  const config = data.config as Record<string, number>;
+  const [instance] = await db
+    .insert(programInstances)
+    .values({
+      userId,
+      programId: data.programId,
+      name: data.name,
+      config,
+      status: 'active',
+    })
+    .returning();
+
+  if (!instance) {
+    throw new ApiError(500, 'Failed to create imported instance', 'IMPORT_FAILED');
+  }
+
+  // Bulk insert results
+  const resultValues: {
+    instanceId: string;
+    workoutIndex: number;
+    slotId: string;
+    result: string;
+    amrapReps: number | null;
+  }[] = [];
+
+  for (const [indexStr, slots] of Object.entries(data.results)) {
+    for (const [slotId, slotResult] of Object.entries(slots)) {
+      if (slotResult.result) {
+        resultValues.push({
+          instanceId: instance.id,
+          workoutIndex: Number(indexStr),
+          slotId,
+          result: slotResult.result,
+          amrapReps: slotResult.amrapReps ?? null,
+        });
+      }
+    }
+  }
+
+  if (resultValues.length > 0) {
+    await db.insert(workoutResults).values(resultValues);
+  }
+
+  // Bulk insert undo entries
+  if (data.undoHistory.length > 0) {
+    const undoValues = data.undoHistory.map((entry) => ({
+      instanceId: instance.id,
+      workoutIndex: entry.i,
+      slotId: entry.slotId,
+      prevResult: entry.prev ?? null,
+    }));
+    await db.insert(undoEntries).values(undoValues);
+  }
+
+  // Return the full response
+  return getInstance(userId, instance.id);
+}
