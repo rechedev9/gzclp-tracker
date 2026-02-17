@@ -4,6 +4,7 @@ import { ApiError } from './middleware/error-handler';
 import { authRoutes } from './routes/auth';
 import { programRoutes } from './routes/programs';
 import { catalogRoutes } from './routes/catalog';
+import { resultRoutes } from './routes/results';
 
 const CORS_ORIGIN = process.env['CORS_ORIGIN'] ?? 'http://localhost:3000';
 const PORT = Number(process.env['PORT'] ?? 3001);
@@ -44,6 +45,7 @@ const app = new Elysia()
   .use(authRoutes)
   .use(programRoutes)
   .use(catalogRoutes)
+  .use(resultRoutes)
   .get('/health', () => ({
     status: 'ok',
     timestamp: new Date().toISOString(),
