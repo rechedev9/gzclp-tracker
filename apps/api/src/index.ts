@@ -1,5 +1,7 @@
 import { Elysia } from 'elysia';
 import { cors } from '@elysiajs/cors';
+import { ApiError } from './middleware/error-handler';
+import { authRoutes } from './routes/auth';
 
 const CORS_ORIGIN = process.env['CORS_ORIGIN'] ?? 'http://localhost:3000';
 const PORT = Number(process.env['PORT'] ?? 3001);
@@ -12,6 +14,12 @@ const app = new Elysia()
     })
   )
   .onError(({ code, error, set }) => {
+    // Handle custom ApiError thrown in services/middleware
+    if (error instanceof ApiError) {
+      set.status = error.statusCode;
+      return { error: error.message, code: error.code };
+    }
+
     if (code === 'NOT_FOUND') {
       set.status = 404;
       return { error: 'Not found', code: 'NOT_FOUND' };
@@ -31,6 +39,7 @@ const app = new Elysia()
     set.status = 500;
     return { error: 'Internal server error', code: 'INTERNAL_ERROR' };
   })
+  .use(authRoutes)
   .get('/health', () => ({
     status: 'ok',
     timestamp: new Date().toISOString(),
