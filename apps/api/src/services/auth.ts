@@ -2,8 +2,8 @@
  * Auth service — password hashing, refresh token management, user CRUD.
  * Framework-agnostic: no Elysia dependency. JWT signing handled in routes.
  */
-import { eq } from 'drizzle-orm';
-import { db } from '../db';
+import { eq, lt } from 'drizzle-orm';
+import { getDb } from '../db';
 import { users, refreshTokens } from '../db/schema';
 
 // ---------------------------------------------------------------------------
@@ -48,7 +48,7 @@ export async function createUser(
   name?: string
 ): Promise<UserRow> {
   const normalizedEmail = email.trim().toLowerCase();
-  const [user] = await db
+  const [user] = await getDb()
     .insert(users)
     .values({ email: normalizedEmail, passwordHash, name: name ?? null })
     .returning();
@@ -61,12 +61,16 @@ export async function createUser(
 
 export async function findUserByEmail(email: string): Promise<UserRow | undefined> {
   const normalizedEmail = email.trim().toLowerCase();
-  const [user] = await db.select().from(users).where(eq(users.email, normalizedEmail)).limit(1);
+  const [user] = await getDb()
+    .select()
+    .from(users)
+    .where(eq(users.email, normalizedEmail))
+    .limit(1);
   return user;
 }
 
 export async function findUserById(id: string): Promise<UserRow | undefined> {
-  const [user] = await db.select().from(users).where(eq(users.id, id)).limit(1);
+  const [user] = await getDb().select().from(users).where(eq(users.id, id)).limit(1);
   return user;
 }
 
@@ -79,13 +83,13 @@ export async function storeRefreshToken(
   tokenHash: string,
   expiresAt: Date
 ): Promise<void> {
-  await db.insert(refreshTokens).values({ userId, tokenHash, expiresAt });
+  await getDb().insert(refreshTokens).values({ userId, tokenHash, expiresAt });
 }
 
 export async function findRefreshToken(
   tokenHash: string
 ): Promise<typeof refreshTokens.$inferSelect | undefined> {
-  const [token] = await db
+  const [token] = await getDb()
     .select()
     .from(refreshTokens)
     .where(eq(refreshTokens.tokenHash, tokenHash))
@@ -94,9 +98,17 @@ export async function findRefreshToken(
 }
 
 export async function revokeRefreshToken(tokenHash: string): Promise<void> {
-  await db.delete(refreshTokens).where(eq(refreshTokens.tokenHash, tokenHash));
+  await getDb().delete(refreshTokens).where(eq(refreshTokens.tokenHash, tokenHash));
 }
 
 export async function revokeAllUserTokens(userId: string): Promise<void> {
-  await db.delete(refreshTokens).where(eq(refreshTokens.userId, userId));
+  await getDb().delete(refreshTokens).where(eq(refreshTokens.userId, userId));
+}
+
+// ---------------------------------------------------------------------------
+// Token cleanup (Commit 8: exposed here, wired in index.ts)
+// ---------------------------------------------------------------------------
+
+export async function cleanupExpiredTokens(): Promise<void> {
+  await getDb().delete(refreshTokens).where(lt(refreshTokens.expiresAt, new Date()));
 }

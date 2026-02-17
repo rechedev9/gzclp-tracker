@@ -3,7 +3,7 @@
  * Every mutation pushes an undo entry for reversibility.
  */
 import { eq, and, desc } from 'drizzle-orm';
-import { db } from '../db';
+import { getDb } from '../db';
 import { programInstances, workoutResults, undoEntries } from '../db/schema';
 import { ApiError } from '../middleware/error-handler';
 
@@ -26,7 +26,7 @@ export interface RecordResultInput {
 // ---------------------------------------------------------------------------
 
 async function verifyInstanceOwnership(userId: string, instanceId: string): Promise<void> {
-  const [instance] = await db
+  const [instance] = await getDb()
     .select({ id: programInstances.id })
     .from(programInstances)
     .where(and(eq(programInstances.id, instanceId), eq(programInstances.userId, userId)))
@@ -48,7 +48,7 @@ export async function recordResult(
 ): Promise<WorkoutResultRow> {
   await verifyInstanceOwnership(userId, instanceId);
 
-  return await db.transaction(async (tx) => {
+  return await getDb().transaction(async (tx) => {
     // Capture existing state for undo (must happen before upsert)
     const [existing] = await tx
       .select()
@@ -113,7 +113,7 @@ export async function deleteResult(
 ): Promise<void> {
   await verifyInstanceOwnership(userId, instanceId);
 
-  await db.transaction(async (tx) => {
+  await getDb().transaction(async (tx) => {
     const [existing] = await tx
       .select()
       .from(workoutResults)
@@ -155,7 +155,7 @@ export async function deleteResult(
 export async function undoLast(userId: string, instanceId: string): Promise<UndoEntryRow | null> {
   await verifyInstanceOwnership(userId, instanceId);
 
-  return await db.transaction(async (tx) => {
+  return await getDb().transaction(async (tx) => {
     // Pop the most recent undo entry (LIFO — highest id)
     const [entry] = await tx
       .select()

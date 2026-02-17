@@ -1,6 +1,7 @@
 import { Elysia } from 'elysia';
 import { cors } from '@elysiajs/cors';
 import { ApiError } from './middleware/error-handler';
+import { cleanupExpiredTokens } from './services/auth';
 import { authRoutes } from './routes/auth';
 import { programRoutes } from './routes/programs';
 import { catalogRoutes } from './routes/catalog';
@@ -55,3 +56,14 @@ const app = new Elysia()
   });
 
 export type App = typeof app;
+
+// ---------------------------------------------------------------------------
+// Expired refresh token cleanup — run at startup then every 24h
+// ---------------------------------------------------------------------------
+
+const TOKEN_CLEANUP_INTERVAL_MS = 24 * 60 * 60 * 1000;
+
+cleanupExpiredTokens().catch((e: unknown) => console.error('Token cleanup failed:', e));
+setInterval(() => {
+  cleanupExpiredTokens().catch((e: unknown) => console.error('Token cleanup failed:', e));
+}, TOKEN_CLEANUP_INTERVAL_MS);

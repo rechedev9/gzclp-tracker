@@ -3,7 +3,7 @@
  * Framework-agnostic: no Elysia dependency.
  */
 import { eq, and } from 'drizzle-orm';
-import { db } from '../db';
+import { getDb } from '../db';
 import { programInstances, workoutResults, undoEntries } from '../db/schema';
 import { getProgramDefinition } from '@gzclp/shared/programs/registry';
 import { ProgramInstanceSchema } from '@gzclp/shared/schemas/instance';
@@ -95,7 +95,7 @@ export async function createInstance(
     throw new ApiError(400, `Unknown program: ${programId}`, 'INVALID_PROGRAM');
   }
 
-  const [instance] = await db
+  const [instance] = await getDb()
     .insert(programInstances)
     .values({
       userId,
@@ -114,7 +114,7 @@ export async function createInstance(
 }
 
 export async function getInstances(userId: string): Promise<ProgramInstanceResponse[]> {
-  const instances = await db
+  const instances = await getDb()
     .select()
     .from(programInstances)
     .where(eq(programInstances.userId, userId));
@@ -127,7 +127,7 @@ export async function getInstance(
   userId: string,
   instanceId: string
 ): Promise<ProgramInstanceResponse> {
-  const [instance] = await db
+  const [instance] = await getDb()
     .select()
     .from(programInstances)
     .where(and(eq(programInstances.id, instanceId), eq(programInstances.userId, userId)))
@@ -139,8 +139,8 @@ export async function getInstance(
 
   // Fetch results and undo history
   const [resultRows, undoRows] = await Promise.all([
-    db.select().from(workoutResults).where(eq(workoutResults.instanceId, instanceId)),
-    db
+    getDb().select().from(workoutResults).where(eq(workoutResults.instanceId, instanceId)),
+    getDb()
       .select()
       .from(undoEntries)
       .where(eq(undoEntries.instanceId, instanceId))
@@ -160,7 +160,7 @@ export async function updateInstance(
   }
 ): Promise<ProgramInstanceResponse> {
   // Verify ownership
-  const [existing] = await db
+  const [existing] = await getDb()
     .select()
     .from(programInstances)
     .where(and(eq(programInstances.id, instanceId), eq(programInstances.userId, userId)))
@@ -181,7 +181,7 @@ export async function updateInstance(
   if (updates.status !== undefined) updateValues.status = updates.status;
   if (updates.config !== undefined) updateValues.config = updates.config;
 
-  const [updated] = await db
+  const [updated] = await getDb()
     .update(programInstances)
     .set(updateValues)
     .where(eq(programInstances.id, instanceId))
@@ -196,7 +196,7 @@ export async function updateInstance(
 
 export async function deleteInstance(userId: string, instanceId: string): Promise<void> {
   // Verify ownership
-  const [existing] = await db
+  const [existing] = await getDb()
     .select()
     .from(programInstances)
     .where(and(eq(programInstances.id, instanceId), eq(programInstances.userId, userId)))
@@ -207,7 +207,7 @@ export async function deleteInstance(userId: string, instanceId: string): Promis
   }
 
   // CASCADE deletes workout_results and undo_entries
-  await db.delete(programInstances).where(eq(programInstances.id, instanceId));
+  await getDb().delete(programInstances).where(eq(programInstances.id, instanceId));
 }
 
 // ---------------------------------------------------------------------------
@@ -272,7 +272,7 @@ export async function importInstance(
   }
 
   // Wrap all inserts in a transaction — partial failure rolls back everything
-  const instanceId = await db.transaction(async (tx) => {
+  const instanceId = await getDb().transaction(async (tx) => {
     const [instance] = await tx
       .insert(programInstances)
       .values({
