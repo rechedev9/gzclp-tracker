@@ -1,11 +1,16 @@
 import { Elysia } from 'elysia';
 import { cors } from '@elysiajs/cors';
+import { sql } from 'drizzle-orm';
 import { ApiError } from './middleware/error-handler';
+import { requestLogger } from './middleware/request-logger';
 import { cleanupExpiredTokens } from './services/auth';
 import { authRoutes } from './routes/auth';
 import { programRoutes } from './routes/programs';
 import { catalogRoutes } from './routes/catalog';
 import { resultRoutes } from './routes/results';
+import { getDb } from './db';
+import { logger } from './lib/logger';
+import { version } from '../package.json';
 
 const CORS_ORIGIN = process.env['CORS_ORIGIN'] ?? 'http://localhost:3000';
 const PORT = Number(process.env['PORT'] ?? 3001);
@@ -17,29 +22,37 @@ const app = new Elysia()
       credentials: true,
     })
   )
-  .onError(({ code, error, set }) => {
-    // Handle custom ApiError thrown in services/middleware
+  .use(requestLogger)
+  .onError(({ code, error, set, reqLogger, startMs }) => {
+    const log = reqLogger ?? logger;
+    const latencyMs = startMs != null ? Date.now() - startMs : undefined;
+
     if (error instanceof ApiError) {
       set.status = error.statusCode;
+      const level = error.statusCode >= 500 ? 'error' : 'warn';
+      log[level]({ status: error.statusCode, code: error.code, latencyMs }, error.message);
       return { error: error.message, code: error.code };
     }
 
     if (code === 'NOT_FOUND') {
       set.status = 404;
+      log.warn({ status: 404, latencyMs }, 'not found');
       return { error: 'Not found', code: 'NOT_FOUND' };
     }
 
     if (code === 'VALIDATION') {
       set.status = 400;
+      log.warn({ status: 400, latencyMs }, 'validation error');
       return { error: 'Validation failed', code: 'VALIDATION_ERROR' };
     }
 
     if (code === 'PARSE') {
       set.status = 400;
+      log.warn({ status: 400, latencyMs }, 'parse error');
       return { error: 'Invalid request body', code: 'PARSE_ERROR' };
     }
 
-    console.error(`[${code}]`, error);
+    log.error({ err: error, code, status: 500, latencyMs }, 'unhandled error');
     set.status = 500;
     return { error: 'Internal server error', code: 'INTERNAL_ERROR' };
   })
@@ -47,12 +60,28 @@ const app = new Elysia()
   .use(programRoutes)
   .use(catalogRoutes)
   .use(resultRoutes)
-  .get('/health', () => ({
-    status: 'ok',
-    timestamp: new Date().toISOString(),
-  }))
+  .get('/health', async ({ set }) => {
+    const start = Date.now();
+    let dbStatus: { status: 'ok'; latencyMs: number } | { status: 'error'; error: string };
+    try {
+      await getDb().execute(sql`SELECT 1`);
+      dbStatus = { status: 'ok', latencyMs: Date.now() - start };
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : 'unknown';
+      dbStatus = { status: 'error', error: msg };
+    }
+    const overall = dbStatus.status === 'ok' ? 'ok' : 'degraded';
+    if (overall === 'degraded') set.status = 503;
+    return {
+      status: overall,
+      timestamp: new Date().toISOString(),
+      uptime: Math.floor(process.uptime()),
+      version,
+      db: dbStatus,
+    };
+  })
   .listen(PORT, () => {
-    console.error(`API running on http://localhost:${PORT}`);
+    logger.info({ port: PORT }, 'API started');
   });
 
 export type App = typeof app;
@@ -63,7 +92,7 @@ export type App = typeof app;
 
 const TOKEN_CLEANUP_INTERVAL_MS = 24 * 60 * 60 * 1000;
 
-cleanupExpiredTokens().catch((e: unknown) => console.error('Token cleanup failed:', e));
+cleanupExpiredTokens().catch((e: unknown) => logger.error({ err: e }, 'Token cleanup failed'));
 setInterval(() => {
-  cleanupExpiredTokens().catch((e: unknown) => console.error('Token cleanup failed:', e));
+  cleanupExpiredTokens().catch((e: unknown) => logger.error({ err: e }, 'Token cleanup failed'));
 }, TOKEN_CLEANUP_INTERVAL_MS);

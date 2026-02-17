@@ -8,6 +8,7 @@ import { Elysia, t } from 'elysia';
 import { jwtPlugin } from '../middleware/auth-guard';
 import { ApiError } from '../middleware/error-handler';
 import { rateLimit } from '../middleware/rate-limit';
+import { requestLogger } from '../middleware/request-logger';
 import {
   hashPassword,
   verifyPassword,
@@ -53,6 +54,7 @@ function userResponse(user: { id: string; email: string; name: string | null }):
 }
 
 export const authRoutes = new Elysia({ prefix: '/auth' })
+  .use(requestLogger)
   .use(jwtPlugin)
 
   // -----------------------------------------------------------------------
@@ -60,7 +62,7 @@ export const authRoutes = new Elysia({ prefix: '/auth' })
   // -----------------------------------------------------------------------
   .post(
     '/signup',
-    async ({ jwt, body, cookie, request, set }) => {
+    async ({ jwt, body, cookie, request, set, reqLogger }) => {
       const rawIp = request.headers.get('x-forwarded-for') ?? 'unknown';
       const ip = rawIp.split(',')[0]?.trim() ?? 'unknown';
       rateLimit(ip, '/auth/signup');
@@ -90,6 +92,7 @@ export const authRoutes = new Elysia({ prefix: '/auth' })
         ...refreshCookieOptions(),
       });
 
+      reqLogger.info({ event: 'auth.signup', userId: user.id }, 'user registered');
       set.status = 201;
       return { user: userResponse(user), accessToken };
     },
@@ -107,7 +110,7 @@ export const authRoutes = new Elysia({ prefix: '/auth' })
   // -----------------------------------------------------------------------
   .post(
     '/signin',
-    async ({ jwt, body, cookie, request }) => {
+    async ({ jwt, body, cookie, request, reqLogger }) => {
       const rawIp = request.headers.get('x-forwarded-for') ?? 'unknown';
       const ip = rawIp.split(',')[0]?.trim() ?? 'unknown';
       rateLimit(ip, '/auth/signin');
@@ -139,6 +142,7 @@ export const authRoutes = new Elysia({ prefix: '/auth' })
         ...refreshCookieOptions(),
       });
 
+      reqLogger.info({ event: 'auth.signin', userId: user.id }, 'user signed in');
       return { user: userResponse(user), accessToken };
     },
     {
@@ -152,7 +156,7 @@ export const authRoutes = new Elysia({ prefix: '/auth' })
   // -----------------------------------------------------------------------
   // POST /auth/refresh
   // -----------------------------------------------------------------------
-  .post('/refresh', async ({ jwt, cookie }) => {
+  .post('/refresh', async ({ jwt, cookie, reqLogger }) => {
     const refreshCookie = cookie[REFRESH_COOKIE_NAME];
     const tokenValue = refreshCookie?.value;
 
@@ -193,13 +197,14 @@ export const authRoutes = new Elysia({ prefix: '/auth' })
       ...refreshCookieOptions(),
     });
 
+    reqLogger.info({ event: 'auth.refresh', userId: stored.userId }, 'token refreshed');
     return { accessToken };
   })
 
   // -----------------------------------------------------------------------
   // POST /auth/signout
   // -----------------------------------------------------------------------
-  .post('/signout', async ({ cookie, set }) => {
+  .post('/signout', async ({ cookie, set, reqLogger }) => {
     const refreshCookie = cookie[REFRESH_COOKIE_NAME];
     const tokenValue = refreshCookie?.value;
 
@@ -209,5 +214,6 @@ export const authRoutes = new Elysia({ prefix: '/auth' })
     }
 
     refreshCookie?.remove();
+    reqLogger.info({ event: 'auth.signout' }, 'user signed out');
     set.status = 204;
   });
