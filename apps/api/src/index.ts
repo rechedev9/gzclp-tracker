@@ -1,2 +1,42 @@
-// API server — placeholder for Phase 2
-export const API_VERSION = '0.0.1';
+import { Elysia } from 'elysia';
+import { cors } from '@elysiajs/cors';
+
+const CORS_ORIGIN = process.env['CORS_ORIGIN'] ?? 'http://localhost:3000';
+const PORT = Number(process.env['PORT'] ?? 3001);
+
+const app = new Elysia()
+  .use(
+    cors({
+      origin: CORS_ORIGIN,
+      credentials: true,
+    })
+  )
+  .onError(({ code, error, set }) => {
+    if (code === 'NOT_FOUND') {
+      set.status = 404;
+      return { error: 'Not found', code: 'NOT_FOUND' };
+    }
+
+    if (code === 'VALIDATION') {
+      set.status = 400;
+      return { error: 'Validation failed', code: 'VALIDATION_ERROR' };
+    }
+
+    if (code === 'PARSE') {
+      set.status = 400;
+      return { error: 'Invalid request body', code: 'PARSE_ERROR' };
+    }
+
+    console.error(`[${code}]`, error);
+    set.status = 500;
+    return { error: 'Internal server error', code: 'INTERNAL_ERROR' };
+  })
+  .get('/health', () => ({
+    status: 'ok',
+    timestamp: new Date().toISOString(),
+  }))
+  .listen(PORT, () => {
+    console.error(`API running on http://localhost:${PORT}`);
+  });
+
+export type App = typeof app;
