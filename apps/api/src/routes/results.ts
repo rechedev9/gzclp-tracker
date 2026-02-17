@@ -32,13 +32,13 @@ export const resultRoutes = new Elysia({ prefix: '/programs/:id' })
   .delete(
     '/results/:workoutIndex/:slotId',
     async ({ userId, params, set }) => {
-      await deleteResult(userId, params.id, Number(params.workoutIndex), params.slotId);
+      await deleteResult(userId, params.id, params.workoutIndex, params.slotId);
       set.status = 204;
     },
     {
       params: t.Object({
         id: t.String(),
-        workoutIndex: t.String(),
+        workoutIndex: t.Numeric(),
         slotId: t.String(),
       }),
     }

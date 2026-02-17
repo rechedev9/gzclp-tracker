@@ -12,7 +12,6 @@ import {
   exportInstance,
   importInstance,
 } from '../services/programs';
-import type { ExportedProgram } from '../services/programs';
 
 export const programRoutes = new Elysia({ prefix: '/programs' })
   .use(jwtPlugin)
@@ -107,7 +106,7 @@ export const programRoutes = new Elysia({ prefix: '/programs' })
   .post(
     '/import',
     async ({ userId, body }) => {
-      const instance = await importInstance(userId, body as ExportedProgram);
+      const instance = await importInstance(userId, body);
       return instance;
     },
     {
