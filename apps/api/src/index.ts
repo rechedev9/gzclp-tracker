@@ -2,6 +2,8 @@ import { Elysia } from 'elysia';
 import { cors } from '@elysiajs/cors';
 import { ApiError } from './middleware/error-handler';
 import { authRoutes } from './routes/auth';
+import { programRoutes } from './routes/programs';
+import { catalogRoutes } from './routes/catalog';
 
 const CORS_ORIGIN = process.env['CORS_ORIGIN'] ?? 'http://localhost:3000';
 const PORT = Number(process.env['PORT'] ?? 3001);
@@ -40,6 +42,8 @@ const app = new Elysia()
     return { error: 'Internal server error', code: 'INTERNAL_ERROR' };
   })
   .use(authRoutes)
+  .use(programRoutes)
+  .use(catalogRoutes)
   .get('/health', () => ({
     status: 'ok',
     timestamp: new Date().toISOString(),

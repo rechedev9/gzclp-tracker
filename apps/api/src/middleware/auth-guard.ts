@@ -1,6 +1,12 @@
 /**
- * Auth guard — Elysia derive plugin that verifies JWT access tokens.
- * Injects `userId` into the handler context for protected routes.
+ * Auth guard — JWT verification for protected routes.
+ *
+ * Two exports:
+ * - `jwtPlugin` — Elysia plugin that adds `jwt.sign()` and `jwt.verify()` to context
+ * - `resolveUserId()` — Standalone function that extracts userId from JWT in auth header
+ *
+ * Routes that need auth should: `.use(jwtPlugin).resolve(resolveUserId)`
+ * This pattern ensures TypeScript correctly infers `userId` in the handler context.
  */
 import { Elysia } from 'elysia';
 import { jwt } from '@elysiajs/jwt';
@@ -15,25 +21,33 @@ export const jwtPlugin = new Elysia({ name: 'jwt-plugin' }).use(
   })
 );
 
-export const authGuard = new Elysia({ name: 'auth-guard' })
-  .use(jwtPlugin)
-  .derive(async ({ jwt: jwtCtx, headers }) => {
-    const authorization = headers['authorization'];
-    if (!authorization?.startsWith('Bearer ')) {
-      throw new ApiError(401, 'Missing or invalid authorization header', 'UNAUTHORIZED');
-    }
+/**
+ * Resolve function for protected routes.
+ * Verifies the Bearer token and returns `{ userId }` to be merged into context.
+ */
+export async function resolveUserId({
+  jwt: jwtCtx,
+  headers,
+}: {
+  jwt: { verify: (token?: string) => Promise<Record<string, unknown> | false> };
+  headers: Record<string, string | undefined>;
+}): Promise<{ userId: string }> {
+  const authorization = headers['authorization'];
+  if (!authorization?.startsWith('Bearer ')) {
+    throw new ApiError(401, 'Missing or invalid authorization header', 'UNAUTHORIZED');
+  }
 
-    const token = authorization.slice(7);
-    const payload = await jwtCtx.verify(token);
+  const token = authorization.slice(7);
+  const payload = await jwtCtx.verify(token);
 
-    if (!payload) {
-      throw new ApiError(401, 'Invalid or expired token', 'TOKEN_INVALID');
-    }
+  if (!payload) {
+    throw new ApiError(401, 'Invalid or expired token', 'TOKEN_INVALID');
+  }
 
-    const userId = payload['sub'];
-    if (typeof userId !== 'string') {
-      throw new ApiError(401, 'Invalid token payload', 'TOKEN_INVALID');
-    }
+  const userId = payload['sub'];
+  if (typeof userId !== 'string') {
+    throw new ApiError(401, 'Invalid token payload', 'TOKEN_INVALID');
+  }
 
-    return { userId };
-  });
+  return { userId };
+}
