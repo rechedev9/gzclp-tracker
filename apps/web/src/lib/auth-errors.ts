@@ -1,9 +1,9 @@
 const ERROR_MAP: ReadonlyMap<string, string> = new Map([
-  ['Invalid login credentials', 'Invalid email or password.'],
-  ['Email not confirmed', 'Please check your email and confirm your account.'],
-  ['User already registered', 'An account with this email already exists.'],
-  ['Supabase not configured', 'Cloud sync is not available right now.'],
-  ['Password should be at least 6 characters', 'Password must be at least 6 characters.'],
+  ['Invalid email or password', 'Invalid email or password.'],
+  ['Email already registered', 'An account with this email already exists.'],
+  ['No refresh token', 'Your session has expired. Please sign in again.'],
+  ['Invalid refresh token', 'Your session has expired. Please sign in again.'],
+  ['Refresh token expired', 'Your session has expired. Please sign in again.'],
 ]);
 
 const GENERIC_MESSAGE = 'Something went wrong. Please try again.';

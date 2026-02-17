@@ -13,7 +13,7 @@ import { useRateLimit } from '@/hooks/use-rate-limit';
 type AuthMode = 'sign-in' | 'sign-up';
 
 export function LoginPage(): React.ReactNode {
-  const { user, signIn, signUp, signInWithGoogle } = useAuth();
+  const { user, signIn, signUp } = useAuth();
   const router = useRouter();
   const searchParams = useSearchParams();
   const [mode, setMode] = useState<AuthMode>(
@@ -75,18 +75,11 @@ export function LoginPage(): React.ReactNode {
     }
 
     resetAttempts();
-    if (mode === 'sign-up') {
-      setSuccess('Check your email for a confirmation link.');
-      return;
-    }
   };
 
-  const handleGoogle = async (): Promise<void> => {
+  const handleGoogle = (): void => {
     setError(null);
-    const authError = await signInWithGoogle();
-    if (authError) {
-      setError(sanitizeAuthError(authError.message));
-    }
+    setSuccess('Google sign-in is coming soon. Please use email for now.');
   };
 
   const inputClass =
@@ -129,7 +122,7 @@ export function LoginPage(): React.ReactNode {
             </p>
 
             {/* Google OAuth */}
-            <button className={googleBtn} onClick={() => void handleGoogle()}>
+            <button className={googleBtn} onClick={handleGoogle}>
               <svg width="18" height="18" viewBox="0 0 18 18" aria-hidden="true">
                 <path
                   d="M17.64 9.2c0-.637-.057-1.251-.164-1.84H9v3.481h4.844a4.14 4.14 0 0 1-1.796 2.716v2.259h2.908c1.702-1.567 2.684-3.875 2.684-6.615Z"
@@ -283,9 +276,9 @@ export function LoginPage(): React.ReactNode {
             </div>
             <div>
               <div className="text-lg mb-1 text-[var(--text-header)]">&#9889;</div>
-              <p className="text-[11px] font-bold text-[var(--text-main)] mb-0.5">Offline First</p>
+              <p className="text-[11px] font-bold text-[var(--text-main)] mb-0.5">Auto-Save</p>
               <p className="text-[10px] text-[var(--text-muted)] leading-snug">
-                Works without internet, syncs later
+                Every result saved to the cloud instantly
               </p>
             </div>
             <div>
