@@ -1,5 +1,7 @@
 'use client';
 
+import { useState } from 'react';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { AuthProvider } from '@/contexts/auth-context';
 import { ToastProvider } from '@/contexts/toast-context';
 import { ErrorBoundary } from './error-boundary';
@@ -23,12 +25,28 @@ function RootErrorFallback(): React.ReactNode {
   );
 }
 
+function makeQueryClient(): QueryClient {
+  return new QueryClient({
+    defaultOptions: {
+      queries: {
+        staleTime: 5 * 60 * 1000,
+        retry: 1,
+        refetchOnWindowFocus: false,
+      },
+    },
+  });
+}
+
 export function Providers({ children }: { readonly children: React.ReactNode }): React.ReactNode {
+  const [queryClient] = useState(makeQueryClient);
+
   return (
     <ErrorBoundary fallback={<RootErrorFallback />}>
-      <AuthProvider>
-        <ToastProvider>{children}</ToastProvider>
-      </AuthProvider>
+      <QueryClientProvider client={queryClient}>
+        <AuthProvider>
+          <ToastProvider>{children}</ToastProvider>
+        </AuthProvider>
+      </QueryClientProvider>
     </ErrorBoundary>
   );
 }
