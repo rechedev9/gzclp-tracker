@@ -4,101 +4,106 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-GZCLP Tracker — a Next.js 16 app (React 19, TypeScript, Tailwind CSS 4) that implements the GZCLP linear progression weightlifting program. Static export (`output: 'export'` in next.config.ts) — no SSR, no API routes, no server components at runtime. All state lives in localStorage via Zod-validated schemas, with optional Supabase cloud sync.
+GZCLP Tracker — a Bun monorepo with a Next.js 16 frontend and an ElysiaJS API backend (in progress). Implements the GZCLP linear progression weightlifting program.
+
+### Monorepo structure
+
+```
+gzclp-tracker/
+├── apps/
+│   ├── web/          ← Next.js 16 frontend (React 19, Tailwind CSS 4, static export)
+│   └── api/          ← ElysiaJS backend (in progress)
+├── packages/
+│   └── shared/       ← Pure computation shared between web and API
+│       └── src/
+│           ├── engine.ts           (computeProgram — replay 90 workouts)
+│           ├── program.ts          (GZCLP constants: DAYS, STAGES, increments)
+│           ├── stats.ts            (extractChartData, calculateStats)
+│           ├── type-guards.ts      (isRecord)
+│           ├── types/              (TypeScript types inferred from Zod schemas)
+│           ├── schemas/            (Zod v4 schemas: legacy, instance, program-definition)
+│           └── programs/           (program definitions + registry)
+├── package.json      (workspace root)
+├── tsconfig.base.json (shared compiler options)
+└── .prettierrc
+```
+
+**Workspace packages:**
+
+- `@gzclp/shared` — import as `@gzclp/shared/engine`, `@gzclp/shared/types`, etc.
+- `web` — Next.js frontend at `apps/web/`
+- `api` — ElysiaJS backend at `apps/api/`
 
 ## Commands
 
-| Task          | Command                           |
-| ------------- | --------------------------------- |
-| Dev server    | `bun run dev`                     |
-| Build         | `bun run build`                   |
-| Type check    | `bun run typecheck`               |
-| Lint          | `bun run lint`                    |
-| Format check  | `bun run format:check`            |
-| Format fix    | `bun run prettier --write <path>` |
-| Tests (all)   | `bun test`                        |
-| Single test   | `bun test src/lib/engine.test.ts` |
-| E2E tests     | `bun run e2e`                     |
-| E2E (headed)  | `bun run e2e:headed`              |
-| E2E (UI mode) | `bun run e2e:ui`                  |
-| Local CI      | `bun run ci`                      |
+| Task          | Command                                       |
+| ------------- | --------------------------------------------- |
+| Dev (all)     | `bun run dev`                                 |
+| Dev (web)     | `bun run dev:web`                             |
+| Dev (api)     | `bun run dev:api`                             |
+| Build         | `bun run build`                               |
+| Type check    | `bun run typecheck`                           |
+| Lint          | `bun run lint`                                |
+| Format check  | `bun run format:check`                        |
+| Format fix    | `bun run prettier --write <path>`             |
+| Tests (all)   | `bun run test`                                |
+| Single test   | `bun test packages/shared/src/engine.test.ts` |
+| E2E tests     | `bun run e2e`                                 |
+| E2E (headed)  | `bun run e2e:headed`                          |
+| E2E (UI mode) | `bun run e2e:ui`                              |
+| Local CI      | `bun run ci`                                  |
 
-**Test runner:** `bun:test`. Test files live alongside source (`feature.test.ts`). Config in `bunfig.toml` — preloads `test/register-dom.ts` (happy-dom) and `test/setup.ts`; root is `./src`. Test helpers: `test/helpers/render.tsx`, `test/helpers/fixtures.ts`, `test/helpers/storage-helpers.ts`.
+**Test runner:** `bun:test`. Test files live alongside source (`feature.test.ts`).
 
-**E2E:** Playwright (Chromium only). Tests in `e2e/` with `.spec.ts` extension. Builds to `out/` and serves on port 3333 via `bunx serve`. Helpers: `e2e/helpers/fixtures.ts`, `e2e/helpers/seed.ts`.
+- **Shared tests:** Config in `packages/shared/bunfig.toml` — root is `./src`. Test fixtures: `packages/shared/test/fixtures.ts`.
+- **Web tests:** Config in `apps/web/bunfig.toml` — preloads `test/register-dom.ts` (happy-dom) and `test/setup.ts`; root is `./src`. Test helpers: `apps/web/test/helpers/`.
+
+**E2E:** Playwright (Chromium only). Tests in `apps/web/e2e/` with `.spec.ts` extension. Builds to `out/` and serves on port 3333 via `bunx serve`. Helpers: `apps/web/e2e/helpers/`.
 
 **Git hooks:** Lefthook — pre-commit (typecheck + lint + format, parallel), pre-push (test + build).
 
 ## Architecture
 
-### Data flow
+### Shared package (`packages/shared/`)
 
-```
-schemas.ts (Zod v4) → types/index.ts (z.infer<>) → engine.ts (pure computation)
-                                                   ↘
-                                           use-program.ts (React state + localStorage)
-                                                   ↕
-                                           use-cloud-sync.ts (Supabase sync)
-                                                   ↕
-                                              components
-```
+Pure computation code with zero DOM/React dependencies. Imported by both web and API:
 
-### Core modules
+- **`engine.ts`** — `computeProgram(startWeights, results) → WorkoutRow[]`: replays all 90 workouts with T1/T2/T3 progression rules.
+- **`program.ts`** — Static GZCLP protocol: 4-day rotation (`DAYS`), T1/T2 stage definitions, weight increments.
+- **`stats.ts`** — `extractChartData()` and `calculateStats()` for the stats/chart panel.
+- **`schemas/legacy.ts`** — Legacy (v3) Zod schemas for persisted data.
+- **`schemas/instance.ts`** — Generic `ProgramInstance` schema (program-agnostic, slot-keyed results).
+- **`schemas/program-definition.ts`** — Schema for program definitions.
+- **`programs/gzclp.ts`** — GZCLP program definition implementing the generic format.
+- **`programs/registry.ts`** — `getProgramDefinition(id)` / `getAllPresetPrograms()`.
+- **`type-guards.ts`** — `isRecord()` type guard.
+- **`types/`** — All TypeScript types inferred from Zod schemas via `z.infer<>`.
 
-- **`src/lib/program.ts`** — Static GZCLP protocol: 4-day rotation (`DAYS`), T1/T2 stage definitions, weight increments. Read-only constants.
-- **`src/lib/engine.ts`** — `computeProgram(startWeights, results) → WorkoutRow[]`: pure function that replays all 90 workouts applying T1/T2/T3 progression/failure rules. No side effects.
-- **`src/lib/schemas.ts`** — Legacy (v3) Zod schemas for persisted data. Single source of truth for types.
-- **`src/lib/storage.ts`** — Legacy localStorage CRUD with Zod parsing. Storage key: `gzclp-v3`.
-- **`src/lib/stats.ts`** — `extractChartData()` and `calculateStats()` for the stats/chart panel.
+### Web app (`apps/web/`)
 
-### Multi-program system (in progress)
+Next.js 16 static export (`output: 'export'`). All state lives in localStorage with optional Supabase cloud sync.
 
-The codebase is migrating from a single hardcoded GZCLP format to a generic multi-program architecture:
+**Key modules (web-only):**
 
-- **`src/lib/schemas/instance.ts`** — Generic `ProgramInstance` schema: program-agnostic results (`Record<slotId, SlotResult>` instead of `{t1, t2, t3}`), generic undo entries, instance status (active/completed/archived).
-- **`src/lib/schemas/program-definition.ts`** — Schema for program definitions (workout templates, slot configurations).
-- **`src/lib/programs/gzclp.ts`** — GZCLP program definition implementing the generic format.
-- **`src/lib/programs/registry.ts`** — `getProgramDefinition(id)` / `getAllPresetPrograms()` — registry of available programs.
-- **`src/lib/storage-v2.ts`** — New localStorage format (`wt-programs-v1`). Loads/saves `ProgramInstanceMap`. Falls back through: new format → legacy v3 with auto-migration.
-- **`src/lib/migrations/v3-to-v1.ts`** — Converts legacy GZCLP-specific data to generic program instance format.
+- **`src/lib/storage.ts`** — Legacy localStorage CRUD. Storage key: `gzclp-v3`.
+- **`src/lib/storage-v2.ts`** — New multi-program localStorage format (`wt-programs-v1`) with auto-migration.
+- **`src/lib/supabase.ts`** — Singleton Supabase client; graceful degradation when env vars missing.
+- **`src/lib/sync.ts`** / **`sync-machine.ts`** — Cloud sync state machine with exponential backoff.
+- **`src/hooks/use-program.ts`** — Central state hook: start weights, results, undo history, localStorage persistence.
+- **`src/hooks/use-cloud-sync.ts`** — React wrapper for sync state machine.
+- **`src/contexts/auth-context.tsx`** — Supabase Auth with PKCE flow.
 
-### Auth & sync layer
+**Routes** (all client-side `'use client'`):
 
-- **`src/lib/supabase.ts`** — Singleton Supabase client; returns `null` when env vars are missing (graceful degradation).
-- **`src/contexts/auth-context.tsx`** — `AuthProvider` / `useAuth()` — wraps Supabase Auth with PKCE flow. Provides `signUp`, `signIn`, `signInWithGoogle`, `signOut`.
-- **`src/lib/sync.ts`** — Cloud sync primitives: `fetchCloudData`, `pushToCloud`, `determineInitialSync` (handles push/pull/conflict/none).
-- **`src/lib/sync-machine.ts`** — Pure state machine for sync lifecycle. Discriminated union of phases (`idle` → `initial-sync` → `synced` ↔ `debouncing` → `pushing`). Includes exponential backoff (2s, 4s, 8s) and conflict handling. No React, no async — fully testable.
-- **`src/hooks/use-cloud-sync.ts`** — React wrapper that drives `sync-machine`. Debounced push on data change (2s), reconnect sync, `navigator.locks` for cross-tab mutex.
-- **`src/lib/auth-errors.ts`** — Maps raw Supabase error messages to sanitized user-facing strings.
+| Route      | Purpose                                        |
+| ---------- | ---------------------------------------------- |
+| `/`        | Landing page                                   |
+| `/app`     | Main workout tracker (setup → tracker routing) |
+| `/login`   | Auth page (sign in / sign up)                  |
+| `/health`  | Health check endpoint                          |
+| `/privacy` | Privacy policy                                 |
 
-### Hooks
-
-- **`src/hooks/use-program.ts`** — Central state hook: start weights, results, undo history. Auto-persists to localStorage. Uses `useSyncExternalStore` to avoid hydration mismatch. Exposes `markResult`, `undoLast`, `undoSpecific`, `exportData`, `importData`, `loadFromCloud`.
-
-### Routes
-
-All pages are client-side (`'use client'`):
-
-| Route      | File                       | Purpose                                        |
-| ---------- | -------------------------- | ---------------------------------------------- |
-| `/`        | `src/app/page.tsx`         | Landing page                                   |
-| `/app`     | `src/app/app/page.tsx`     | Main workout tracker (setup → tracker routing) |
-| `/login`   | `src/app/login/page.tsx`   | Auth page (sign in / sign up)                  |
-| `/health`  | `src/app/health/page.tsx`  | Health check endpoint                          |
-| `/privacy` | `src/app/privacy/page.tsx` | Privacy policy                                 |
-
-### Error boundaries
-
-Two-tier strategy for crash recovery:
-
-- **Root boundary** (`providers.tsx`) — wraps the entire provider tree. Static fallback with page reload.
-- **Stats boundary** (`gzclp-app.tsx`) — wraps `<StatsPanel>` (canvas charts). Render-function fallback with retry. Isolates stats/chart failures so the workout tracker stays functional.
-- Reusable component: **`src/components/error-boundary.tsx`** — class component (required by React API). Accepts `fallback: ReactNode | ((props: { error, reset }) => ReactNode)`.
-- When adding new isolated feature panels, wrap them with a granular `<ErrorBoundary>`.
-
-### Component tree
-
-`RootLayout` → `Providers` (ErrorBoundary + AuthProvider) → `GzclpApp` (setup vs. tracker routing) → workout rows, toolbar, stats panel, etc.
+**Error boundaries:** Two-tier — root boundary in `providers.tsx`, stats boundary in `gzclp-app.tsx`. Reusable component: `src/components/error-boundary.tsx`.
 
 ## Key domain concepts
 
@@ -110,14 +115,14 @@ Two-tier strategy for crash recovery:
 
 ## Conventions
 
-- Types are inferred from Zod schemas via `z.infer<>`, not manually duplicated
+- Types inferred from Zod schemas via `z.infer<>`, not manually duplicated
 - `zod/v4` import path (Zod v4)
-- Path alias: `@/` maps to `src/`
+- Shared code: `@gzclp/shared/*` imports (e.g., `@gzclp/shared/engine`, `@gzclp/shared/types`)
+- Web internal: `@/` path alias maps to `apps/web/src/`
 - All components are client-side (`'use client'`)
-- `isRecord()` type guard (from `type-guards.ts`) for narrowing `unknown` → `Record<string, unknown>` — used instead of `as` casts
-- Static export: no `getServerSideProps`, no API routes, no middleware — everything runs in the browser
+- Static export: no SSR, no API routes, no middleware in web app
 - Supabase is optional: the app works fully offline when env vars are absent
-- **Lockfile hygiene:** After any `package.json` change, always run `bun install` and commit the updated `bun.lock` in the same commit. CI uses `--frozen-lockfile` and will fail on any lockfile drift.
+- **Lockfile hygiene:** After any `package.json` change, always run `bun install` and commit the updated `bun.lock` in the same commit.
 
 ### ESLint strictness
 
