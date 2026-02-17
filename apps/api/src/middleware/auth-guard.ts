@@ -12,7 +12,13 @@ import { Elysia } from 'elysia';
 import { jwt } from '@elysiajs/jwt';
 import { ApiError } from './error-handler';
 
-const JWT_SECRET = process.env['JWT_SECRET'] ?? 'dev-secret-change-me';
+const rawSecret = process.env['JWT_SECRET'];
+if (!rawSecret || rawSecret === 'dev-secret-change-me') {
+  if (process.env['NODE_ENV'] === 'production') {
+    throw new Error('JWT_SECRET env var must be set to a secure value in production');
+  }
+}
+const JWT_SECRET = rawSecret ?? 'dev-secret-change-me';
 
 export const jwtPlugin = new Elysia({ name: 'jwt-plugin' }).use(
   jwt({
