@@ -1,7 +1,10 @@
 'use client';
 
 import { useEffect, useReducer, useRef, useCallback } from 'react';
-import type { User } from '@supabase/supabase-js';
+// Accepts any user object with an id string (Supabase User or custom UserInfo)
+interface MinimalUser {
+  readonly id: string;
+}
 import { getSupabaseClient } from '@/lib/supabase';
 import { type StoredData, validateStoredData } from '@/lib/storage';
 import {
@@ -57,7 +60,7 @@ function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T> {
 }
 
 interface UseCloudSyncOptions {
-  readonly user: User | null;
+  readonly user: MinimalUser | null;
   readonly startWeights: StoredData['startWeights'] | null;
   readonly results: StoredData['results'];
   readonly undoHistory: StoredData['undoHistory'];

@@ -1,17 +1,27 @@
 'use client';
 
 import { createContext, useContext, useEffect, useState, useCallback, useMemo } from 'react';
-import type { User } from '@supabase/supabase-js';
-import { getSupabaseClient } from '@/lib/supabase';
+import { api, setAccessToken, refreshAccessToken } from '@/lib/api';
+import { isRecord } from '@gzclp/shared/type-guards';
 
-interface AuthState {
-  readonly user: User | null;
-  readonly loading: boolean;
-  readonly configured: boolean;
+// ---------------------------------------------------------------------------
+// Types
+// ---------------------------------------------------------------------------
+
+export interface UserInfo {
+  readonly id: string;
+  readonly email: string;
+  readonly name?: string;
 }
 
 interface AuthResult {
   readonly message: string;
+}
+
+interface AuthState {
+  readonly user: UserInfo | null;
+  readonly loading: boolean;
+  readonly configured: boolean;
 }
 
 interface AuthActions {
@@ -23,6 +33,30 @@ interface AuthActions {
 
 type AuthContextValue = AuthState & AuthActions;
 
+// ---------------------------------------------------------------------------
+// Helpers
+// ---------------------------------------------------------------------------
+
+function parseUserInfo(data: unknown): UserInfo | null {
+  if (!isRecord(data)) return null;
+  if (typeof data.id !== 'string' || typeof data.email !== 'string') return null;
+  return {
+    id: data.id,
+    email: data.email,
+    ...(typeof data.name === 'string' ? { name: data.name } : {}),
+  };
+}
+
+function extractError(result: unknown): string {
+  if (isRecord(result) && typeof result.message === 'string') return result.message;
+  if (isRecord(result) && typeof result.error === 'string') return result.error;
+  return 'Something went wrong';
+}
+
+// ---------------------------------------------------------------------------
+// Context
+// ---------------------------------------------------------------------------
+
 const AuthContext = createContext<AuthContextValue | null>(null);
 
 export function AuthProvider({
@@ -30,74 +64,103 @@ export function AuthProvider({
 }: {
   readonly children: React.ReactNode;
 }): React.ReactNode {
-  const supabase = useMemo(() => getSupabaseClient(), []);
-  const configured = supabase !== null;
+  const [user, setUser] = useState<UserInfo | null>(null);
+  const [loading, setLoading] = useState(true);
 
-  const [user, setUser] = useState<User | null>(null);
-  const [loading, setLoading] = useState(configured);
-
+  // Attempt to restore session from refresh cookie on mount
   useEffect(() => {
-    if (!supabase) return;
+    const restore = async (): Promise<void> => {
+      const token = await refreshAccessToken();
+      if (!token) {
+        setLoading(false);
+        return;
+      }
 
-    const initAuth = async (): Promise<void> => {
-      const {
-        data: { session },
-      } = await supabase.auth.getSession();
-      setUser(session?.user ?? null);
+      // Fetch user info from the programs endpoint (any auth'd endpoint works)
+      // Use a lightweight approach: decode the JWT payload for user info
+      try {
+        const payload = JSON.parse(atob(token.split('.')[1] ?? ''));
+        if (isRecord(payload) && typeof payload.sub === 'string') {
+          setUser({
+            id: payload.sub,
+            email: typeof payload.email === 'string' ? payload.email : '',
+          });
+        }
+      } catch {
+        // Token parsing failed — user stays null
+      }
+
       setLoading(false);
     };
 
-    void initAuth();
-
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, session) => {
-      setUser(session?.user ?? null);
-    });
-
-    return (): void => {
-      subscription.unsubscribe();
-    };
-  }, [supabase]);
+    void restore();
+  }, []);
 
   const signUp = useCallback(
     async (email: string, password: string): Promise<AuthResult | null> => {
-      if (!supabase) return { message: 'Supabase not configured' };
-      const { error } = await supabase.auth.signUp({ email, password });
-      return error ? { message: error.message } : null;
+      const { data, error } = await api.auth.signup.post({
+        email,
+        password,
+      });
+
+      if (error) {
+        return { message: extractError(error) };
+      }
+
+      if (isRecord(data) && typeof data.accessToken === 'string') {
+        setAccessToken(data.accessToken);
+        const userInfo = parseUserInfo(isRecord(data) ? data.user : null);
+        if (userInfo) setUser(userInfo);
+      }
+
+      return null;
     },
-    [supabase]
+    []
   );
 
   const signIn = useCallback(
     async (email: string, password: string): Promise<AuthResult | null> => {
-      if (!supabase) return { message: 'Supabase not configured' };
-      const { error } = await supabase.auth.signInWithPassword({ email, password });
-      return error ? { message: error.message } : null;
+      const { data, error } = await api.auth.signin.post({
+        email,
+        password,
+      });
+
+      if (error) {
+        return { message: extractError(error) };
+      }
+
+      if (isRecord(data) && typeof data.accessToken === 'string') {
+        setAccessToken(data.accessToken);
+        const userInfo = parseUserInfo(isRecord(data) ? data.user : null);
+        if (userInfo) setUser(userInfo);
+      }
+
+      return null;
     },
-    [supabase]
+    []
   );
 
   const signInWithGoogle = useCallback(async (): Promise<AuthResult | null> => {
-    if (!supabase) return { message: 'Supabase not configured' };
-    const baseUrl = process.env.NEXT_PUBLIC_APP_URL;
-    if (!baseUrl) return { message: 'OAuth redirect URL is not configured' };
-    const redirectTo = `${baseUrl}/app?view=programs`;
-    const { error } = await supabase.auth.signInWithOAuth({
-      provider: 'google',
-      options: { redirectTo },
-    });
-    return error ? { message: error.message } : null;
-  }, [supabase]);
+    return { message: 'Google sign-in coming soon' };
+  }, []);
 
   const signOut = useCallback(async (): Promise<void> => {
-    if (!supabase) return;
-    await supabase.auth.signOut();
-  }, [supabase]);
+    await api.auth.signout.post();
+    setAccessToken(null);
+    setUser(null);
+  }, []);
 
   const value = useMemo<AuthContextValue>(
-    () => ({ user, loading, configured, signUp, signIn, signInWithGoogle, signOut }),
-    [user, loading, configured, signUp, signIn, signInWithGoogle, signOut]
+    () => ({
+      user,
+      loading,
+      configured: true,
+      signUp,
+      signIn,
+      signInWithGoogle,
+      signOut,
+    }),
+    [user, loading, signUp, signIn, signInWithGoogle, signOut]
   );
 
   return <AuthContext value={value}>{children}</AuthContext>;

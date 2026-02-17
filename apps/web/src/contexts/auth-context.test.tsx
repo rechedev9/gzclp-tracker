@@ -3,40 +3,32 @@ import { renderHook, act, waitFor } from '@testing-library/react';
 import React from 'react';
 
 // ---------------------------------------------------------------------------
-// Mock setup
+// Mock setup — mock the API module before importing auth-context
 // ---------------------------------------------------------------------------
 
-const mockSubscription = { unsubscribe: mock(() => {}) };
+const mockRefreshAccessToken = mock<() => Promise<string | null>>(() => Promise.resolve(null));
+const mockSetAccessToken = mock<(token: string | null) => void>(() => {});
 
-interface AuthResponse {
-  readonly data: unknown;
-  readonly error: { message: string } | null;
-}
+const mockSignupPost = mock<(body: unknown) => Promise<{ data: unknown; error: unknown }>>(() =>
+  Promise.resolve({ data: null, error: null })
+);
+const mockSigninPost = mock<(body: unknown) => Promise<{ data: unknown; error: unknown }>>(() =>
+  Promise.resolve({ data: null, error: null })
+);
+const mockSignoutPost = mock<() => Promise<{ data: unknown; error: unknown }>>(() =>
+  Promise.resolve({ data: null, error: null })
+);
 
-const mockAuth = {
-  getSession: mock<() => Promise<{ data: { session: unknown }; error: unknown }>>(() =>
-    Promise.resolve({ data: { session: null }, error: null })
-  ),
-  onAuthStateChange: mock(() => ({
-    data: { subscription: mockSubscription },
-  })),
-  signUp: mock<(opts: unknown) => Promise<AuthResponse>>(() =>
-    Promise.resolve({ data: {}, error: null })
-  ),
-  signInWithPassword: mock<(opts: unknown) => Promise<AuthResponse>>(() =>
-    Promise.resolve({ data: {}, error: null })
-  ),
-  signInWithOAuth: mock<(opts: unknown) => Promise<AuthResponse>>(() =>
-    Promise.resolve({ data: {}, error: null })
-  ),
-  signOut: mock(() => Promise.resolve({ error: null })),
-};
-
-const mockSupabaseClient = { auth: mockAuth };
-const mockGetSupabaseClient = mock<() => unknown>(() => mockSupabaseClient);
-
-mock.module('@/lib/supabase', () => ({
-  getSupabaseClient: mockGetSupabaseClient,
+mock.module('@/lib/api', () => ({
+  refreshAccessToken: mockRefreshAccessToken,
+  setAccessToken: mockSetAccessToken,
+  api: {
+    auth: {
+      signup: { post: mockSignupPost },
+      signin: { post: mockSigninPost },
+      signout: { post: mockSignoutPost },
+    },
+  },
 }));
 
 import { AuthProvider, useAuth } from './auth-context';
@@ -50,26 +42,22 @@ function wrapper({ children }: { readonly children: React.ReactNode }): React.Re
 }
 
 function resetAllMocks(): void {
-  mockGetSupabaseClient.mockReset();
-  mockGetSupabaseClient.mockImplementation(() => mockSupabaseClient);
+  mockRefreshAccessToken.mockReset();
+  mockRefreshAccessToken.mockImplementation(() => Promise.resolve(null));
+  mockSetAccessToken.mockReset();
+  mockSignupPost.mockReset();
+  mockSignupPost.mockImplementation(() => Promise.resolve({ data: null, error: null }));
+  mockSigninPost.mockReset();
+  mockSigninPost.mockImplementation(() => Promise.resolve({ data: null, error: null }));
+  mockSignoutPost.mockReset();
+  mockSignoutPost.mockImplementation(() => Promise.resolve({ data: null, error: null }));
+}
 
-  mockAuth.getSession.mockReset();
-  mockAuth.getSession.mockImplementation(() =>
-    Promise.resolve({ data: { session: null }, error: null })
-  );
-  mockAuth.onAuthStateChange.mockReset();
-  mockAuth.onAuthStateChange.mockImplementation(() => ({
-    data: { subscription: mockSubscription },
-  }));
-  mockAuth.signUp.mockReset();
-  mockAuth.signUp.mockImplementation(() => Promise.resolve({ data: {}, error: null }));
-  mockAuth.signInWithPassword.mockReset();
-  mockAuth.signInWithPassword.mockImplementation(() => Promise.resolve({ data: {}, error: null }));
-  mockAuth.signInWithOAuth.mockReset();
-  mockAuth.signInWithOAuth.mockImplementation(() => Promise.resolve({ data: {}, error: null }));
-  mockAuth.signOut.mockReset();
-  mockAuth.signOut.mockImplementation(() => Promise.resolve({ error: null }));
-  mockSubscription.unsubscribe.mockReset();
+// Helper: create a valid JWT with given payload (base64url encoded)
+function fakeJwt(payload: Record<string, unknown>): string {
+  const header = btoa(JSON.stringify({ alg: 'HS256' }));
+  const body = btoa(JSON.stringify(payload));
+  return `${header}.${body}.fakesig`;
 }
 
 // ---------------------------------------------------------------------------
@@ -89,78 +77,59 @@ describe('AuthProvider', () => {
     resetAllMocks();
   });
 
-  // -----------------------------------------------------------------------
-  // Supabase not configured
-  // -----------------------------------------------------------------------
-  describe('when Supabase is not configured', () => {
-    beforeEach(() => {
-      mockGetSupabaseClient.mockImplementation(() => null);
-    });
-
-    it('should set configured to false', () => {
+  describe('initial state', () => {
+    it('should always set configured to true', async () => {
       const { result } = renderHook(() => useAuth(), { wrapper });
 
-      expect(result.current.configured).toBe(false);
-    });
-
-    it('should not be loading', () => {
-      const { result } = renderHook(() => useAuth(), { wrapper });
-
-      expect(result.current.loading).toBe(false);
-    });
-
-    it('should have no user', () => {
-      const { result } = renderHook(() => useAuth(), { wrapper });
-
-      expect(result.current.user).toBeNull();
-    });
-
-    it('should return error from signIn', async () => {
-      const { result } = renderHook(() => useAuth(), { wrapper });
-
-      let authResult: unknown = null;
-      await act(async () => {
-        authResult = await result.current.signIn('a@b.com', 'pw');
+      await waitFor(() => {
+        expect(result.current.loading).toBe(false);
       });
-
-      expect(authResult).toEqual({ message: 'Supabase not configured' });
-    });
-
-    it('should return error from signUp', async () => {
-      const { result } = renderHook(() => useAuth(), { wrapper });
-
-      let authResult: unknown = null;
-      await act(async () => {
-        authResult = await result.current.signUp('a@b.com', 'pw');
-      });
-
-      expect(authResult).toEqual({ message: 'Supabase not configured' });
-    });
-  });
-
-  // -----------------------------------------------------------------------
-  // Supabase configured
-  // -----------------------------------------------------------------------
-  describe('when Supabase is configured', () => {
-    it('should set configured to true', () => {
-      const { result } = renderHook(() => useAuth(), { wrapper });
 
       expect(result.current.configured).toBe(true);
     });
 
     it('should start in loading state', () => {
-      // Make getSession hang forever to freeze loading state
-      mockAuth.getSession.mockImplementation(() => new Promise(() => {}));
+      // Make refresh hang to freeze loading
+      mockRefreshAccessToken.mockImplementation(() => new Promise(() => {}));
 
       const { result } = renderHook(() => useAuth(), { wrapper });
 
       expect(result.current.loading).toBe(true);
     });
 
-    it('should resolve user from existing session', async () => {
-      mockAuth.getSession.mockImplementation(() =>
+    it('should have null user when refresh fails', async () => {
+      const { result } = renderHook(() => useAuth(), { wrapper });
+
+      await waitFor(() => {
+        expect(result.current.loading).toBe(false);
+      });
+
+      expect(result.current.user).toBeNull();
+    });
+
+    it('should restore user from refresh token', async () => {
+      const token = fakeJwt({ sub: 'user-123', email: 'test@example.com' });
+      mockRefreshAccessToken.mockImplementation(() => Promise.resolve(token));
+
+      const { result } = renderHook(() => useAuth(), { wrapper });
+
+      await waitFor(() => {
+        expect(result.current.loading).toBe(false);
+      });
+
+      expect(result.current.user?.id).toBe('user-123');
+      expect(result.current.user?.email).toBe('test@example.com');
+    });
+  });
+
+  describe('signIn', () => {
+    it('should return null on success and set user', async () => {
+      mockSigninPost.mockImplementation(() =>
         Promise.resolve({
-          data: { session: { user: { id: 'user-1', email: 'test@example.com' } } },
+          data: {
+            accessToken: fakeJwt({ sub: 'user-1', email: 'a@b.com' }),
+            user: { id: 'user-1', email: 'a@b.com', name: null },
+          },
           error: null,
         })
       );
@@ -171,42 +140,51 @@ describe('AuthProvider', () => {
         expect(result.current.loading).toBe(false);
       });
 
+      let authResult: unknown = { message: 'placeholder' };
+      await act(async () => {
+        authResult = await result.current.signIn('a@b.com', 'password123');
+      });
+
+      expect(authResult).toBeNull();
       expect(result.current.user?.id).toBe('user-1');
+      expect(mockSetAccessToken).toHaveBeenCalled();
     });
 
-    it('should have null user when no session exists', async () => {
+    it('should return error message on failure', async () => {
+      mockSigninPost.mockImplementation(() =>
+        Promise.resolve({
+          data: null,
+          error: { error: 'Invalid email or password', code: 'AUTH_INVALID_CREDENTIALS' },
+        })
+      );
+
       const { result } = renderHook(() => useAuth(), { wrapper });
 
       await waitFor(() => {
         expect(result.current.loading).toBe(false);
       });
 
-      expect(result.current.user).toBeNull();
+      let authResult: unknown = null;
+      await act(async () => {
+        authResult = await result.current.signIn('a@b.com', 'wrong');
+      });
+
+      expect(authResult).toEqual({ message: 'Invalid email or password' });
     });
   });
 
-  // -----------------------------------------------------------------------
-  // signIn
-  // -----------------------------------------------------------------------
-  describe('signIn', () => {
-    it('should call Supabase signInWithPassword', async () => {
-      const { result } = renderHook(() => useAuth(), { wrapper });
+  describe('signUp', () => {
+    it('should return null on success and set user', async () => {
+      mockSignupPost.mockImplementation(() =>
+        Promise.resolve({
+          data: {
+            accessToken: fakeJwt({ sub: 'user-2', email: 'new@b.com' }),
+            user: { id: 'user-2', email: 'new@b.com', name: null },
+          },
+          error: null,
+        })
+      );
 
-      await waitFor(() => {
-        expect(result.current.loading).toBe(false);
-      });
-
-      await act(async () => {
-        await result.current.signIn('test@example.com', 'password123');
-      });
-
-      expect(mockAuth.signInWithPassword).toHaveBeenCalledWith({
-        email: 'test@example.com',
-        password: 'password123',
-      });
-    });
-
-    it('should return null on success', async () => {
       const { result } = renderHook(() => useAuth(), { wrapper });
 
       await waitFor(() => {
@@ -215,15 +193,19 @@ describe('AuthProvider', () => {
 
       let authResult: unknown = { message: 'placeholder' };
       await act(async () => {
-        authResult = await result.current.signIn('test@example.com', 'pw');
+        authResult = await result.current.signUp('new@b.com', 'password123');
       });
 
       expect(authResult).toBeNull();
+      expect(result.current.user?.id).toBe('user-2');
     });
 
-    it('should return error message on failure', async () => {
-      mockAuth.signInWithPassword.mockImplementation(() =>
-        Promise.resolve({ data: {}, error: { message: 'Invalid credentials' } })
+    it('should return error on duplicate email', async () => {
+      mockSignupPost.mockImplementation(() =>
+        Promise.resolve({
+          data: null,
+          error: { error: 'Email already registered', code: 'AUTH_EMAIL_EXISTS' },
+        })
       );
 
       const { result } = renderHook(() => useAuth(), { wrapper });
@@ -234,78 +216,37 @@ describe('AuthProvider', () => {
 
       let authResult: unknown = null;
       await act(async () => {
-        authResult = await result.current.signIn('test@example.com', 'wrong');
-      });
-
-      expect(authResult).toEqual({ message: 'Invalid credentials' });
-    });
-  });
-
-  // -----------------------------------------------------------------------
-  // signUp
-  // -----------------------------------------------------------------------
-  describe('signUp', () => {
-    it('should call Supabase signUp', async () => {
-      const { result } = renderHook(() => useAuth(), { wrapper });
-
-      await waitFor(() => {
-        expect(result.current.loading).toBe(false);
-      });
-
-      await act(async () => {
-        await result.current.signUp('new@example.com', 'password123');
-      });
-
-      expect(mockAuth.signUp).toHaveBeenCalledWith({
-        email: 'new@example.com',
-        password: 'password123',
-      });
-    });
-
-    it('should return error message on failure', async () => {
-      mockAuth.signUp.mockImplementation(() =>
-        Promise.resolve({ data: {}, error: { message: 'Email already registered' } })
-      );
-
-      const { result } = renderHook(() => useAuth(), { wrapper });
-
-      await waitFor(() => {
-        expect(result.current.loading).toBe(false);
-      });
-
-      let authResult: unknown = null;
-      await act(async () => {
-        authResult = await result.current.signUp('existing@example.com', 'pw');
+        authResult = await result.current.signUp('existing@b.com', 'pw12345678');
       });
 
       expect(authResult).toEqual({ message: 'Email already registered' });
     });
   });
 
-  // -----------------------------------------------------------------------
-  // signOut
-  // -----------------------------------------------------------------------
   describe('signOut', () => {
-    it('should call Supabase signOut', async () => {
+    it('should call signout API and clear user', async () => {
+      // Start with a logged-in user
+      const token = fakeJwt({ sub: 'user-1', email: 'a@b.com' });
+      mockRefreshAccessToken.mockImplementation(() => Promise.resolve(token));
+
       const { result } = renderHook(() => useAuth(), { wrapper });
 
       await waitFor(() => {
-        expect(result.current.loading).toBe(false);
+        expect(result.current.user).not.toBeNull();
       });
 
       await act(async () => {
         await result.current.signOut();
       });
 
-      expect(mockAuth.signOut).toHaveBeenCalled();
+      expect(mockSignoutPost).toHaveBeenCalled();
+      expect(mockSetAccessToken).toHaveBeenCalledWith(null);
+      expect(result.current.user).toBeNull();
     });
   });
 
-  // -----------------------------------------------------------------------
-  // signInWithGoogle
-  // -----------------------------------------------------------------------
   describe('signInWithGoogle', () => {
-    it('should return error when APP_URL is not configured', async () => {
+    it('should return coming soon message', async () => {
       const { result } = renderHook(() => useAuth(), { wrapper });
 
       await waitFor(() => {
@@ -317,20 +258,7 @@ describe('AuthProvider', () => {
         authResult = await result.current.signInWithGoogle();
       });
 
-      expect(authResult).toEqual({ message: 'OAuth redirect URL is not configured' });
-    });
-  });
-
-  // -----------------------------------------------------------------------
-  // Cleanup
-  // -----------------------------------------------------------------------
-  describe('cleanup', () => {
-    it('should unsubscribe from auth changes on unmount', () => {
-      const { unmount } = renderHook(() => useAuth(), { wrapper });
-
-      unmount();
-
-      expect(mockSubscription.unsubscribe).toHaveBeenCalled();
+      expect(authResult).toEqual({ message: 'Google sign-in coming soon' });
     });
   });
 });

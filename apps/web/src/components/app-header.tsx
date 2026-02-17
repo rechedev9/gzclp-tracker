@@ -1,9 +1,10 @@
 'use client';
 
 import Image from 'next/image';
-import type { SyncStatus } from '@/lib/sync';
 import { useAuth } from '@/contexts/auth-context';
 import { AvatarDropdown } from './avatar-dropdown';
+
+type SyncStatus = 'idle' | 'syncing' | 'synced' | 'offline' | 'error';
 
 interface AppHeaderProps {
   readonly backLabel?: string;

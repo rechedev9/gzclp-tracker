@@ -2,12 +2,13 @@
 
 import { useState, useCallback } from 'react';
 import Link from 'next/link';
-import type { User } from '@supabase/supabase-js';
-import type { SyncStatus } from '@/lib/sync';
+import type { UserInfo } from '@/contexts/auth-context';
 import { DropdownMenu, DropdownItem, DropdownDivider } from './dropdown-menu';
 
+type SyncStatus = 'idle' | 'syncing' | 'synced' | 'offline' | 'error';
+
 interface AvatarDropdownProps {
-  readonly user: User | null;
+  readonly user: UserInfo | null;
   readonly configured: boolean;
   readonly syncStatus: SyncStatus;
   readonly onSignOut: () => void;
@@ -53,8 +54,8 @@ export function AvatarDropdown({
     );
   }
 
-  const initial = (user.email?.[0] ?? 'U').toUpperCase();
-  const displayEmail = user.email ?? 'User';
+  const initial = (user.email[0] ?? 'U').toUpperCase();
+  const displayEmail = user.email;
   const syncLabel = SYNC_LABELS[syncStatus];
 
   return (
