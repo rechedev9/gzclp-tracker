@@ -11,6 +11,6 @@ pre-commit:
 pre-push:
   commands:
     test:
-      run: bun test
+      run: bun run test
     build:
       run: bun run build
