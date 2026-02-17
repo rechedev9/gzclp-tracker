@@ -1,17 +1,39 @@
 'use client';
 
-import { useState, useCallback, useEffect, useRef, useSyncExternalStore } from 'react';
+import { useCallback, useMemo } from 'react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import type { StartWeights, Results, UndoHistory, Tier, ResultValue } from '@gzclp/shared/types';
+import { queryKeys } from '@/lib/query-keys';
 import {
-  loadDataCompat as loadData,
-  saveDataCompat as saveData,
-  clearDataCompat as clearData,
-  parseImportData,
-  createExportData,
-  type StoredData,
-} from '@/lib/storage-v2';
+  fetchPrograms,
+  fetchProgram,
+  createProgram,
+  updateProgramConfig,
+  deleteProgram,
+  recordResult,
+  deleteResult,
+  undoLastResult,
+  exportProgram,
+  importProgram,
+  type ProgramDetail,
+} from '@/lib/api-functions';
+import { useAuth } from '@/contexts/auth-context';
 
-const MAX_UNDO_HISTORY = 50;
+// ---------------------------------------------------------------------------
+// Helper: optimistic update for results
+// ---------------------------------------------------------------------------
+
+function setResultOptimistic(
+  prev: Results,
+  index: number,
+  tier: Tier,
+  value: ResultValue
+): Results {
+  return {
+    ...prev,
+    [index]: { ...prev[index], [tier]: value },
+  };
+}
 
 function removeTierResult(results: Results, index: number, tier: Tier): Results {
   const updated = { ...results };
@@ -27,174 +49,356 @@ function removeTierResult(results: Results, index: number, tier: Tier): Results 
   return updated;
 }
 
+// ---------------------------------------------------------------------------
+// Hook interface
+// ---------------------------------------------------------------------------
+
 interface UseProgramReturn {
-  startWeights: StartWeights | null;
-  results: Results;
-  undoHistory: UndoHistory;
-  generateProgram: (weights: StartWeights) => void;
-  updateWeights: (weights: StartWeights) => void;
-  markResult: (index: number, tier: Tier, value: ResultValue) => void;
-  setAmrapReps: (index: number, field: 't1Reps' | 't3Reps', reps: number | undefined) => void;
-  undoSpecific: (index: number, tier: Tier) => void;
-  undoLast: () => void;
-  resetAll: () => void;
-  exportData: () => void;
-  importData: (json: string) => boolean;
-  loadFromCloud: (data: StoredData) => void;
+  readonly startWeights: StartWeights | null;
+  readonly results: Results;
+  readonly undoHistory: UndoHistory;
+  readonly isLoading: boolean;
+  readonly activeInstanceId: string | null;
+  readonly generateProgram: (weights: StartWeights) => void;
+  readonly updateWeights: (weights: StartWeights) => void;
+  readonly markResult: (index: number, tier: Tier, value: ResultValue) => void;
+  readonly setAmrapReps: (
+    index: number,
+    field: 't1Reps' | 't3Reps',
+    reps: number | undefined
+  ) => void;
+  readonly undoSpecific: (index: number, tier: Tier) => void;
+  readonly undoLast: () => void;
+  readonly resetAll: () => void;
+  readonly exportData: () => void;
+  readonly importData: (json: string) => boolean;
 }
 
+// ---------------------------------------------------------------------------
+// Hook implementation
+// ---------------------------------------------------------------------------
+
 export function useProgram(): UseProgramReturn {
-  // useSyncExternalStore returns false on server, true on client — no hydration mismatch
-  const isClient = useSyncExternalStore(
-    () => () => {},
-    () => true,
-    () => false
-  );
+  const queryClient = useQueryClient();
+  const { user } = useAuth();
 
-  const [startWeights, setStartWeights] = useState<StartWeights | null>(() =>
-    isClient ? (loadData()?.startWeights ?? null) : null
-  );
-  const [results, setResults] = useState<Results>(() =>
-    isClient ? (loadData()?.results ?? {}) : {}
-  );
-  const [undoHistory, setUndoHistory] = useState<UndoHistory>(() =>
-    isClient ? (loadData()?.undoHistory ?? []) : []
-  );
-  const isInitialMount = useRef(true);
+  // Fetch the list of programs to find the active one
+  const programsQuery = useQuery({
+    queryKey: queryKeys.programs.all,
+    queryFn: fetchPrograms,
+    enabled: user !== null,
+  });
 
-  // Save to localStorage on changes (skip initial mount)
-  useEffect(() => {
-    if (isInitialMount.current) {
-      isInitialMount.current = false;
-      return;
-    }
-    if (!startWeights) return;
-    saveData({ results, startWeights, undoHistory });
-  }, [results, startWeights, undoHistory]);
+  // Find the active program instance
+  const activeInstance = useMemo(() => {
+    if (!programsQuery.data) return null;
+    return programsQuery.data.find((p) => p.status === 'active') ?? null;
+  }, [programsQuery.data]);
 
-  const generateProgram = useCallback((weights: StartWeights) => {
-    setStartWeights(weights);
-    setResults({});
-    setUndoHistory([]);
-  }, []);
+  const activeInstanceId = activeInstance?.id ?? null;
 
-  const updateWeights = useCallback((weights: StartWeights) => {
-    setStartWeights(weights);
-  }, []);
+  // Fetch the full program detail (results + undo)
+  const detailQuery = useQuery({
+    queryKey: queryKeys.programs.detail(activeInstanceId ?? ''),
+    queryFn: () => fetchProgram(activeInstanceId ?? ''),
+    enabled: activeInstanceId !== null,
+  });
 
-  const markResult = useCallback(
-    (index: number, tier: Tier, value: ResultValue) => {
-      setUndoHistory((prev) =>
-        [...prev, { i: index, tier, prev: results[index]?.[tier] }].slice(-MAX_UNDO_HISTORY)
-      );
-      setResults((prev) => ({
-        ...prev,
-        [index]: { ...prev[index], [tier]: value },
-      }));
+  const detail = detailQuery.data ?? null;
+  const startWeights = detail?.startWeights ?? null;
+  const results = detail?.results ?? {};
+  const undoHistory = detail?.undoHistory ?? [];
+  const isLoading = programsQuery.isLoading || detailQuery.isLoading;
+
+  // -------------------------------------------------------------------------
+  // Mutations
+  // -------------------------------------------------------------------------
+
+  const markResultMutation = useMutation({
+    mutationFn: async ({
+      index,
+      tier,
+      value,
+    }: {
+      index: number;
+      tier: Tier;
+      value: ResultValue;
+    }) => {
+      if (!activeInstanceId) throw new Error('No active program');
+      await recordResult(activeInstanceId, index, tier, value);
     },
-    [results]
-  );
+    onMutate: async ({ index, tier, value }) => {
+      // Cancel outgoing refetches
+      await queryClient.cancelQueries({
+        queryKey: queryKeys.programs.detail(activeInstanceId ?? ''),
+      });
 
-  const setAmrapReps = useCallback(
-    (index: number, field: 't1Reps' | 't3Reps', reps: number | undefined) => {
-      setResults((prev) => {
-        const entry = { ...prev[index] };
+      // Snapshot previous value
+      const previousDetail = queryClient.getQueryData<ProgramDetail>(
+        queryKeys.programs.detail(activeInstanceId ?? '')
+      );
+
+      // Optimistically update the cached detail
+      if (previousDetail) {
+        queryClient.setQueryData<ProgramDetail>(queryKeys.programs.detail(activeInstanceId ?? ''), {
+          ...previousDetail,
+          results: setResultOptimistic(previousDetail.results, index, tier, value),
+        });
+      }
+
+      return { previousDetail };
+    },
+    onError: (_err, _vars, context) => {
+      // Rollback on error
+      if (context?.previousDetail) {
+        queryClient.setQueryData(
+          queryKeys.programs.detail(activeInstanceId ?? ''),
+          context.previousDetail
+        );
+      }
+    },
+    onSettled: () => {
+      void queryClient.invalidateQueries({
+        queryKey: queryKeys.programs.detail(activeInstanceId ?? ''),
+      });
+    },
+  });
+
+  const setAmrapMutation = useMutation({
+    mutationFn: async ({
+      index,
+      field,
+      reps,
+    }: {
+      index: number;
+      field: 't1Reps' | 't3Reps';
+      reps: number | undefined;
+    }) => {
+      if (!activeInstanceId) throw new Error('No active program');
+      const tier: Tier = field === 't1Reps' ? 't1' : 't3';
+
+      // Record the result with amrapReps — need the current result value
+      const currentResult = results[index]?.[tier];
+      if (!currentResult) return; // No result to attach AMRAP to
+
+      await recordResult(activeInstanceId, index, tier, currentResult, reps);
+    },
+    onMutate: async ({ index, field, reps }) => {
+      await queryClient.cancelQueries({
+        queryKey: queryKeys.programs.detail(activeInstanceId ?? ''),
+      });
+
+      const previousDetail = queryClient.getQueryData<ProgramDetail>(
+        queryKeys.programs.detail(activeInstanceId ?? '')
+      );
+
+      if (previousDetail) {
+        const updatedResults = { ...previousDetail.results };
+        const entry = { ...updatedResults[index] };
         if (reps === undefined) {
           delete entry[field];
         } else {
           entry[field] = reps;
         }
-        return { ...prev, [index]: entry };
+        updatedResults[index] = entry;
+
+        queryClient.setQueryData<ProgramDetail>(queryKeys.programs.detail(activeInstanceId ?? ''), {
+          ...previousDetail,
+          results: updatedResults,
+        });
+      }
+
+      return { previousDetail };
+    },
+    onError: (_err, _vars, context) => {
+      if (context?.previousDetail) {
+        queryClient.setQueryData(
+          queryKeys.programs.detail(activeInstanceId ?? ''),
+          context.previousDetail
+        );
+      }
+    },
+    onSettled: () => {
+      void queryClient.invalidateQueries({
+        queryKey: queryKeys.programs.detail(activeInstanceId ?? ''),
       });
     },
-    []
-  );
+  });
 
-  const undoSpecific = useCallback(
-    (index: number, tier: Tier) => {
-      const currentValue = results[index]?.[tier];
-      if (!currentValue) return;
-
-      setUndoHistory((prev) =>
-        [...prev, { i: index, tier, prev: currentValue }].slice(-MAX_UNDO_HISTORY)
-      );
-      setResults((prev) => removeTierResult(prev, index, tier));
+  const undoSpecificMutation = useMutation({
+    mutationFn: async ({ index, tier }: { index: number; tier: Tier }) => {
+      if (!activeInstanceId) throw new Error('No active program');
+      await deleteResult(activeInstanceId, index, tier);
     },
-    [results]
+    onMutate: async ({ index, tier }) => {
+      await queryClient.cancelQueries({
+        queryKey: queryKeys.programs.detail(activeInstanceId ?? ''),
+      });
+
+      const previousDetail = queryClient.getQueryData<ProgramDetail>(
+        queryKeys.programs.detail(activeInstanceId ?? '')
+      );
+
+      if (previousDetail) {
+        queryClient.setQueryData<ProgramDetail>(queryKeys.programs.detail(activeInstanceId ?? ''), {
+          ...previousDetail,
+          results: removeTierResult(previousDetail.results, index, tier),
+        });
+      }
+
+      return { previousDetail };
+    },
+    onError: (_err, _vars, context) => {
+      if (context?.previousDetail) {
+        queryClient.setQueryData(
+          queryKeys.programs.detail(activeInstanceId ?? ''),
+          context.previousDetail
+        );
+      }
+    },
+    onSettled: () => {
+      void queryClient.invalidateQueries({
+        queryKey: queryKeys.programs.detail(activeInstanceId ?? ''),
+      });
+    },
+  });
+
+  const undoLastMutation = useMutation({
+    mutationFn: async () => {
+      if (!activeInstanceId) throw new Error('No active program');
+      await undoLastResult(activeInstanceId);
+    },
+    onSettled: () => {
+      void queryClient.invalidateQueries({
+        queryKey: queryKeys.programs.detail(activeInstanceId ?? ''),
+      });
+    },
+  });
+
+  const generateProgramMutation = useMutation({
+    mutationFn: async (weights: StartWeights) => {
+      await createProgram('gzclp', 'GZCLP', weights);
+    },
+    onSettled: () => {
+      void queryClient.invalidateQueries({ queryKey: queryKeys.programs.all });
+    },
+  });
+
+  const updateWeightsMutation = useMutation({
+    mutationFn: async (weights: StartWeights) => {
+      if (!activeInstanceId) throw new Error('No active program');
+      await updateProgramConfig(activeInstanceId, weights);
+    },
+    onSettled: () => {
+      void queryClient.invalidateQueries({
+        queryKey: queryKeys.programs.detail(activeInstanceId ?? ''),
+      });
+    },
+  });
+
+  const resetAllMutation = useMutation({
+    mutationFn: async () => {
+      if (!activeInstanceId) throw new Error('No active program');
+      await deleteProgram(activeInstanceId);
+    },
+    onSettled: () => {
+      void queryClient.invalidateQueries({ queryKey: queryKeys.programs.all });
+    },
+  });
+
+  // -------------------------------------------------------------------------
+  // Stable callbacks
+  // -------------------------------------------------------------------------
+
+  const markResultCb = useCallback(
+    (index: number, tier: Tier, value: ResultValue): void => {
+      markResultMutation.mutate({ index, tier, value });
+    },
+    [markResultMutation]
   );
 
-  const undoLast = useCallback(() => {
-    if (undoHistory.length === 0) return;
+  const setAmrapRepsCb = useCallback(
+    (index: number, field: 't1Reps' | 't3Reps', reps: number | undefined): void => {
+      setAmrapMutation.mutate({ index, field, reps });
+    },
+    [setAmrapMutation]
+  );
 
-    const lastEntry = undoHistory[undoHistory.length - 1];
-    setUndoHistory((prev) => prev.slice(0, -1));
+  const undoSpecificCb = useCallback(
+    (index: number, tier: Tier): void => {
+      undoSpecificMutation.mutate({ index, tier });
+    },
+    [undoSpecificMutation]
+  );
 
-    setResults((prev) => {
-      if (lastEntry.prev === undefined) {
-        return removeTierResult(prev, lastEntry.i, lastEntry.tier);
+  const undoLastCb = useCallback((): void => {
+    undoLastMutation.mutate();
+  }, [undoLastMutation]);
+
+  const generateProgramCb = useCallback(
+    (weights: StartWeights): void => {
+      generateProgramMutation.mutate(weights);
+    },
+    [generateProgramMutation]
+  );
+
+  const updateWeightsCb = useCallback(
+    (weights: StartWeights): void => {
+      updateWeightsMutation.mutate(weights);
+    },
+    [updateWeightsMutation]
+  );
+
+  const resetAllCb = useCallback((): void => {
+    resetAllMutation.mutate();
+  }, [resetAllMutation]);
+
+  const exportDataCb = useCallback((): void => {
+    if (!activeInstanceId) return;
+    void exportProgram(activeInstanceId).then((data) => {
+      const blob = new Blob([JSON.stringify(data, null, 2)], {
+        type: 'application/json',
+      });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `gzclp-backup-${new Date().toISOString().slice(0, 10)}.json`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    });
+  }, [activeInstanceId]);
+
+  const importDataCb = useCallback(
+    (json: string): boolean => {
+      try {
+        const parsed: unknown = JSON.parse(json);
+        void importProgram(parsed).then(() => {
+          void queryClient.invalidateQueries({ queryKey: queryKeys.programs.all });
+        });
+        return true;
+      } catch {
+        return false;
       }
-      // Restore the previous value
-      return {
-        ...prev,
-        [lastEntry.i]: {
-          ...prev[lastEntry.i],
-          [lastEntry.tier]: lastEntry.prev,
-        },
-      };
-    });
-  }, [undoHistory]);
-
-  const resetAll = useCallback(() => {
-    setStartWeights(null);
-    setResults({});
-    setUndoHistory([]);
-    clearData();
-  }, []);
-
-  const exportData = useCallback(() => {
-    if (!startWeights) return;
-    const data = createExportData({ results, startWeights, undoHistory });
-    const blob = new Blob([JSON.stringify(data, null, 2)], {
-      type: 'application/json',
-    });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `gzclp-backup-${new Date().toISOString().slice(0, 10)}.json`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
-  }, [results, startWeights, undoHistory]);
-
-  const importData = useCallback((json: string): boolean => {
-    const data = parseImportData(json);
-    if (!data) return false;
-    setStartWeights(data.startWeights);
-    setResults(data.results);
-    setUndoHistory(data.undoHistory);
-    return true;
-  }, []);
-
-  const loadFromCloud = useCallback((data: StoredData): void => {
-    setStartWeights(data.startWeights);
-    setResults(data.results);
-    setUndoHistory(data.undoHistory);
-  }, []);
+    },
+    [queryClient]
+  );
 
   return {
     startWeights,
     results,
     undoHistory,
-    generateProgram,
-    updateWeights,
-    markResult,
-    setAmrapReps,
-    undoSpecific,
-    undoLast,
-    resetAll,
-    exportData,
-    importData,
-    loadFromCloud,
+    isLoading,
+    activeInstanceId,
+    generateProgram: generateProgramCb,
+    updateWeights: updateWeightsCb,
+    markResult: markResultCb,
+    setAmrapReps: setAmrapRepsCb,
+    undoSpecific: undoSpecificCb,
+    undoLast: undoLastCb,
+    resetAll: resetAllCb,
+    exportData: exportDataCb,
+    importData: importDataCb,
   };
 }

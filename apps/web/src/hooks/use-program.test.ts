@@ -1,320 +1,206 @@
-import { describe, it, expect } from 'bun:test';
-import { renderHook, act } from '@testing-library/react';
+import { mock, describe, it, expect, beforeEach } from 'bun:test';
+import { renderHook, waitFor } from '@testing-library/react';
+import React from 'react';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { DEFAULT_WEIGHTS } from '../../test/helpers/fixtures';
+import type { ProgramSummary, ProgramDetail } from '@/lib/api-functions';
+import type { UserInfo } from '@/contexts/auth-context';
+
+// ---------------------------------------------------------------------------
+// Mock setup
+// ---------------------------------------------------------------------------
+
+const mockFetchPrograms = mock<() => Promise<ProgramSummary[]>>(() => Promise.resolve([]));
+const mockFetchProgram = mock<(id: string) => Promise<ProgramDetail>>(() =>
+  Promise.resolve({
+    id: 'inst-1',
+    programId: 'gzclp',
+    name: 'GZCLP',
+    config: { ...DEFAULT_WEIGHTS },
+    status: 'active',
+    createdAt: '2025-01-01',
+    updatedAt: '2025-01-01',
+    startWeights: DEFAULT_WEIGHTS,
+    results: {},
+    undoHistory: [],
+  })
+);
+
+mock.module('@/lib/api-functions', () => ({
+  fetchPrograms: mockFetchPrograms,
+  fetchProgram: mockFetchProgram,
+  createProgram: mock(() => Promise.resolve({ id: 'new-1' })),
+  updateProgramConfig: mock(() => Promise.resolve()),
+  deleteProgram: mock(() => Promise.resolve()),
+  recordResult: mock(() => Promise.resolve()),
+  deleteResult: mock(() => Promise.resolve()),
+  undoLastResult: mock(() => Promise.resolve()),
+  exportProgram: mock(() => Promise.resolve({})),
+  importProgram: mock(() => Promise.resolve({ id: 'imported-1' })),
+}));
+
+const mockUseAuth = mock(() => ({
+  user: { id: 'user-1', email: 'test@test.com' } as UserInfo | null,
+  loading: false,
+  configured: true,
+  signIn: mock(() => Promise.resolve(null)),
+  signUp: mock(() => Promise.resolve(null)),
+  signInWithGoogle: mock(() => Promise.resolve(null)),
+  signOut: mock(() => Promise.resolve()),
+}));
+
+mock.module('@/contexts/auth-context', () => ({
+  useAuth: mockUseAuth,
+}));
+
 import { useProgram } from './use-program';
-import { loadData } from '@/lib/storage';
-import { loadDataCompat } from '@/lib/storage-v2';
-import { DEFAULT_WEIGHTS, buildStartWeights, buildStoredData } from '../../test/helpers/fixtures';
-import { seedLocalStorage } from '../../test/helpers/storage-helpers';
 
 // ---------------------------------------------------------------------------
-// useProgram — integration through real localStorage + real computeProgram
+// Helpers
 // ---------------------------------------------------------------------------
+
+function createWrapper(): React.FC<{ readonly children: React.ReactNode }> {
+  const queryClient = new QueryClient({
+    defaultOptions: { queries: { retry: false } },
+  });
+
+  return function Wrapper({ children }: { readonly children: React.ReactNode }): React.ReactNode {
+    return React.createElement(QueryClientProvider, { client: queryClient }, children);
+  };
+}
+
+// ---------------------------------------------------------------------------
+// Tests
+// ---------------------------------------------------------------------------
+
 describe('useProgram', () => {
-  describe('initial state', () => {
-    it('should start with null weights when localStorage is empty', () => {
-      const { result } = renderHook(() => useProgram());
-
-      expect(result.current.startWeights).toBeNull();
-      expect(result.current.results).toEqual({});
-      expect(result.current.undoHistory).toEqual([]);
-    });
-
-    it('should load existing data from localStorage on mount', () => {
-      seedLocalStorage(buildStoredData());
-      const { result } = renderHook(() => useProgram());
-
-      expect(result.current.startWeights).toEqual(DEFAULT_WEIGHTS);
-    });
-  });
-
-  describe('generateProgram', () => {
-    it('should set start weights and clear results', () => {
-      const { result } = renderHook(() => useProgram());
-
-      act(() => {
-        result.current.generateProgram(DEFAULT_WEIGHTS);
-      });
-
-      expect(result.current.startWeights).toEqual(DEFAULT_WEIGHTS);
-      expect(result.current.results).toEqual({});
-      expect(result.current.undoHistory).toEqual([]);
-    });
-
-    it('should persist to localStorage after generate', () => {
-      const { result } = renderHook(() => useProgram());
-
-      act(() => {
-        result.current.generateProgram(DEFAULT_WEIGHTS);
-      });
-
-      // Wait for the effect to fire
-      const stored = loadDataCompat();
-      expect(stored?.startWeights).toEqual(DEFAULT_WEIGHTS);
-    });
-  });
-
-  describe('markResult', () => {
-    it('should record a tier result and add undo entry', () => {
-      const { result } = renderHook(() => useProgram());
-
-      act(() => {
-        result.current.generateProgram(DEFAULT_WEIGHTS);
-      });
-
-      act(() => {
-        result.current.markResult(0, 't1', 'success');
-      });
-
-      expect(result.current.results[0]?.t1).toBe('success');
-      expect(result.current.undoHistory).toHaveLength(1);
-      expect(result.current.undoHistory[0]).toEqual({ i: 0, tier: 't1', prev: undefined });
-    });
-
-    it('should record multiple tier results for the same workout', () => {
-      const { result } = renderHook(() => useProgram());
-
-      act(() => {
-        result.current.generateProgram(DEFAULT_WEIGHTS);
-      });
-
-      act(() => {
-        result.current.markResult(0, 't1', 'success');
-      });
-      act(() => {
-        result.current.markResult(0, 't2', 'fail');
-      });
-      act(() => {
-        result.current.markResult(0, 't3', 'success');
-      });
-
-      expect(result.current.results[0]).toEqual({
-        t1: 'success',
-        t2: 'fail',
-        t3: 'success',
-      });
-      expect(result.current.undoHistory).toHaveLength(3);
-    });
-  });
-
-  describe('setAmrapReps', () => {
-    it('should set AMRAP reps for T1', () => {
-      const { result } = renderHook(() => useProgram());
-
-      act(() => {
-        result.current.generateProgram(DEFAULT_WEIGHTS);
-      });
-      act(() => {
-        result.current.markResult(0, 't1', 'success');
-      });
-      act(() => {
-        result.current.setAmrapReps(0, 't1Reps', 8);
-      });
-
-      expect(result.current.results[0]?.t1Reps).toBe(8);
-    });
-
-    it('should clear AMRAP reps when set to undefined', () => {
-      const { result } = renderHook(() => useProgram());
-
-      act(() => {
-        result.current.generateProgram(DEFAULT_WEIGHTS);
-      });
-      act(() => {
-        result.current.markResult(0, 't1', 'success');
-      });
-      act(() => {
-        result.current.setAmrapReps(0, 't1Reps', 8);
-      });
-      act(() => {
-        result.current.setAmrapReps(0, 't1Reps', undefined);
-      });
-
-      expect(result.current.results[0]?.t1Reps).toBeUndefined();
-    });
-  });
-
-  describe('undoLast', () => {
-    it('should undo the last result', () => {
-      const { result } = renderHook(() => useProgram());
-
-      act(() => {
-        result.current.generateProgram(DEFAULT_WEIGHTS);
-      });
-      act(() => {
-        result.current.markResult(0, 't1', 'success');
-      });
-      act(() => {
-        result.current.undoLast();
-      });
-
-      expect(result.current.results[0]?.t1).toBeUndefined();
-      expect(result.current.undoHistory).toHaveLength(0);
-    });
-
-    it('should do nothing when undo history is empty', () => {
-      const { result } = renderHook(() => useProgram());
-
-      act(() => {
-        result.current.generateProgram(DEFAULT_WEIGHTS);
-      });
-      act(() => {
-        result.current.undoLast();
-      });
-
-      expect(result.current.results).toEqual({});
-    });
-
-    it('should restore previous value when overwriting a result', () => {
-      const { result } = renderHook(() => useProgram());
-
-      act(() => {
-        result.current.generateProgram(DEFAULT_WEIGHTS);
-      });
-      act(() => {
-        result.current.markResult(0, 't1', 'success');
-      });
-      act(() => {
-        result.current.markResult(0, 't1', 'fail'); // overwrite
-      });
-      act(() => {
-        result.current.undoLast(); // should restore to 'success'
-      });
-
-      expect(result.current.results[0]?.t1).toBe('success');
-    });
-  });
-
-  describe('undoSpecific', () => {
-    it('should undo a specific tier result', () => {
-      const { result } = renderHook(() => useProgram());
-
-      act(() => {
-        result.current.generateProgram(DEFAULT_WEIGHTS);
-      });
-      act(() => {
-        result.current.markResult(0, 't1', 'success');
-      });
-      act(() => {
-        result.current.markResult(0, 't2', 'fail');
-      });
-      act(() => {
-        result.current.undoSpecific(0, 't1');
-      });
-
-      expect(result.current.results[0]?.t1).toBeUndefined();
-      expect(result.current.results[0]?.t2).toBe('fail'); // unchanged
-    });
-
-    it('should do nothing for a tier with no result', () => {
-      const { result } = renderHook(() => useProgram());
-
-      act(() => {
-        result.current.generateProgram(DEFAULT_WEIGHTS);
-      });
-      act(() => {
-        result.current.undoSpecific(0, 't1');
-      });
-
-      // No undo entry added
-      expect(result.current.undoHistory).toHaveLength(0);
-    });
-  });
-
-  describe('resetAll', () => {
-    it('should clear all state and localStorage', () => {
-      const { result } = renderHook(() => useProgram());
-
-      act(() => {
-        result.current.generateProgram(DEFAULT_WEIGHTS);
-      });
-      act(() => {
-        result.current.markResult(0, 't1', 'success');
-      });
-      act(() => {
-        result.current.resetAll();
-      });
-
-      expect(result.current.startWeights).toBeNull();
-      expect(result.current.results).toEqual({});
-      expect(result.current.undoHistory).toEqual([]);
-      expect(loadData()).toBeNull();
-    });
-  });
-
-  describe('importData', () => {
-    it('should import valid export JSON', () => {
-      const { result } = renderHook(() => useProgram());
-
-      const exportJson = JSON.stringify({
-        version: 3,
-        exportDate: new Date().toISOString(),
-        results: { 0: { t1: 'success' } },
+  beforeEach(() => {
+    mockFetchPrograms.mockReset();
+    mockFetchPrograms.mockImplementation(() => Promise.resolve([]));
+    mockFetchProgram.mockReset();
+    mockFetchProgram.mockImplementation(() =>
+      Promise.resolve({
+        id: 'inst-1',
+        programId: 'gzclp',
+        name: 'GZCLP',
+        config: { ...DEFAULT_WEIGHTS },
+        status: 'active',
+        createdAt: '2025-01-01',
+        updatedAt: '2025-01-01',
         startWeights: DEFAULT_WEIGHTS,
+        results: {},
         undoHistory: [],
+      })
+    );
+  });
+
+  describe('when user has no programs', () => {
+    it('should return null startWeights and empty results', async () => {
+      const wrapper = createWrapper();
+      const { result } = renderHook(() => useProgram(), { wrapper });
+
+      await waitFor(() => {
+        expect(result.current.isLoading).toBe(false);
       });
 
-      let success = false;
-      act(() => {
-        success = result.current.importData(exportJson);
+      expect(result.current.startWeights).toBeNull();
+      expect(result.current.results).toEqual({});
+      expect(result.current.undoHistory).toEqual([]);
+      expect(result.current.activeInstanceId).toBeNull();
+    });
+  });
+
+  describe('when user has an active program', () => {
+    it('should fetch and return the active program data', async () => {
+      mockFetchPrograms.mockImplementation(() =>
+        Promise.resolve([
+          {
+            id: 'inst-1',
+            programId: 'gzclp',
+            name: 'GZCLP',
+            config: { ...DEFAULT_WEIGHTS },
+            status: 'active',
+            createdAt: '2025-01-01',
+            updatedAt: '2025-01-01',
+          },
+        ])
+      );
+      mockFetchProgram.mockImplementation(() =>
+        Promise.resolve({
+          id: 'inst-1',
+          programId: 'gzclp',
+          name: 'GZCLP',
+          config: { ...DEFAULT_WEIGHTS },
+          status: 'active',
+          createdAt: '2025-01-01',
+          updatedAt: '2025-01-01',
+          startWeights: DEFAULT_WEIGHTS,
+          results: { 0: { t1: 'success' } },
+          undoHistory: [],
+        })
+      );
+
+      const wrapper = createWrapper();
+      const { result } = renderHook(() => useProgram(), { wrapper });
+
+      await waitFor(() => {
+        expect(result.current.startWeights).not.toBeNull();
       });
 
-      expect(success).toBe(true);
       expect(result.current.startWeights).toEqual(DEFAULT_WEIGHTS);
       expect(result.current.results[0]?.t1).toBe('success');
-    });
-
-    it('should reject invalid JSON', () => {
-      const { result } = renderHook(() => useProgram());
-
-      let success = true;
-      act(() => {
-        success = result.current.importData('not valid json');
-      });
-
-      expect(success).toBe(false);
+      expect(result.current.activeInstanceId).toBe('inst-1');
     });
   });
 
-  describe('updateWeights', () => {
-    it('should update start weights while preserving results', () => {
-      const { result } = renderHook(() => useProgram());
+  describe('when user is not authenticated', () => {
+    it('should not fetch programs', async () => {
+      mockUseAuth.mockImplementation(() => ({
+        user: null as UserInfo | null,
+        loading: false,
+        configured: true,
+        signIn: mock(() => Promise.resolve(null)),
+        signUp: mock(() => Promise.resolve(null)),
+        signInWithGoogle: mock(() => Promise.resolve(null)),
+        signOut: mock(() => Promise.resolve()),
+      }));
 
-      act(() => {
-        result.current.generateProgram(DEFAULT_WEIGHTS);
-      });
-      act(() => {
-        result.current.markResult(0, 't1', 'success');
-      });
+      const wrapper = createWrapper();
+      const { result } = renderHook(() => useProgram(), { wrapper });
 
-      const newWeights = buildStartWeights({ squat: 100 });
-      act(() => {
-        result.current.updateWeights(newWeights);
-      });
+      // Give it time to potentially fetch
+      await new Promise((resolve) => setTimeout(resolve, 50));
 
-      expect(result.current.startWeights?.squat).toBe(100);
-      expect(result.current.results[0]?.t1).toBe('success'); // preserved
+      expect(result.current.startWeights).toBeNull();
+      expect(mockFetchPrograms).not.toHaveBeenCalled();
+
+      // Reset mock
+      mockUseAuth.mockImplementation(() => ({
+        user: { id: 'user-1', email: 'test@test.com' } as UserInfo | null,
+        loading: false,
+        configured: true,
+        signIn: mock(() => Promise.resolve(null)),
+        signUp: mock(() => Promise.resolve(null)),
+        signInWithGoogle: mock(() => Promise.resolve(null)),
+        signOut: mock(() => Promise.resolve()),
+      }));
     });
   });
 
-  describe('loadFromCloud', () => {
-    it('should replace all state from cloud data', () => {
-      const { result } = renderHook(() => useProgram());
+  describe('interface completeness', () => {
+    it('should expose all required methods', async () => {
+      const wrapper = createWrapper();
+      const { result } = renderHook(() => useProgram(), { wrapper });
 
-      act(() => {
-        result.current.generateProgram(DEFAULT_WEIGHTS);
-      });
-
-      const cloudData = buildStoredData({
-        startWeights: { squat: 200 },
-        results: { 0: { t1: 'fail' } },
-      });
-
-      act(() => {
-        result.current.loadFromCloud(cloudData);
-      });
-
-      expect(result.current.startWeights?.squat).toBe(200);
-      expect(result.current.results[0]?.t1).toBe('fail');
+      expect(typeof result.current.generateProgram).toBe('function');
+      expect(typeof result.current.updateWeights).toBe('function');
+      expect(typeof result.current.markResult).toBe('function');
+      expect(typeof result.current.setAmrapReps).toBe('function');
+      expect(typeof result.current.undoSpecific).toBe('function');
+      expect(typeof result.current.undoLast).toBe('function');
+      expect(typeof result.current.resetAll).toBe('function');
+      expect(typeof result.current.exportData).toBe('function');
+      expect(typeof result.current.importData).toBe('function');
     });
   });
 });

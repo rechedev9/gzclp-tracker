@@ -61,7 +61,6 @@ export function GZCLPApp({ onBackToDashboard, onGoToProfile }: GZCLPAppProps) {
     undoSpecific,
     undoLast,
     resetAll,
-    loadFromCloud,
   } = useProgram();
 
   const { user, signOut } = useAuth();
@@ -71,7 +70,7 @@ export function GZCLPApp({ onBackToDashboard, onGoToProfile }: GZCLPAppProps) {
     startWeights,
     results,
     undoHistory,
-    onCloudDataReceived: loadFromCloud,
+    onCloudDataReceived: () => {},
   });
 
   const { toast } = useToast();
