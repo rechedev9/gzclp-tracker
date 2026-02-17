@@ -13,8 +13,9 @@ export const resultRoutes = new Elysia({ prefix: '/programs/:id' })
   // POST /programs/:id/results — record a workout result
   .post(
     '/results',
-    async ({ userId, params, body }) => {
+    async ({ userId, params, body, set }) => {
       const result = await recordResult(userId, params.id, body);
+      set.status = 201;
       return result;
     },
     {

@@ -60,7 +60,7 @@ export const authRoutes = new Elysia({ prefix: '/auth' })
   // -----------------------------------------------------------------------
   .post(
     '/signup',
-    async ({ jwt, body, cookie, request }) => {
+    async ({ jwt, body, cookie, request, set }) => {
       rateLimit(request.headers.get('x-forwarded-for') ?? 'unknown', '/auth/signup');
       const existing = await findUserByEmail(body.email);
       if (existing) {
@@ -88,6 +88,7 @@ export const authRoutes = new Elysia({ prefix: '/auth' })
         ...refreshCookieOptions(),
       });
 
+      set.status = 201;
       return { user: userResponse(user), accessToken };
     },
     {

@@ -26,8 +26,9 @@ export const programRoutes = new Elysia({ prefix: '/programs' })
   // POST /programs — create a new program instance
   .post(
     '/',
-    async ({ userId, body }) => {
+    async ({ userId, body, set }) => {
       const instance = await createInstance(userId, body.programId, body.name, body.config);
+      set.status = 201;
       return instance;
     },
     {
@@ -105,8 +106,9 @@ export const programRoutes = new Elysia({ prefix: '/programs' })
   // POST /programs/import — import a program from exported JSON
   .post(
     '/import',
-    async ({ userId, body }) => {
+    async ({ userId, body, set }) => {
       const instance = await importInstance(userId, body);
+      set.status = 201;
       return instance;
     },
     {
