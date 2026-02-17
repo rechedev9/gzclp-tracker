@@ -6,6 +6,7 @@ import { eq, and } from 'drizzle-orm';
 import { db } from '../db';
 import { programInstances, workoutResults, undoEntries } from '../db/schema';
 import { getProgramDefinition } from '@gzclp/shared/programs/registry';
+import { ProgramInstanceSchema } from '@gzclp/shared/schemas/instance';
 import type { GenericResults, GenericUndoHistory } from '@gzclp/shared/types/program';
 import { ApiError } from '../middleware/error-handler';
 
@@ -43,7 +44,7 @@ function buildGenericResults(rows: readonly WorkoutResultRow[]): GenericResults 
       results[indexStr] = {};
     }
     results[indexStr][row.slotId] = {
-      result: row.result as 'success' | 'fail',
+      result: row.result,
       ...(row.amrapReps !== null ? { amrapReps: row.amrapReps } : {}),
     };
   }
@@ -56,7 +57,7 @@ function buildUndoHistory(rows: readonly UndoEntryRow[]): GenericUndoHistory {
   return rows.map((row) => ({
     i: row.workoutIndex,
     slotId: row.slotId,
-    ...(row.prevResult !== null ? { prev: row.prevResult as 'success' | 'fail' } : {}),
+    ...(row.prevResult !== null ? { prev: row.prevResult } : {}),
   }));
 }
 
@@ -237,8 +238,14 @@ export async function importInstance(
     throw new ApiError(400, `Unknown program: ${data.programId}`, 'INVALID_PROGRAM');
   }
 
+  // Validate and parse config
+  const configResult = ProgramInstanceSchema.shape.config.safeParse(data.config);
+  if (!configResult.success) {
+    throw new ApiError(400, 'Invalid config format', 'INVALID_DATA');
+  }
+  const config = configResult.data;
+
   // Create the instance
-  const config = data.config as Record<string, number>;
   const [instance] = await db
     .insert(programInstances)
     .values({
@@ -259,7 +266,7 @@ export async function importInstance(
     instanceId: string;
     workoutIndex: number;
     slotId: string;
-    result: string;
+    result: 'success' | 'fail';
     amrapReps: number | null;
   }[] = [];
 

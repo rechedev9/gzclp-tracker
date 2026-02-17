@@ -1,5 +1,6 @@
 import {
   pgTable,
+  pgEnum,
   uuid,
   varchar,
   text,
@@ -9,9 +10,16 @@ import {
   serial,
   index,
   unique,
-  check,
 } from 'drizzle-orm/pg-core';
-import { relations, sql } from 'drizzle-orm';
+import { relations } from 'drizzle-orm';
+
+// ---------------------------------------------------------------------------
+// Enums
+// ---------------------------------------------------------------------------
+
+export const instanceStatusEnum = pgEnum('instance_status', ['active', 'completed', 'archived']);
+
+export const resultTypeEnum = pgEnum('result_type', ['success', 'fail']);
 
 // ---------------------------------------------------------------------------
 // users — replaces Supabase Auth
@@ -22,8 +30,8 @@ export const users = pgTable('users', {
   email: varchar({ length: 255 }).unique().notNull(),
   passwordHash: text('password_hash').notNull(),
   name: varchar({ length: 100 }),
-  createdAt: timestamp('created_at').defaultNow().notNull(),
-  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+  createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+  updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
 });
 
 export const usersRelations = relations(users, ({ many }) => ({
@@ -43,8 +51,8 @@ export const refreshTokens = pgTable(
       .references(() => users.id, { onDelete: 'cascade' })
       .notNull(),
     tokenHash: varchar('token_hash', { length: 64 }).unique().notNull(),
-    expiresAt: timestamp('expires_at').notNull(),
-    createdAt: timestamp('created_at').defaultNow().notNull(),
+    expiresAt: timestamp('expires_at', { withTimezone: true }).notNull(),
+    createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
   },
   (table) => [index('refresh_tokens_user_id_idx').on(table.userId)]
 );
@@ -67,14 +75,11 @@ export const programInstances = pgTable(
     programId: varchar('program_id', { length: 50 }).notNull(),
     name: varchar({ length: 100 }).notNull(),
     config: jsonb().notNull(),
-    status: varchar({ length: 20 }).notNull(),
-    createdAt: timestamp('created_at').defaultNow().notNull(),
-    updatedAt: timestamp('updated_at').defaultNow().notNull(),
+    status: instanceStatusEnum().notNull().default('active'),
+    createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
   },
-  (table) => [
-    index('program_instances_user_status_idx').on(table.userId, table.status),
-    check('status_check', sql`${table.status} IN ('active', 'completed', 'archived')`),
-  ]
+  (table) => [index('program_instances_user_status_idx').on(table.userId, table.status)]
 );
 
 export const programInstancesRelations = relations(programInstances, ({ one, many }) => ({
@@ -96,9 +101,9 @@ export const workoutResults = pgTable(
       .notNull(),
     workoutIndex: smallint('workout_index').notNull(),
     slotId: varchar('slot_id', { length: 20 }).notNull(),
-    result: varchar({ length: 10 }).notNull(),
+    result: resultTypeEnum().notNull(),
     amrapReps: smallint('amrap_reps'),
-    createdAt: timestamp('created_at').defaultNow().notNull(),
+    createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
   },
   (table) => [
     unique('workout_results_instance_slot_idx').on(
@@ -130,8 +135,9 @@ export const undoEntries = pgTable(
       .notNull(),
     workoutIndex: smallint('workout_index').notNull(),
     slotId: varchar('slot_id', { length: 20 }).notNull(),
-    prevResult: varchar('prev_result', { length: 10 }),
-    createdAt: timestamp('created_at').defaultNow().notNull(),
+    prevResult: resultTypeEnum('prev_result'),
+    prevAmrapReps: smallint('prev_amrap_reps'),
+    createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
   },
   (table) => [index('undo_entries_instance_id_idx').on(table.instanceId)]
 );
