@@ -48,67 +48,57 @@ export async function recordResult(
 ): Promise<WorkoutResultRow> {
   await verifyInstanceOwnership(userId, instanceId);
 
-  // Check if a result already exists for this slot (for undo entry)
-  const [existing] = await db
-    .select()
-    .from(workoutResults)
-    .where(
-      and(
-        eq(workoutResults.instanceId, instanceId),
-        eq(workoutResults.workoutIndex, input.workoutIndex),
-        eq(workoutResults.slotId, input.slotId)
+  return await db.transaction(async (tx) => {
+    // Capture existing state for undo (must happen before upsert)
+    const [existing] = await tx
+      .select()
+      .from(workoutResults)
+      .where(
+        and(
+          eq(workoutResults.instanceId, instanceId),
+          eq(workoutResults.workoutIndex, input.workoutIndex),
+          eq(workoutResults.slotId, input.slotId)
+        )
       )
-    )
-    .limit(1);
+      .limit(1);
 
-  // Push undo entry (stores previous state so we can reverse this)
-  await db.insert(undoEntries).values({
-    instanceId,
-    workoutIndex: input.workoutIndex,
-    slotId: input.slotId,
-    prevResult: existing?.result ?? null,
-  });
-
-  if (existing) {
-    // Update existing result
-    const [updated] = await db
-      .update(workoutResults)
-      .set({
+    // Upsert — eliminates SELECT-then-INSERT/UPDATE race condition
+    const [result] = await tx
+      .insert(workoutResults)
+      .values({
+        instanceId,
+        workoutIndex: input.workoutIndex,
+        slotId: input.slotId,
         result: input.result,
         amrapReps: input.amrapReps ?? null,
       })
-      .where(eq(workoutResults.id, existing.id))
+      .onConflictDoUpdate({
+        target: [workoutResults.instanceId, workoutResults.workoutIndex, workoutResults.slotId],
+        set: { result: input.result, amrapReps: input.amrapReps ?? null },
+      })
       .returning();
 
-    if (!updated) {
-      throw new ApiError(500, 'Failed to update result', 'UPDATE_FAILED');
+    if (!result) {
+      throw new ApiError(500, 'Failed to record result', 'INSERT_FAILED');
     }
-    return updated;
-  }
 
-  // Insert new result
-  const [inserted] = await db
-    .insert(workoutResults)
-    .values({
+    // Push undo entry — captures both prevResult and prevAmrapReps
+    await tx.insert(undoEntries).values({
       instanceId,
       workoutIndex: input.workoutIndex,
       slotId: input.slotId,
-      result: input.result,
-      amrapReps: input.amrapReps ?? null,
-    })
-    .returning();
+      prevResult: existing?.result ?? null,
+      prevAmrapReps: existing?.amrapReps ?? null,
+    });
 
-  if (!inserted) {
-    throw new ApiError(500, 'Failed to record result', 'INSERT_FAILED');
-  }
+    // Update instance timestamp
+    await tx
+      .update(programInstances)
+      .set({ updatedAt: new Date() })
+      .where(eq(programInstances.id, instanceId));
 
-  // Update instance timestamp
-  await db
-    .update(programInstances)
-    .set({ updatedAt: new Date() })
-    .where(eq(programInstances.id, instanceId));
-
-  return inserted;
+    return result;
+  });
 }
 
 // ---------------------------------------------------------------------------
@@ -123,36 +113,39 @@ export async function deleteResult(
 ): Promise<void> {
   await verifyInstanceOwnership(userId, instanceId);
 
-  const [existing] = await db
-    .select()
-    .from(workoutResults)
-    .where(
-      and(
-        eq(workoutResults.instanceId, instanceId),
-        eq(workoutResults.workoutIndex, workoutIndex),
-        eq(workoutResults.slotId, slotId)
+  await db.transaction(async (tx) => {
+    const [existing] = await tx
+      .select()
+      .from(workoutResults)
+      .where(
+        and(
+          eq(workoutResults.instanceId, instanceId),
+          eq(workoutResults.workoutIndex, workoutIndex),
+          eq(workoutResults.slotId, slotId)
+        )
       )
-    )
-    .limit(1);
+      .limit(1);
 
-  if (!existing) {
-    throw new ApiError(404, 'Result not found', 'RESULT_NOT_FOUND');
-  }
+    if (!existing) {
+      throw new ApiError(404, 'Result not found', 'RESULT_NOT_FOUND');
+    }
 
-  // Push undo entry before deleting
-  await db.insert(undoEntries).values({
-    instanceId,
-    workoutIndex,
-    slotId,
-    prevResult: existing.result,
+    // Push undo entry before deleting (captures amrapReps too)
+    await tx.insert(undoEntries).values({
+      instanceId,
+      workoutIndex,
+      slotId,
+      prevResult: existing.result,
+      prevAmrapReps: existing.amrapReps ?? null,
+    });
+
+    await tx.delete(workoutResults).where(eq(workoutResults.id, existing.id));
+
+    await tx
+      .update(programInstances)
+      .set({ updatedAt: new Date() })
+      .where(eq(programInstances.id, instanceId));
   });
-
-  await db.delete(workoutResults).where(eq(workoutResults.id, existing.id));
-
-  await db
-    .update(programInstances)
-    .set({ updatedAt: new Date() })
-    .where(eq(programInstances.id, instanceId));
 }
 
 // ---------------------------------------------------------------------------
@@ -162,65 +155,55 @@ export async function deleteResult(
 export async function undoLast(userId: string, instanceId: string): Promise<UndoEntryRow | null> {
   await verifyInstanceOwnership(userId, instanceId);
 
-  // Pop the most recent undo entry (LIFO — highest id)
-  const [entry] = await db
-    .select()
-    .from(undoEntries)
-    .where(eq(undoEntries.instanceId, instanceId))
-    .orderBy(desc(undoEntries.id))
-    .limit(1);
-
-  if (!entry) {
-    return null; // Nothing to undo
-  }
-
-  // Remove the undo entry (consumed)
-  await db.delete(undoEntries).where(eq(undoEntries.id, entry.id));
-
-  if (entry.prevResult === null) {
-    // Previous state was "no result" — delete the current result
-    await db
-      .delete(workoutResults)
-      .where(
-        and(
-          eq(workoutResults.instanceId, instanceId),
-          eq(workoutResults.workoutIndex, entry.workoutIndex),
-          eq(workoutResults.slotId, entry.slotId)
-        )
-      );
-  } else {
-    // Previous state was a result — restore it (upsert)
-    const [existing] = await db
+  return await db.transaction(async (tx) => {
+    // Pop the most recent undo entry (LIFO — highest id)
+    const [entry] = await tx
       .select()
-      .from(workoutResults)
-      .where(
-        and(
-          eq(workoutResults.instanceId, instanceId),
-          eq(workoutResults.workoutIndex, entry.workoutIndex),
-          eq(workoutResults.slotId, entry.slotId)
-        )
-      )
+      .from(undoEntries)
+      .where(eq(undoEntries.instanceId, instanceId))
+      .orderBy(desc(undoEntries.id))
       .limit(1);
 
-    if (existing) {
-      await db
-        .update(workoutResults)
-        .set({ result: entry.prevResult })
-        .where(eq(workoutResults.id, existing.id));
-    } else {
-      await db.insert(workoutResults).values({
-        instanceId,
-        workoutIndex: entry.workoutIndex,
-        slotId: entry.slotId,
-        result: entry.prevResult,
-      });
+    if (!entry) {
+      return null; // Nothing to undo
     }
-  }
 
-  await db
-    .update(programInstances)
-    .set({ updatedAt: new Date() })
-    .where(eq(programInstances.id, instanceId));
+    // Remove the undo entry (consumed)
+    await tx.delete(undoEntries).where(eq(undoEntries.id, entry.id));
 
-  return entry;
+    if (entry.prevResult === null) {
+      // Previous state was "no result" — delete the current result
+      await tx
+        .delete(workoutResults)
+        .where(
+          and(
+            eq(workoutResults.instanceId, instanceId),
+            eq(workoutResults.workoutIndex, entry.workoutIndex),
+            eq(workoutResults.slotId, entry.slotId)
+          )
+        );
+    } else {
+      // Previous state was a result — restore it with amrapReps via upsert
+      await tx
+        .insert(workoutResults)
+        .values({
+          instanceId,
+          workoutIndex: entry.workoutIndex,
+          slotId: entry.slotId,
+          result: entry.prevResult,
+          amrapReps: entry.prevAmrapReps ?? null,
+        })
+        .onConflictDoUpdate({
+          target: [workoutResults.instanceId, workoutResults.workoutIndex, workoutResults.slotId],
+          set: { result: entry.prevResult, amrapReps: entry.prevAmrapReps ?? null },
+        });
+    }
+
+    await tx
+      .update(programInstances)
+      .set({ updatedAt: new Date() })
+      .where(eq(programInstances.id, instanceId));
+
+    return entry;
+  });
 }

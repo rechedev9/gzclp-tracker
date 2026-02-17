@@ -245,60 +245,64 @@ export async function importInstance(
   }
   const config = configResult.data;
 
-  // Create the instance
-  const [instance] = await db
-    .insert(programInstances)
-    .values({
-      userId,
-      programId: data.programId,
-      name: data.name,
-      config,
-      status: 'active',
-    })
-    .returning();
+  // Wrap all inserts in a transaction — partial failure rolls back everything
+  const instanceId = await db.transaction(async (tx) => {
+    const [instance] = await tx
+      .insert(programInstances)
+      .values({
+        userId,
+        programId: data.programId,
+        name: data.name,
+        config,
+        status: 'active',
+      })
+      .returning();
 
-  if (!instance) {
-    throw new ApiError(500, 'Failed to create imported instance', 'IMPORT_FAILED');
-  }
+    if (!instance) {
+      throw new ApiError(500, 'Failed to create imported instance', 'IMPORT_FAILED');
+    }
 
-  // Bulk insert results
-  const resultValues: {
-    instanceId: string;
-    workoutIndex: number;
-    slotId: string;
-    result: 'success' | 'fail';
-    amrapReps: number | null;
-  }[] = [];
+    // Bulk insert results
+    const resultValues: {
+      instanceId: string;
+      workoutIndex: number;
+      slotId: string;
+      result: 'success' | 'fail';
+      amrapReps: number | null;
+    }[] = [];
 
-  for (const [indexStr, slots] of Object.entries(data.results)) {
-    for (const [slotId, slotResult] of Object.entries(slots)) {
-      if (slotResult.result) {
-        resultValues.push({
-          instanceId: instance.id,
-          workoutIndex: Number(indexStr),
-          slotId,
-          result: slotResult.result,
-          amrapReps: slotResult.amrapReps ?? null,
-        });
+    for (const [indexStr, slots] of Object.entries(data.results)) {
+      for (const [slotId, slotResult] of Object.entries(slots)) {
+        if (slotResult.result) {
+          resultValues.push({
+            instanceId: instance.id,
+            workoutIndex: Number(indexStr),
+            slotId,
+            result: slotResult.result,
+            amrapReps: slotResult.amrapReps ?? null,
+          });
+        }
       }
     }
-  }
 
-  if (resultValues.length > 0) {
-    await db.insert(workoutResults).values(resultValues);
-  }
+    if (resultValues.length > 0) {
+      await tx.insert(workoutResults).values(resultValues);
+    }
 
-  // Bulk insert undo entries
-  if (data.undoHistory.length > 0) {
-    const undoValues = data.undoHistory.map((entry) => ({
-      instanceId: instance.id,
-      workoutIndex: entry.i,
-      slotId: entry.slotId,
-      prevResult: entry.prev ?? null,
-    }));
-    await db.insert(undoEntries).values(undoValues);
-  }
+    // Bulk insert undo entries
+    if (data.undoHistory.length > 0) {
+      const undoValues = data.undoHistory.map((entry) => ({
+        instanceId: instance.id,
+        workoutIndex: entry.i,
+        slotId: entry.slotId,
+        prevResult: entry.prev ?? null,
+      }));
+      await tx.insert(undoEntries).values(undoValues);
+    }
 
-  // Return the full response
-  return getInstance(userId, instance.id);
+    return instance.id;
+  });
+
+  // Fetch and return the full response after the transaction commits
+  return getInstance(userId, instanceId);
 }
