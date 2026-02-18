@@ -1,190 +1,129 @@
 import { describe, it, expect } from 'bun:test';
-import {
-  convertResultsToGeneric,
-  convertResultsToLegacy,
-  convertUndoToGeneric,
-  convertUndoToLegacy,
-  convertLegacyToInstanceMap,
-  GZCLP_MIGRATED_ID,
-} from './v3-to-v1';
-import { DEFAULT_WEIGHTS, buildResults } from '../../../test/helpers/fixtures';
-import type { Results, UndoHistory } from '@gzclp/shared/types';
+import { convertResultsToLegacy, convertUndoToLegacy } from './v3-to-v1';
+import type { GenericResults, GenericUndoHistory } from '@gzclp/shared/types/program';
 
 // ---------------------------------------------------------------------------
-// Results conversion round-trip: legacy → generic → legacy
+// convertResultsToLegacy: slot-keyed → tier-keyed
 // ---------------------------------------------------------------------------
-describe('results conversion round-trip', () => {
-  it('should round-trip empty results', () => {
-    const original: Results = {};
-    const generic = convertResultsToGeneric(original);
-    const backToLegacy = convertResultsToLegacy(generic);
-
-    expect(backToLegacy).toEqual(original);
+describe('convertResultsToLegacy', () => {
+  it('should return empty results for empty input', () => {
+    expect(convertResultsToLegacy({})).toEqual({});
   });
 
-  it('should round-trip results with all tiers', () => {
-    const original = buildResults([
-      [0, { t1: 'success', t2: 'fail', t3: 'success' }],
-      [1, { t1: 'fail', t2: 'success', t3: 'fail' }],
-      [4, { t1: 'success' }],
-    ]);
-    const generic = convertResultsToGeneric(original);
-    const backToLegacy = convertResultsToLegacy(generic);
-
-    expect(backToLegacy).toEqual(original);
-  });
-
-  it('should preserve AMRAP reps through round-trip', () => {
-    const original = buildResults([
-      [0, { t1: 'success', t1Reps: 8, t3: 'success', t3Reps: 30 }],
-      [1, { t1: 'fail', t1Reps: 2 }],
-    ]);
-    const generic = convertResultsToGeneric(original);
-    const backToLegacy = convertResultsToLegacy(generic);
-
-    expect(backToLegacy).toEqual(original);
-  });
-
-  it('should handle results across all 4 day types', () => {
-    const original = buildResults([
-      [0, { t1: 'success', t2: 'success', t3: 'success' }], // Day 1
-      [1, { t1: 'success', t2: 'fail', t3: 'success' }], // Day 2
-      [2, { t1: 'fail', t2: 'success', t3: 'fail' }], // Day 3
-      [3, { t1: 'success', t2: 'success', t3: 'success' }], // Day 4
-    ]);
-    const generic = convertResultsToGeneric(original);
-    const backToLegacy = convertResultsToLegacy(generic);
-
-    expect(backToLegacy).toEqual(original);
-  });
-
-  it('should handle sparse results (gaps in workout indices)', () => {
-    const original = buildResults([
-      [0, { t1: 'success' }],
-      [10, { t2: 'fail' }],
-      [50, { t3: 'success', t3Reps: 25 }],
-    ]);
-    const generic = convertResultsToGeneric(original);
-    const backToLegacy = convertResultsToLegacy(generic);
-
-    expect(backToLegacy).toEqual(original);
-  });
-});
-
-// ---------------------------------------------------------------------------
-// Undo history conversion round-trip
-// ---------------------------------------------------------------------------
-describe('undo history conversion round-trip', () => {
-  it('should round-trip empty undo history', () => {
-    const original: UndoHistory = [];
-    const generic = convertUndoToGeneric(original);
-    const backToLegacy = convertUndoToLegacy(generic);
-
-    expect(backToLegacy).toEqual(original);
-  });
-
-  it('should round-trip undo entries for all tiers', () => {
-    const original: UndoHistory = [
-      { i: 0, tier: 't1', prev: 'success' },
-      { i: 1, tier: 't2', prev: 'fail' },
-      { i: 2, tier: 't3', prev: undefined },
-    ];
-    const generic = convertUndoToGeneric(original);
-    const backToLegacy = convertUndoToLegacy(generic);
-
-    expect(backToLegacy).toEqual(original);
-  });
-
-  it('should preserve workout index across conversion', () => {
-    const original: UndoHistory = [
-      { i: 45, tier: 't1', prev: 'fail' },
-      { i: 89, tier: 't2', prev: 'success' },
-    ];
-    const generic = convertUndoToGeneric(original);
-
-    expect(generic[0].i).toBe(45);
-    expect(generic[1].i).toBe(89);
-
-    const backToLegacy = convertUndoToLegacy(generic);
-    expect(backToLegacy).toEqual(original);
-  });
-});
-
-// ---------------------------------------------------------------------------
-// Full legacy → instance map migration
-// ---------------------------------------------------------------------------
-describe('convertLegacyToInstanceMap', () => {
-  it('should produce a valid instance map from legacy data', () => {
-    const legacy = {
-      startWeights: DEFAULT_WEIGHTS,
-      results: buildResults([[0, { t1: 'success', t2: 'success', t3: 'success' }]]),
-      undoHistory: [{ i: 0, tier: 't1' as const, prev: undefined }],
+  it('should map d1-t1/d1-t2/d1-t3 to t1/t2/t3 for Day 1', () => {
+    const generic: GenericResults = {
+      '0': {
+        'd1-t1': { result: 'success' },
+        'd1-t2': { result: 'fail' },
+        'd1-t3': { result: 'success' },
+      },
     };
+    const legacy = convertResultsToLegacy(generic);
 
-    const map = convertLegacyToInstanceMap(legacy);
-
-    expect(map.version).toBe(1);
-    expect(map.activeProgramId).toBe(GZCLP_MIGRATED_ID);
-    expect(Object.keys(map.instances)).toHaveLength(1);
-
-    const instance = map.instances[GZCLP_MIGRATED_ID];
-    expect(instance.programId).toBe('gzclp');
-    expect(instance.name).toBe('GZCLP');
-    expect(instance.status).toBe('active');
-    expect(instance.config).toEqual(DEFAULT_WEIGHTS);
+    expect(legacy['0']?.t1).toBe('success');
+    expect(legacy['0']?.t2).toBe('fail');
+    expect(legacy['0']?.t3).toBe('success');
   });
 
-  it('should convert results to slot-keyed format', () => {
-    const legacy = {
-      startWeights: DEFAULT_WEIGHTS,
-      results: buildResults([[0, { t1: 'success', t2: 'fail', t3: 'success' }]]),
-      undoHistory: [] as UndoHistory,
+  it('should map d2-t1/d2-t2/d2-t3 for Day 2 (workoutIndex 1)', () => {
+    const generic: GenericResults = {
+      '1': {
+        'd2-t1': { result: 'fail' },
+        'd2-t2': { result: 'success' },
+      },
     };
+    const legacy = convertResultsToLegacy(generic);
 
-    const map = convertLegacyToInstanceMap(legacy);
-    const instance = map.instances[GZCLP_MIGRATED_ID];
+    expect(legacy['1']?.t1).toBe('fail');
+    expect(legacy['1']?.t2).toBe('success');
+    expect(legacy['1']?.t3).toBeUndefined();
+  });
 
-    // Slot-keyed: Day 1 slots are d1-t1, d1-t2, d1-t3
-    expect(instance.results['0']).toBeDefined();
-    expect(instance.results['0']['d1-t1']?.result).toBe('success');
-    expect(instance.results['0']['d1-t2']?.result).toBe('fail');
-    expect(instance.results['0']['d1-t3']?.result).toBe('success');
+  it('should preserve AMRAP reps for t1 and t3', () => {
+    const generic: GenericResults = {
+      '0': {
+        'd1-t1': { result: 'success', amrapReps: 12 },
+        'd1-t3': { result: 'success', amrapReps: 25 },
+      },
+    };
+    const legacy = convertResultsToLegacy(generic);
+
+    expect(legacy['0']?.t1Reps).toBe(12);
+    expect(legacy['0']?.t3Reps).toBe(25);
+  });
+
+  it('should skip entries with unknown slot IDs', () => {
+    const generic: GenericResults = {
+      '0': {
+        'unknown-slot': { result: 'success' },
+        'd1-t1': { result: 'fail' },
+      },
+    };
+    const legacy = convertResultsToLegacy(generic);
+
+    expect(legacy['0']?.t1).toBe('fail');
+    expect(Object.keys(legacy['0'] ?? {})).not.toContain('unknown-slot');
+  });
+
+  it('should handle sparse results across multiple workout indices', () => {
+    const generic: GenericResults = {
+      '0': { 'd1-t1': { result: 'success' } },
+      '50': { 'd3-t2': { result: 'fail' } },
+      '89': { 'd2-t3': { result: 'success' } },
+    };
+    const legacy = convertResultsToLegacy(generic);
+
+    expect(legacy['0']?.t1).toBe('success');
+    expect(legacy['50']?.t2).toBe('fail');
+    expect(legacy['89']?.t3).toBe('success');
   });
 });
 
 // ---------------------------------------------------------------------------
-// Generic format: slot IDs are correct
+// convertUndoToLegacy: slot-keyed undo → tier-keyed undo
 // ---------------------------------------------------------------------------
-describe('convertResultsToGeneric: slot ID mapping', () => {
-  it('should map Day 1 tiers to d1-t1, d1-t2, d1-t3', () => {
-    const results = buildResults([[0, { t1: 'success', t2: 'success', t3: 'success' }]]);
-    const generic = convertResultsToGeneric(results);
-
-    expect(generic['0']['d1-t1']?.result).toBe('success');
-    expect(generic['0']['d1-t2']?.result).toBe('success');
-    expect(generic['0']['d1-t3']?.result).toBe('success');
+describe('convertUndoToLegacy', () => {
+  it('should return empty array for empty input', () => {
+    expect(convertUndoToLegacy([])).toEqual([]);
   });
 
-  it('should map Day 2 tiers to d2-t1, d2-t2, d2-t3', () => {
-    const results = buildResults([[1, { t1: 'fail', t2: 'fail', t3: 'fail' }]]);
-    const generic = convertResultsToGeneric(results);
+  it('should convert slot IDs to tiers', () => {
+    const generic: GenericUndoHistory = [
+      { i: 0, slotId: 'd1-t1', prev: 'success' },
+      { i: 1, slotId: 'd2-t2', prev: 'fail' },
+    ];
+    const legacy = convertUndoToLegacy(generic);
 
-    expect(generic['1']['d2-t1']?.result).toBe('fail');
-    expect(generic['1']['d2-t2']?.result).toBe('fail');
-    expect(generic['1']['d2-t3']?.result).toBe('fail');
+    expect(legacy[0]).toEqual({ i: 0, tier: 't1', prev: 'success' });
+    expect(legacy[1]).toEqual({ i: 1, tier: 't2', prev: 'fail' });
   });
 
-  it('should map Day 3 tiers to d3-t1, d3-t2, d3-t3', () => {
-    const results = buildResults([[2, { t1: 'success' }]]);
-    const generic = convertResultsToGeneric(results);
+  it('should handle entries without prev value', () => {
+    const generic: GenericUndoHistory = [{ i: 0, slotId: 'd1-t3' }];
+    const legacy = convertUndoToLegacy(generic);
 
-    expect(generic['2']['d3-t1']?.result).toBe('success');
+    expect(legacy[0]).toEqual({ i: 0, tier: 't3', prev: undefined });
   });
 
-  it('should map Day 4 tiers to d4-t1, d4-t2, d4-t3', () => {
-    const results = buildResults([[3, { t2: 'fail' }]]);
-    const generic = convertResultsToGeneric(results);
+  it('should preserve workout index', () => {
+    const generic: GenericUndoHistory = [
+      { i: 45, slotId: 'd2-t1', prev: 'fail' },
+      { i: 89, slotId: 'd4-t2', prev: 'success' },
+    ];
+    const legacy = convertUndoToLegacy(generic);
 
-    expect(generic['3']['d4-t2']?.result).toBe('fail');
+    expect(legacy[0]?.i).toBe(45);
+    expect(legacy[1]?.i).toBe(89);
+  });
+
+  it('should skip entries with unknown slot IDs', () => {
+    const generic: GenericUndoHistory = [
+      { i: 0, slotId: 'unknown-slot', prev: 'success' },
+      { i: 1, slotId: 'd1-t1', prev: 'fail' },
+    ];
+    const legacy = convertUndoToLegacy(generic);
+
+    expect(legacy).toHaveLength(1);
+    expect(legacy[0]?.tier).toBe('t1');
   });
 });

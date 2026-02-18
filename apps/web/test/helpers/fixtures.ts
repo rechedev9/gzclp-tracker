@@ -1,5 +1,4 @@
 import type { StartWeights, Results } from '@gzclp/shared/types';
-import type { StoredData } from '@/lib/storage';
 
 /**
  * Default start weights used across all integration tests.
@@ -48,16 +47,4 @@ export function buildSuccessfulResults(n: number): Results {
     results[i] = { t1: 'success', t2: 'success', t3: 'success' };
   }
   return results;
-}
-
-/** Build a full StoredData object for storage integration tests. */
-export function buildStoredData(overrides?: {
-  startWeights?: Partial<StartWeights>;
-  results?: Results;
-}): StoredData {
-  return {
-    startWeights: buildStartWeights(overrides?.startWeights),
-    results: overrides?.results ?? {},
-    undoHistory: [],
-  };
 }

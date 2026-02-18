@@ -1,37 +1,18 @@
 /**
- * Migration: gzclp-v3 (tier-keyed) → wt-programs-v1 (slot-keyed)
+ * Conversion: slot-keyed API format ↔ tier-keyed legacy format.
  *
- * Pure conversion functions with no side effects.
- * I/O (localStorage read/write) is handled by storage-v2.ts.
+ * These functions are used by api-functions.ts to translate between the API's
+ * slot-keyed results (e.g. { "day1-t1": { result: "success" } }) and the
+ * component-facing tier-keyed format (e.g. { t1: "success" }).
  */
 
 import { GZCLP_DEFINITION } from '@gzclp/shared/programs/gzclp';
-import type { StoredData } from '../storage';
 import type { Results, UndoHistory, Tier } from '@gzclp/shared/types';
-import type {
-  ProgramInstanceMap,
-  GenericResults,
-  GenericUndoHistory,
-} from '@gzclp/shared/types/program';
-
-const GZCLP_MIGRATED_ID = 'gzclp-migrated';
+import type { GenericResults, GenericUndoHistory } from '@gzclp/shared/types/program';
 
 // ---------------------------------------------------------------------------
 // Slot ↔ Tier lookup tables (built once from GZCLP definition)
 // ---------------------------------------------------------------------------
-
-/** dayIndex → tier → slotId */
-function buildDaySlotMap(): Record<number, Record<string, string>> {
-  const map: Record<number, Record<string, string>> = {};
-  for (let i = 0; i < GZCLP_DEFINITION.days.length; i++) {
-    const day = GZCLP_DEFINITION.days[i];
-    map[i] = {};
-    for (const slot of day.slots) {
-      map[i][slot.tier] = slot.id;
-    }
-  }
-  return map;
-}
 
 /** slotId → tier */
 function buildSlotTierMap(): Record<string, string> {
@@ -44,7 +25,6 @@ function buildSlotTierMap(): Record<string, string> {
   return map;
 }
 
-const DAY_SLOT_MAP = buildDaySlotMap();
 const SLOT_TIER_MAP = buildSlotTierMap();
 const VALID_TIERS: ReadonlySet<string> = new Set(['t1', 't2', 't3']);
 
@@ -53,56 +33,7 @@ function isTier(value: string): value is Tier {
 }
 
 // ---------------------------------------------------------------------------
-// Conversion: old tier-keyed → new slot-keyed
-// ---------------------------------------------------------------------------
-
-export function convertResultsToGeneric(oldResults: Results): GenericResults {
-  const generic: GenericResults = {};
-
-  for (const [indexStr, result] of Object.entries(oldResults)) {
-    const dayIndex = Number(indexStr) % GZCLP_DEFINITION.cycleLength;
-    const slotMap = DAY_SLOT_MAP[dayIndex];
-    if (!slotMap) continue;
-
-    const slots: Record<string, { result?: 'success' | 'fail'; amrapReps?: number }> = {};
-
-    for (const tier of ['t1', 't2', 't3'] as const) {
-      const resultVal = result[tier];
-      if (resultVal === undefined) continue;
-      const slotId = slotMap[tier];
-      if (!slotId) continue;
-      slots[slotId] = { result: resultVal };
-    }
-
-    // AMRAP reps (T1 and T3 only in legacy format)
-    if (result.t1Reps !== undefined && slotMap.t1) {
-      slots[slotMap.t1] = { ...slots[slotMap.t1], amrapReps: result.t1Reps };
-    }
-    if (result.t3Reps !== undefined && slotMap.t3) {
-      slots[slotMap.t3] = { ...slots[slotMap.t3], amrapReps: result.t3Reps };
-    }
-
-    if (Object.keys(slots).length > 0) {
-      generic[indexStr] = slots;
-    }
-  }
-
-  return generic;
-}
-
-export function convertUndoToGeneric(old: UndoHistory): GenericUndoHistory {
-  return old
-    .map((entry) => {
-      const dayIndex = entry.i % GZCLP_DEFINITION.cycleLength;
-      const slotId = DAY_SLOT_MAP[dayIndex]?.[entry.tier];
-      if (!slotId) return null;
-      return { i: entry.i, slotId, prev: entry.prev };
-    })
-    .filter((e): e is NonNullable<typeof e> => e !== null);
-}
-
-// ---------------------------------------------------------------------------
-// Conversion: new slot-keyed → old tier-keyed
+// Conversion: slot-keyed → tier-keyed (API response → component format)
 // ---------------------------------------------------------------------------
 
 export function convertResultsToLegacy(generic: GenericResults): Results {
@@ -149,32 +80,3 @@ export function convertUndoToLegacy(generic: GenericUndoHistory): UndoHistory {
     })
     .filter((e): e is NonNullable<typeof e> => e !== null);
 }
-
-// ---------------------------------------------------------------------------
-// Full migration: StoredData → ProgramInstanceMap
-// ---------------------------------------------------------------------------
-
-/** Converts legacy GZCLP StoredData into a new-format ProgramInstanceMap. */
-export function convertLegacyToInstanceMap(oldData: StoredData): ProgramInstanceMap {
-  const now = new Date().toISOString();
-
-  return {
-    version: 1,
-    activeProgramId: GZCLP_MIGRATED_ID,
-    instances: {
-      [GZCLP_MIGRATED_ID]: {
-        id: GZCLP_MIGRATED_ID,
-        programId: 'gzclp',
-        name: 'GZCLP',
-        config: { ...oldData.startWeights },
-        results: convertResultsToGeneric(oldData.results),
-        undoHistory: convertUndoToGeneric(oldData.undoHistory),
-        status: 'active',
-        createdAt: now,
-        updatedAt: now,
-      },
-    },
-  };
-}
-
-export { GZCLP_MIGRATED_ID };

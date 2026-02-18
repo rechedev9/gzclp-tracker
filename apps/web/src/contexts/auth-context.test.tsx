@@ -22,6 +22,7 @@ const mockSignoutPost = mock<() => Promise<{ data: unknown; error: unknown }>>((
 mock.module('@/lib/api', () => ({
   refreshAccessToken: mockRefreshAccessToken,
   setAccessToken: mockSetAccessToken,
+  API_URL: 'http://localhost:3001',
   api: {
     auth: {
       signup: { post: mockSignupPost },
@@ -30,6 +31,34 @@ mock.module('@/lib/api', () => ({
     },
   },
 }));
+
+// ---------------------------------------------------------------------------
+// Mock global fetch for /auth/me calls
+// ---------------------------------------------------------------------------
+
+type FetchMock = (input: RequestInfo | URL, init?: RequestInit) => Promise<Response>;
+
+const mockFetch = mock<FetchMock>(() =>
+  Promise.resolve(new Response(JSON.stringify(null), { status: 401 }))
+);
+globalThis.fetch = mockFetch as unknown as typeof fetch;
+
+function mockMeSuccess(id: string, email: string): void {
+  mockFetch.mockImplementation(() =>
+    Promise.resolve(
+      new Response(JSON.stringify({ id, email }), {
+        status: 200,
+        headers: { 'Content-Type': 'application/json' },
+      })
+    )
+  );
+}
+
+function mockMeFailure(): void {
+  mockFetch.mockImplementation(() =>
+    Promise.resolve(new Response(JSON.stringify(null), { status: 401 }))
+  );
+}
 
 import { AuthProvider, useAuth } from './auth-context';
 
@@ -51,6 +80,7 @@ function resetAllMocks(): void {
   mockSigninPost.mockImplementation(() => Promise.resolve({ data: null, error: null }));
   mockSignoutPost.mockReset();
   mockSignoutPost.mockImplementation(() => Promise.resolve({ data: null, error: null }));
+  mockMeFailure();
 }
 
 // Helper: create a valid JWT with given payload (base64url encoded)
@@ -110,6 +140,7 @@ describe('AuthProvider', () => {
     it('should restore user from refresh token', async () => {
       const token = fakeJwt({ sub: 'user-123', email: 'test@example.com' });
       mockRefreshAccessToken.mockImplementation(() => Promise.resolve(token));
+      mockMeSuccess('user-123', 'test@example.com');
 
       const { result } = renderHook(() => useAuth(), { wrapper });
 
@@ -228,6 +259,7 @@ describe('AuthProvider', () => {
       // Start with a logged-in user
       const token = fakeJwt({ sub: 'user-1', email: 'a@b.com' });
       mockRefreshAccessToken.mockImplementation(() => Promise.resolve(token));
+      mockMeSuccess('user-1', 'a@b.com');
 
       const { result } = renderHook(() => useAuth(), { wrapper });
 
