@@ -92,7 +92,7 @@ async function extractErrorMessage(res: Response, fallback: string): Promise<str
   return fallback;
 }
 
-async function apiFetch(path: string, options: RequestInit = {}): Promise<unknown> {
+export async function apiFetch(path: string, options: RequestInit = {}): Promise<unknown> {
   const token = getAccessToken();
   const headers: Record<string, string> = {
     'Content-Type': 'application/json',
