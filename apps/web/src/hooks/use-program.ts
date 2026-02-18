@@ -69,7 +69,7 @@ interface UseProgramReturn {
   readonly undoLast: () => void;
   readonly resetAll: () => void;
   readonly exportData: () => void;
-  readonly importData: (json: string) => boolean;
+  readonly importData: (json: string) => Promise<boolean>;
 }
 
 // ---------------------------------------------------------------------------
@@ -369,18 +369,14 @@ export function useProgram(): UseProgramReturn {
   }, [activeInstanceId]);
 
   const importDataCb = useCallback(
-    (json: string): boolean => {
+    async (json: string): Promise<boolean> => {
       try {
         const parsed: unknown = JSON.parse(json);
-        void importProgram(parsed)
-          .then(() => {
-            void queryClient.invalidateQueries({ queryKey: queryKeys.programs.all });
-          })
-          .catch((err: unknown) => {
-            console.warn('Import failed:', err instanceof Error ? err.message : 'Unknown error');
-          });
+        await importProgram(parsed);
+        void queryClient.invalidateQueries({ queryKey: queryKeys.programs.all });
         return true;
-      } catch {
+      } catch (err: unknown) {
+        console.warn('Import failed:', err instanceof Error ? err.message : 'Unknown error');
         return false;
       }
     },
