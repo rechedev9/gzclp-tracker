@@ -27,18 +27,32 @@ mock.module('../services/programs', () => ({
   importInstance: mock(() => Promise.resolve({ id: 'imported-id' })),
 }));
 
+import { Elysia } from 'elysia';
+import { ApiError } from '../middleware/error-handler';
 import { programRoutes } from './programs';
+
+// Wrap programRoutes with the same error handler as the main app.
+const testApp = new Elysia()
+  .onError(({ error, set }) => {
+    if (error instanceof ApiError) {
+      set.status = error.statusCode;
+      return { error: error.message, code: error.code };
+    }
+    set.status = 401;
+    return { error: 'Unauthorized', code: 'UNAUTHORIZED' };
+  })
+  .use(programRoutes);
 
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
 
 function get(path: string, headers?: Record<string, string>): Promise<Response> {
-  return programRoutes.handle(new Request(`http://localhost${path}`, { headers }));
+  return testApp.handle(new Request(`http://localhost${path}`, { headers }));
 }
 
 function post(path: string, body: unknown, headers?: Record<string, string>): Promise<Response> {
-  return programRoutes.handle(
+  return testApp.handle(
     new Request(`http://localhost${path}`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', ...headers },

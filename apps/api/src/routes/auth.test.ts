@@ -74,14 +74,33 @@ mock.module('../middleware/rate-limit', () => ({
   },
 }));
 
+import { Elysia } from 'elysia';
+import { ApiError } from '../middleware/error-handler';
 import { authRoutes } from './auth';
+
+// Wrap authRoutes with the same error-handling logic as the main app so that
+// ApiError instances are serialized to JSON in tests.
+const testApp = new Elysia()
+  .onError(({ error, set }) => {
+    if (error instanceof ApiError) {
+      set.status = error.statusCode;
+      return { error: error.message, code: error.code };
+    }
+    if ('code' in error && error.code === 'VALIDATION') {
+      set.status = 400;
+      return { error: 'Validation failed', code: 'VALIDATION_ERROR' };
+    }
+    set.status = 500;
+    return { error: 'Internal server error', code: 'INTERNAL_ERROR' };
+  })
+  .use(authRoutes);
 
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
 
 function post(path: string, body: unknown, headers?: Record<string, string>): Promise<Response> {
-  return authRoutes.handle(
+  return testApp.handle(
     new Request(`http://localhost${path}`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', ...headers },
@@ -91,7 +110,7 @@ function post(path: string, body: unknown, headers?: Record<string, string>): Pr
 }
 
 function get(path: string, headers?: Record<string, string>): Promise<Response> {
-  return authRoutes.handle(new Request(`http://localhost${path}`, { headers }));
+  return testApp.handle(new Request(`http://localhost${path}`, { headers }));
 }
 
 // ---------------------------------------------------------------------------
