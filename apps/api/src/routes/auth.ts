@@ -1,5 +1,5 @@
 /**
- * Auth routes — signup, signin, refresh, signout.
+ * Auth routes — signup, signin, refresh, signout, me.
  *
  * Access tokens: short-lived JWT (15 min) returned in response body.
  * Refresh tokens: opaque UUID in httpOnly cookie, SHA-256 hashed in DB.
@@ -12,17 +12,17 @@ import { requestLogger } from '../middleware/request-logger';
 import {
   hashPassword,
   verifyPassword,
-  generateRefreshToken,
   hashToken,
   createUser,
   findUserByEmail,
-  storeRefreshToken,
+  findUserById,
   findRefreshToken,
   revokeRefreshToken,
+  createAndStoreRefreshToken,
+  REFRESH_TOKEN_DAYS,
 } from '../services/auth';
 
 const ACCESS_TOKEN_EXPIRY = process.env['JWT_ACCESS_EXPIRY'] ?? '15m';
-const REFRESH_TOKEN_DAYS = 7;
 const REFRESH_COOKIE_NAME = 'refresh_token';
 
 function isProductionEnv(): boolean {
@@ -74,23 +74,14 @@ export const authRoutes = new Elysia({ prefix: '/auth' })
       const passwordHash = await hashPassword(body.password);
       const user = await createUser(body.email, passwordHash, body.name);
 
-      // Generate tokens
       const accessToken = await jwt.sign({
         sub: user.id,
         email: user.email,
         exp: ACCESS_TOKEN_EXPIRY,
       });
 
-      const refreshToken = generateRefreshToken();
-      const tokenHash = await hashToken(refreshToken);
-      const expiresAt = new Date(Date.now() + REFRESH_TOKEN_DAYS * 24 * 60 * 60 * 1000);
-      await storeRefreshToken(user.id, tokenHash, expiresAt);
-
-      // Set refresh token cookie
-      cookie[REFRESH_COOKIE_NAME].set({
-        value: refreshToken,
-        ...refreshCookieOptions(),
-      });
+      const refreshToken = await createAndStoreRefreshToken(user.id);
+      cookie[REFRESH_COOKIE_NAME].set({ value: refreshToken, ...refreshCookieOptions() });
 
       reqLogger.info({ event: 'auth.signup', userId: user.id }, 'user registered');
       set.status = 201;
@@ -124,23 +115,14 @@ export const authRoutes = new Elysia({ prefix: '/auth' })
         throw new ApiError(401, 'Invalid email or password', 'AUTH_INVALID_CREDENTIALS');
       }
 
-      // Generate tokens
       const accessToken = await jwt.sign({
         sub: user.id,
         email: user.email,
         exp: ACCESS_TOKEN_EXPIRY,
       });
 
-      const refreshToken = generateRefreshToken();
-      const tokenHash = await hashToken(refreshToken);
-      const expiresAt = new Date(Date.now() + REFRESH_TOKEN_DAYS * 24 * 60 * 60 * 1000);
-      await storeRefreshToken(user.id, tokenHash, expiresAt);
-
-      // Set refresh token cookie
-      cookie[REFRESH_COOKIE_NAME].set({
-        value: refreshToken,
-        ...refreshCookieOptions(),
-      });
+      const refreshToken = await createAndStoreRefreshToken(user.id);
+      cookie[REFRESH_COOKIE_NAME].set({ value: refreshToken, ...refreshCookieOptions() });
 
       reqLogger.info({ event: 'auth.signin', userId: user.id }, 'user signed in');
       return { user: userResponse(user), accessToken };
@@ -156,7 +138,11 @@ export const authRoutes = new Elysia({ prefix: '/auth' })
   // -----------------------------------------------------------------------
   // POST /auth/refresh
   // -----------------------------------------------------------------------
-  .post('/refresh', async ({ jwt, cookie, reqLogger }) => {
+  .post('/refresh', async ({ jwt, cookie, request, reqLogger }) => {
+    const rawIp = request.headers.get('x-forwarded-for') ?? 'unknown';
+    const ip = rawIp.split(',')[0]?.trim() ?? 'unknown';
+    rateLimit(ip, '/auth/refresh');
+
     const refreshCookie = cookie[REFRESH_COOKIE_NAME];
     const tokenValue = refreshCookie?.value;
 
@@ -179,23 +165,14 @@ export const authRoutes = new Elysia({ prefix: '/auth' })
 
     // Rotate: revoke old token, issue new one
     await revokeRefreshToken(tokenHash);
+    const newRefreshToken = await createAndStoreRefreshToken(stored.userId);
 
-    const newRefreshToken = generateRefreshToken();
-    const newTokenHash = await hashToken(newRefreshToken);
-    const expiresAt = new Date(Date.now() + REFRESH_TOKEN_DAYS * 24 * 60 * 60 * 1000);
-    await storeRefreshToken(stored.userId, newTokenHash, expiresAt);
-
-    // New access token
     const accessToken = await jwt.sign({
       sub: stored.userId,
       exp: ACCESS_TOKEN_EXPIRY,
     });
 
-    // Set new refresh cookie
-    refreshCookie.set({
-      value: newRefreshToken,
-      ...refreshCookieOptions(),
-    });
+    refreshCookie.set({ value: newRefreshToken, ...refreshCookieOptions() });
 
     reqLogger.info({ event: 'auth.refresh', userId: stored.userId }, 'token refreshed');
     return { accessToken };
@@ -204,7 +181,11 @@ export const authRoutes = new Elysia({ prefix: '/auth' })
   // -----------------------------------------------------------------------
   // POST /auth/signout
   // -----------------------------------------------------------------------
-  .post('/signout', async ({ cookie, set, reqLogger }) => {
+  .post('/signout', async ({ cookie, set, request, reqLogger }) => {
+    const rawIp = request.headers.get('x-forwarded-for') ?? 'unknown';
+    const ip = rawIp.split(',')[0]?.trim() ?? 'unknown';
+    rateLimit(ip, '/auth/signout');
+
     const refreshCookie = cookie[REFRESH_COOKIE_NAME];
     const tokenValue = refreshCookie?.value;
 
@@ -216,4 +197,26 @@ export const authRoutes = new Elysia({ prefix: '/auth' })
     refreshCookie?.remove();
     reqLogger.info({ event: 'auth.signout' }, 'user signed out');
     set.status = 204;
+  })
+
+  // -----------------------------------------------------------------------
+  // GET /auth/me — return current user info from bearer token
+  // -----------------------------------------------------------------------
+  .get('/me', async ({ jwt, headers }) => {
+    const authorization = headers['authorization'];
+    if (!authorization?.startsWith('Bearer ')) {
+      throw new ApiError(401, 'Missing or invalid authorization header', 'UNAUTHORIZED');
+    }
+
+    const payload = await jwt.verify(authorization.slice(7));
+    if (!payload || typeof payload['sub'] !== 'string') {
+      throw new ApiError(401, 'Invalid or expired token', 'TOKEN_INVALID');
+    }
+
+    const user = await findUserById(payload['sub']);
+    if (!user) {
+      throw new ApiError(404, 'User not found', 'USER_NOT_FOUND');
+    }
+
+    return { id: user.id, email: user.email, name: user.name };
   });

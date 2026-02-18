@@ -109,6 +109,17 @@ export async function revokeAllUserTokens(userId: string): Promise<void> {
 // Token cleanup (Commit 8: exposed here, wired in index.ts)
 // ---------------------------------------------------------------------------
 
+export const REFRESH_TOKEN_DAYS = 7;
+
+/** Creates a new refresh token, hashes it, stores it, and returns the raw token. */
+export async function createAndStoreRefreshToken(userId: string): Promise<string> {
+  const refreshToken = generateRefreshToken();
+  const tokenHash = await hashToken(refreshToken);
+  const expiresAt = new Date(Date.now() + REFRESH_TOKEN_DAYS * 24 * 60 * 60 * 1000);
+  await storeRefreshToken(userId, tokenHash, expiresAt);
+  return refreshToken;
+}
+
 export async function cleanupExpiredTokens(): Promise<void> {
   await getDb().delete(refreshTokens).where(lt(refreshTokens.expiresAt, new Date()));
 }
