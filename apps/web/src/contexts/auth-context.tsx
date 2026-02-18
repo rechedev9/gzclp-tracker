@@ -1,7 +1,7 @@
 'use client';
 
 import { createContext, useContext, useEffect, useState, useCallback, useMemo } from 'react';
-import { api, setAccessToken, refreshAccessToken } from '@/lib/api';
+import { api, setAccessToken, refreshAccessToken, API_URL } from '@/lib/api';
 import { isRecord } from '@gzclp/shared/type-guards';
 
 // ---------------------------------------------------------------------------
@@ -76,18 +76,19 @@ export function AuthProvider({
         return;
       }
 
-      // Fetch user info from the programs endpoint (any auth'd endpoint works)
-      // Use a lightweight approach: decode the JWT payload for user info
+      // Fetch user info from /auth/me — authoritative, no fragile JWT decoding
       try {
-        const payload = JSON.parse(atob(token.split('.')[1] ?? ''));
-        if (isRecord(payload) && typeof payload.sub === 'string') {
-          setUser({
-            id: payload.sub,
-            email: typeof payload.email === 'string' ? payload.email : '',
-          });
+        const res = await fetch(`${API_URL}/auth/me`, {
+          headers: { Authorization: `Bearer ${token}` },
+          credentials: 'include',
+        });
+        if (res.ok) {
+          const data: unknown = await res.json();
+          const userInfo = parseUserInfo(data);
+          if (userInfo) setUser(userInfo);
         }
       } catch {
-        // Token parsing failed — user stays null
+        // Network error — user stays null, session not restored
       }
 
       setLoading(false);
