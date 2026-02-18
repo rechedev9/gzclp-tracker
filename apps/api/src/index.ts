@@ -22,6 +22,11 @@ const app = new Elysia()
       credentials: true,
     })
   )
+  .onAfterHandle(({ set }) => {
+    set.headers['x-content-type-options'] = 'nosniff';
+    set.headers['x-frame-options'] = 'DENY';
+    set.headers['referrer-policy'] = 'strict-origin-when-cross-origin';
+  })
   .use(requestLogger)
   .onError(({ code, error, set, reqLogger, startMs }) => {
     const log = reqLogger ?? logger;
