@@ -203,7 +203,7 @@ export async function updateInstance(
     throw new ApiError(404, 'Program instance not found', 'INSTANCE_NOT_FOUND');
   }
 
-  return toResponse(updated, [], []);
+  return getInstance(userId, instanceId);
 }
 
 export async function deleteInstance(userId: string, instanceId: string): Promise<void> {
