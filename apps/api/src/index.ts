@@ -119,10 +119,7 @@ export const app = new Elysia()
       db: dbStatus,
     };
   })
-  // API routes registered above take priority. Static plugin and SPA fallback
-  // are registered last so they only handle unmatched paths.
   .use(staticPlugin({ assets: '../web/dist', prefix: '/' }))
-  // SPA fallback: any unmatched route (e.g. /app, /login) serves index.html
   .get('/*', () => Bun.file('../web/dist/index.html'))
   .listen(PORT, () => {
     logger.info({ port: PORT }, 'API started');
