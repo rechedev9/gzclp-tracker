@@ -13,9 +13,12 @@ import { jwt } from '@elysiajs/jwt';
 import { ApiError } from './error-handler';
 
 const rawSecret = process.env['JWT_SECRET'];
-if (!rawSecret || rawSecret === 'dev-secret-change-me') {
-  if (process.env['NODE_ENV'] === 'production') {
+if (process.env['NODE_ENV'] === 'production') {
+  if (!rawSecret || rawSecret === 'dev-secret-change-me') {
     throw new Error('JWT_SECRET env var must be set to a secure value in production');
+  }
+  if (rawSecret.length < 32) {
+    throw new Error('JWT_SECRET must be at least 32 characters in production');
   }
 }
 const JWT_SECRET = rawSecret ?? 'dev-secret-change-me';
