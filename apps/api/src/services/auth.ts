@@ -2,9 +2,9 @@
  * Auth service — password hashing, refresh token management, user CRUD.
  * Framework-agnostic: no Elysia dependency. JWT signing handled in routes.
  */
-import { eq, lt } from 'drizzle-orm';
+import { eq, lt, and, gt } from 'drizzle-orm';
 import { getDb } from '../db';
-import { users, refreshTokens } from '../db/schema';
+import { users, refreshTokens, passwordResetTokens } from '../db/schema';
 
 // ---------------------------------------------------------------------------
 // Password hashing (Bun built-in Argon2id)
@@ -122,4 +122,66 @@ export async function createAndStoreRefreshToken(userId: string): Promise<string
 
 export async function cleanupExpiredTokens(): Promise<void> {
   await getDb().delete(refreshTokens).where(lt(refreshTokens.expiresAt, new Date()));
+}
+
+// ---------------------------------------------------------------------------
+// Password reset tokens
+// ---------------------------------------------------------------------------
+
+const PASSWORD_RESET_EXPIRY_MS = 60 * 60 * 1000; // 1 hour
+
+/** Creates a password reset token, stores the hash, and returns the raw token. */
+export async function createPasswordResetToken(userId: string): Promise<string> {
+  const rawToken = crypto.randomUUID();
+  const tokenHash = await hashToken(rawToken);
+  const expiresAt = new Date(Date.now() + PASSWORD_RESET_EXPIRY_MS);
+  await getDb().insert(passwordResetTokens).values({ userId, tokenHash, expiresAt });
+  return rawToken;
+}
+
+/** Finds a valid (unused, not expired) password reset token by hash. */
+export async function findPasswordResetToken(
+  tokenHash: string
+): Promise<typeof passwordResetTokens.$inferSelect | undefined> {
+  const now = new Date();
+  const [token] = await getDb()
+    .select()
+    .from(passwordResetTokens)
+    .where(
+      and(eq(passwordResetTokens.tokenHash, tokenHash), gt(passwordResetTokens.expiresAt, now))
+    )
+    .limit(1);
+
+  if (!token || token.usedAt !== null) return undefined;
+  return token;
+}
+
+/** Marks the reset token as used and updates the user's password. */
+export async function markPasswordResetTokenUsed(
+  tokenHash: string,
+  newPassword: string
+): Promise<void> {
+  const newHash = await hashPassword(newPassword);
+  const now = new Date();
+
+  // Find the token to get userId
+  const [token] = await getDb()
+    .select()
+    .from(passwordResetTokens)
+    .where(eq(passwordResetTokens.tokenHash, tokenHash))
+    .limit(1);
+
+  if (!token) return;
+
+  // Mark token used and update password in parallel
+  await Promise.all([
+    getDb()
+      .update(passwordResetTokens)
+      .set({ usedAt: now })
+      .where(eq(passwordResetTokens.tokenHash, tokenHash)),
+    getDb()
+      .update(users)
+      .set({ passwordHash: newHash, updatedAt: now })
+      .where(eq(users.id, token.userId)),
+  ]);
 }

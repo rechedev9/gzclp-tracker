@@ -19,9 +19,13 @@ import {
   findRefreshToken,
   revokeRefreshToken,
   createAndStoreRefreshToken,
+  createPasswordResetToken,
+  findPasswordResetToken,
+  markPasswordResetTokenUsed,
   REFRESH_TOKEN_DAYS,
 } from '../services/auth';
 import { checkLeakedPassword } from '../lib/password-check';
+import { sendPasswordResetEmail } from '../lib/email';
 
 const ACCESS_TOKEN_EXPIRY = process.env['JWT_ACCESS_EXPIRY'] ?? '15m';
 const REFRESH_COOKIE_NAME = 'refresh_token';
@@ -220,4 +224,58 @@ export const authRoutes = new Elysia({ prefix: '/auth' })
     }
 
     return { id: user.id, email: user.email, name: user.name };
-  });
+  })
+
+  // -----------------------------------------------------------------------
+  // POST /auth/forgot-password — trigger password reset email
+  // -----------------------------------------------------------------------
+  .post(
+    '/forgot-password',
+    async ({ body, reqLogger, ip }) => {
+      rateLimit(ip, '/auth/forgot-password');
+
+      // Always return 200 — never reveal whether the email exists
+      const user = await findUserByEmail(body.email);
+      if (user) {
+        const token = await createPasswordResetToken(user.id);
+        const APP_URL = process.env['APP_URL'] ?? 'http://localhost:3000';
+        const resetUrl = `${APP_URL}/reset-password?token=${token}`;
+        await sendPasswordResetEmail(user.email, resetUrl).catch((e: unknown) => {
+          reqLogger.error({ err: e }, 'Failed to send reset email');
+        });
+      }
+
+      return { message: 'If that email is registered, you will receive a reset link.' };
+    },
+    {
+      body: t.Object({ email: t.String({ format: 'email' }) }),
+    }
+  )
+
+  // -----------------------------------------------------------------------
+  // POST /auth/reset-password — complete password reset with token
+  // -----------------------------------------------------------------------
+  .post(
+    '/reset-password',
+    async ({ body }) => {
+      const leaked = await checkLeakedPassword(body.password);
+      if (leaked) {
+        throw new ApiError(400, 'Password found in known data breaches', 'WEAK_PASSWORD');
+      }
+
+      const tokenHash = await hashToken(body.token);
+      const record = await findPasswordResetToken(tokenHash);
+      if (!record) {
+        throw new ApiError(400, 'Invalid or expired reset token', 'RESET_TOKEN_INVALID');
+      }
+
+      await markPasswordResetTokenUsed(tokenHash, body.password);
+      return { message: 'Password reset successfully.' };
+    },
+    {
+      body: t.Object({
+        token: t.String({ minLength: 1 }),
+        password: t.String({ minLength: 8 }),
+      }),
+    }
+  );
