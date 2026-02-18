@@ -1,4 +1,5 @@
 import { defineConfig, devices } from '@playwright/test';
+import { resolve } from 'path';
 
 export default defineConfig({
   testDir: './e2e',
@@ -10,7 +11,7 @@ export default defineConfig({
   reporter: process.env.CI ? 'github' : 'html',
 
   use: {
-    baseURL: 'http://localhost:3333',
+    baseURL: 'http://localhost:3001',
     trace: 'on-first-retry',
     screenshot: 'only-on-failure',
   },
@@ -23,8 +24,9 @@ export default defineConfig({
   ],
 
   webServer: {
-    command: 'bun run build && bunx serve out -l 3333 --no-clipboard --no-port-switching',
-    url: 'http://localhost:3333',
+    command: 'bun run build:web && bun run dev:api',
+    url: 'http://localhost:3001',
     reuseExistingServer: !process.env.CI,
+    cwd: resolve(__dirname, '../..'),
   },
 });

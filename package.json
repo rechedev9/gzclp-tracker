@@ -11,6 +11,7 @@
     "dev:web": "bun run --filter web dev",
     "dev:api": "bun run --filter api dev",
     "build": "bun run --filter '*' build",
+    "build:web": "bun run --filter web build",
     "typecheck": "bun run --filter '*' typecheck",
     "lint": "bun run --filter '*' lint",
     "format:check": "prettier --check .",
