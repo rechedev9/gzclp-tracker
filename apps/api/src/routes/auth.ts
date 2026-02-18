@@ -21,6 +21,7 @@ import {
   createAndStoreRefreshToken,
   REFRESH_TOKEN_DAYS,
 } from '../services/auth';
+import { checkLeakedPassword } from '../lib/password-check';
 
 const ACCESS_TOKEN_EXPIRY = process.env['JWT_ACCESS_EXPIRY'] ?? '15m';
 const REFRESH_COOKIE_NAME = 'refresh_token';
@@ -39,7 +40,7 @@ function refreshCookieOptions(): {
   return {
     httpOnly: true,
     secure: isProductionEnv(),
-    sameSite: 'lax',
+    sameSite: 'strict',
     maxAge: REFRESH_TOKEN_DAYS * 24 * 60 * 60,
     path: '/auth',
   };
@@ -64,7 +65,15 @@ export const authRoutes = new Elysia({ prefix: '/auth' })
     '/signup',
     async ({ jwt, body, cookie, set, reqLogger, ip }) => {
       rateLimit(ip, '/auth/signup');
-      const existing = await findUserByEmail(body.email);
+
+      const [leaked, existing] = await Promise.all([
+        checkLeakedPassword(body.password),
+        findUserByEmail(body.email),
+      ]);
+
+      if (leaked) {
+        throw new ApiError(400, 'Password found in known data breaches', 'WEAK_PASSWORD');
+      }
       if (existing) {
         throw new ApiError(409, 'Email already registered', 'AUTH_EMAIL_EXISTS');
       }
