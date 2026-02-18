@@ -1,9 +1,9 @@
 import { test, expect } from '@playwright/test';
-import { readStorage } from './helpers/seed';
+import { authenticateOnly } from './helpers/seed';
 
 test.describe('Setup flow', () => {
   test.beforeEach(async ({ page }) => {
-    // Navigate to the tracker view with clean localStorage
+    await authenticateOnly(page);
     await page.goto('/app?view=tracker');
   });
 
@@ -44,14 +44,12 @@ test.describe('Setup flow', () => {
     await expect(page.getByRole('progressbar').last()).toBeVisible();
   });
 
-  test('data is persisted to localStorage after setup', async ({ page }) => {
+  test('program is persisted after setup', async ({ page }) => {
     await page.getByRole('button', { name: 'Generate Program' }).click();
     await expect(page.getByText('Week 1', { exact: true })).toBeVisible();
 
-    const stored = (await readStorage(page)) as Record<string, unknown> | null;
-    expect(stored).not.toBeNull();
-
-    const data = await readStorage(page, 'wt-programs-v1');
-    expect(data).not.toBeNull();
+    // Reload — Week 1 must still appear (persisted via API, not localStorage)
+    await page.reload();
+    await expect(page.getByText('Week 1', { exact: true })).toBeVisible();
   });
 });
