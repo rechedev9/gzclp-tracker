@@ -133,7 +133,8 @@ export const programRoutes = new Elysia({ prefix: '/programs' })
             i: t.Integer({ minimum: 0 }),
             slotId: t.String({ minLength: 1 }),
             prev: t.Optional(t.Union([t.Literal('success'), t.Literal('fail')])),
-          })
+          }),
+          { maxItems: 500 }
         ),
       }),
     }
