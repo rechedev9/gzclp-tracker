@@ -27,7 +27,6 @@ interface AuthState {
 interface AuthActions {
   readonly signUp: (email: string, password: string) => Promise<AuthResult | null>;
   readonly signIn: (email: string, password: string) => Promise<AuthResult | null>;
-  readonly signInWithGoogle: () => Promise<AuthResult | null>;
   readonly signOut: () => Promise<void>;
 }
 
@@ -141,10 +140,6 @@ export function AuthProvider({
     []
   );
 
-  const signInWithGoogle = useCallback(async (): Promise<AuthResult | null> => {
-    return { message: 'Google sign-in coming soon' };
-  }, []);
-
   const signOut = useCallback(async (): Promise<void> => {
     await api.auth.signout.post();
     setAccessToken(null);
@@ -158,10 +153,9 @@ export function AuthProvider({
       configured: true,
       signUp,
       signIn,
-      signInWithGoogle,
       signOut,
     }),
-    [user, loading, signUp, signIn, signInWithGoogle, signOut]
+    [user, loading, signUp, signIn, signOut]
   );
 
   return <AuthContext value={value}>{children}</AuthContext>;

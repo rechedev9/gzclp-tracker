@@ -374,9 +374,13 @@ export function useProgram(): UseProgramReturn {
     (json: string): boolean => {
       try {
         const parsed: unknown = JSON.parse(json);
-        void importProgram(parsed).then(() => {
-          void queryClient.invalidateQueries({ queryKey: queryKeys.programs.all });
-        });
+        void importProgram(parsed)
+          .then(() => {
+            void queryClient.invalidateQueries({ queryKey: queryKeys.programs.all });
+          })
+          .catch((err: unknown) => {
+            console.warn('Import failed:', err instanceof Error ? err.message : 'Unknown error');
+          });
         return true;
       } catch {
         return false;

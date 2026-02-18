@@ -185,17 +185,17 @@ export function LoginPage(): React.ReactNode {
                 <input
                   id="login-password"
                   type="password"
-                  placeholder={mode === 'sign-up' ? 'Min 6 characters' : 'Your password'}
+                  placeholder={mode === 'sign-up' ? 'Min 8 characters' : 'Your password'}
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   className={inputClass}
                   required
-                  minLength={6}
+                  minLength={8}
                   autoComplete={mode === 'sign-in' ? 'current-password' : 'new-password'}
                 />
-                {mode === 'sign-up' && password.length > 0 && password.length < 6 && (
+                {mode === 'sign-up' && password.length > 0 && password.length < 8 && (
                   <p className="text-[11px] text-[var(--text-error)] mt-1">
-                    Password must be at least 6 characters.
+                    Password must be at least 8 characters.
                   </p>
                 )}
               </div>

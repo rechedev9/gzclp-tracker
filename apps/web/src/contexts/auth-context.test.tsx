@@ -244,21 +244,4 @@ describe('AuthProvider', () => {
       expect(result.current.user).toBeNull();
     });
   });
-
-  describe('signInWithGoogle', () => {
-    it('should return coming soon message', async () => {
-      const { result } = renderHook(() => useAuth(), { wrapper });
-
-      await waitFor(() => {
-        expect(result.current.loading).toBe(false);
-      });
-
-      let authResult: unknown = null;
-      await act(async () => {
-        authResult = await result.current.signInWithGoogle();
-      });
-
-      expect(authResult).toEqual({ message: 'Google sign-in coming soon' });
-    });
-  });
 });
