@@ -1,7 +1,7 @@
 'use client';
 
 import { createContext, useContext, useEffect, useState, useCallback, useMemo } from 'react';
-import { api, setAccessToken, refreshAccessToken, API_URL } from '@/lib/api';
+import { api, setAccessToken, refreshAccessToken } from '@/lib/api';
 import { isRecord } from '@gzclp/shared/type-guards';
 
 // ---------------------------------------------------------------------------
@@ -76,18 +76,10 @@ export function AuthProvider({
       }
 
       // Fetch user info from /auth/me — authoritative, no fragile JWT decoding
-      try {
-        const res = await fetch(`${API_URL}/auth/me`, {
-          headers: { Authorization: `Bearer ${token}` },
-          credentials: 'include',
-        });
-        if (res.ok) {
-          const data: unknown = await res.json();
-          const userInfo = parseUserInfo(data);
-          if (userInfo) setUser(userInfo);
-        }
-      } catch {
-        // Network error — user stays null, session not restored
+      const { data, error } = await api.auth.me.get();
+      if (!error) {
+        const userInfo = parseUserInfo(data);
+        if (userInfo) setUser(userInfo);
       }
 
       setLoading(false);

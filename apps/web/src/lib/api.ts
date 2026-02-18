@@ -12,7 +12,7 @@ import { treaty } from '@elysiajs/eden';
 import type { App } from '../../../api/src/index';
 import { isRecord } from '@gzclp/shared/type-guards';
 
-export const API_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3001';
+const API_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3001';
 
 // ---------------------------------------------------------------------------
 // In-memory access token

@@ -19,45 +19,29 @@ const mockSignoutPost = mock<() => Promise<{ data: unknown; error: unknown }>>((
   Promise.resolve({ data: null, error: null })
 );
 
+const mockMeGet = mock<() => Promise<{ data: unknown; error: unknown }>>(() =>
+  Promise.resolve({ data: null, error: { status: 401 } })
+);
+
 mock.module('@/lib/api', () => ({
   refreshAccessToken: mockRefreshAccessToken,
   setAccessToken: mockSetAccessToken,
-  API_URL: 'http://localhost:3001',
   api: {
     auth: {
       signup: { post: mockSignupPost },
       signin: { post: mockSigninPost },
       signout: { post: mockSignoutPost },
+      me: { get: mockMeGet },
     },
   },
 }));
 
-// ---------------------------------------------------------------------------
-// Mock global fetch for /auth/me calls
-// ---------------------------------------------------------------------------
-
-type FetchMock = (input: RequestInfo | URL, init?: RequestInit) => Promise<Response>;
-
-const mockFetch = mock<FetchMock>(() =>
-  Promise.resolve(new Response(JSON.stringify(null), { status: 401 }))
-);
-globalThis.fetch = mockFetch as unknown as typeof fetch;
-
 function mockMeSuccess(id: string, email: string): void {
-  mockFetch.mockImplementation(() =>
-    Promise.resolve(
-      new Response(JSON.stringify({ id, email }), {
-        status: 200,
-        headers: { 'Content-Type': 'application/json' },
-      })
-    )
-  );
+  mockMeGet.mockImplementation(() => Promise.resolve({ data: { id, email }, error: null }));
 }
 
 function mockMeFailure(): void {
-  mockFetch.mockImplementation(() =>
-    Promise.resolve(new Response(JSON.stringify(null), { status: 401 }))
-  );
+  mockMeGet.mockImplementation(() => Promise.resolve({ data: null, error: { status: 401 } }));
 }
 
 import { AuthProvider, useAuth } from './auth-context';
@@ -80,6 +64,7 @@ function resetAllMocks(): void {
   mockSigninPost.mockImplementation(() => Promise.resolve({ data: null, error: null }));
   mockSignoutPost.mockReset();
   mockSignoutPost.mockImplementation(() => Promise.resolve({ data: null, error: null }));
+  mockMeGet.mockReset();
   mockMeFailure();
 }
 
