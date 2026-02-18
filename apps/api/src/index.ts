@@ -12,7 +12,11 @@ import { getDb } from './db';
 import { logger } from './lib/logger';
 import { version } from '../package.json';
 
-const CORS_ORIGIN = process.env['CORS_ORIGIN'] ?? 'http://localhost:3000';
+const rawCorsOrigin = process.env['CORS_ORIGIN'];
+if (!rawCorsOrigin && process.env['NODE_ENV'] === 'production') {
+  throw new Error('CORS_ORIGIN env var must be set in production');
+}
+const CORS_ORIGIN = rawCorsOrigin ?? 'http://localhost:3000';
 const PORT = Number(process.env['PORT'] ?? 3001);
 
 export const app = new Elysia()
