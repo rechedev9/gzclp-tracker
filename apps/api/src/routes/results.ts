@@ -4,6 +4,7 @@
  */
 import { Elysia, t } from 'elysia';
 import { jwtPlugin, resolveUserId } from '../middleware/auth-guard';
+import { rateLimit } from '../middleware/rate-limit';
 import { recordResult, deleteResult, undoLast } from '../services/results';
 
 export const resultRoutes = new Elysia({ prefix: '/programs/:id' })
@@ -14,6 +15,7 @@ export const resultRoutes = new Elysia({ prefix: '/programs/:id' })
   .post(
     '/results',
     async ({ userId, params, body, set }) => {
+      rateLimit(userId, 'POST /programs/results');
       const result = await recordResult(userId, params.id, body);
       set.status = 201;
       return {
@@ -54,6 +56,7 @@ export const resultRoutes = new Elysia({ prefix: '/programs/:id' })
   .post(
     '/undo',
     async ({ userId, params }) => {
+      rateLimit(userId, 'POST /programs/undo');
       const entry = await undoLast(userId, params.id);
       if (!entry) {
         return { undone: null };

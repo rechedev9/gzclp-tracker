@@ -46,6 +46,13 @@ async function runMigrations(): Promise<void> {
 await runMigrations();
 
 // ---------------------------------------------------------------------------
+// Content-Security-Policy — applied to all responses
+// ---------------------------------------------------------------------------
+
+const CSP =
+  "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; connect-src 'self'; font-src 'self'; object-src 'none'; base-uri 'self'; frame-ancestors 'none'";
+
+// ---------------------------------------------------------------------------
 // Elysia app
 // ---------------------------------------------------------------------------
 
@@ -60,6 +67,7 @@ export const app = new Elysia()
     set.headers['x-content-type-options'] = 'nosniff';
     set.headers['x-frame-options'] = 'DENY';
     set.headers['referrer-policy'] = 'strict-origin-when-cross-origin';
+    set.headers['content-security-policy'] = CSP;
   })
   .use(requestLogger)
   .onError(({ code, error, set, reqLogger, startMs }) => {
@@ -121,7 +129,7 @@ export const app = new Elysia()
   })
   .use(staticPlugin({ assets: '../web/dist', prefix: '/' }))
   .get('/*', () => Bun.file('../web/dist/index.html'))
-  .listen(PORT, () => {
+  .listen({ port: PORT, maxRequestBodySize: 1_048_576 }, () => {
     logger.info({ port: PORT }, 'API started');
   });
 

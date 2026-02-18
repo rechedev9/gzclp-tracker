@@ -3,6 +3,7 @@
  */
 import { Elysia, t } from 'elysia';
 import { jwtPlugin, resolveUserId } from '../middleware/auth-guard';
+import { rateLimit } from '../middleware/rate-limit';
 import {
   createInstance,
   getInstances,
@@ -27,6 +28,7 @@ export const programRoutes = new Elysia({ prefix: '/programs' })
   .post(
     '/',
     async ({ userId, body, set }) => {
+      rateLimit(userId, 'POST /programs');
       const instance = await createInstance(userId, body.programId, body.name, body.config);
       set.status = 201;
       return instance;
@@ -35,7 +37,7 @@ export const programRoutes = new Elysia({ prefix: '/programs' })
       body: t.Object({
         programId: t.String({ minLength: 1 }),
         name: t.String({ minLength: 1, maxLength: 100 }),
-        config: t.Record(t.String(), t.Number()),
+        config: t.Record(t.String({ maxLength: 30 }), t.Number({ minimum: 0, maximum: 10000 })),
       }),
     }
   )
@@ -70,7 +72,9 @@ export const programRoutes = new Elysia({ prefix: '/programs' })
         status: t.Optional(
           t.Union([t.Literal('active'), t.Literal('completed'), t.Literal('archived')])
         ),
-        config: t.Optional(t.Record(t.String(), t.Number())),
+        config: t.Optional(
+          t.Record(t.String({ maxLength: 30 }), t.Number({ minimum: 0, maximum: 10000 }))
+        ),
       }),
     }
   )
@@ -107,6 +111,7 @@ export const programRoutes = new Elysia({ prefix: '/programs' })
   .post(
     '/import',
     async ({ userId, body, set }) => {
+      rateLimit(userId, 'POST /programs/import');
       const instance = await importInstance(userId, body);
       set.status = 201;
       return instance;
@@ -117,7 +122,7 @@ export const programRoutes = new Elysia({ prefix: '/programs' })
         exportDate: t.String(),
         programId: t.String({ minLength: 1 }),
         name: t.String({ minLength: 1, maxLength: 100 }),
-        config: t.Record(t.String(), t.Number()),
+        config: t.Record(t.String({ maxLength: 30 }), t.Number({ minimum: 0, maximum: 10000 })),
         results: t.Record(
           t.String(),
           t.Record(
@@ -133,7 +138,8 @@ export const programRoutes = new Elysia({ prefix: '/programs' })
             i: t.Integer({ minimum: 0 }),
             slotId: t.String({ minLength: 1 }),
             prev: t.Optional(t.Union([t.Literal('success'), t.Literal('fail')])),
-          })
+          }),
+          { maxItems: 500 }
         ),
       }),
     }

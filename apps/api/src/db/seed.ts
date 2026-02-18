@@ -6,6 +6,10 @@ import { getDb } from './index';
 import { users, programInstances } from './schema';
 
 async function seed(): Promise<void> {
+  if (process.env['NODE_ENV'] === 'production') {
+    throw new Error('db:seed must not run in production');
+  }
+
   console.error('Seeding database...');
 
   // Create a test user (password: "testpassword123")
