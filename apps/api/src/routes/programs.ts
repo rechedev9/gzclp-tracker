@@ -37,7 +37,7 @@ export const programRoutes = new Elysia({ prefix: '/programs' })
       body: t.Object({
         programId: t.String({ minLength: 1 }),
         name: t.String({ minLength: 1, maxLength: 100 }),
-        config: t.Record(t.String(), t.Number()),
+        config: t.Record(t.String({ maxLength: 30 }), t.Number({ minimum: 0, maximum: 10000 })),
       }),
     }
   )
@@ -72,7 +72,9 @@ export const programRoutes = new Elysia({ prefix: '/programs' })
         status: t.Optional(
           t.Union([t.Literal('active'), t.Literal('completed'), t.Literal('archived')])
         ),
-        config: t.Optional(t.Record(t.String(), t.Number())),
+        config: t.Optional(
+          t.Record(t.String({ maxLength: 30 }), t.Number({ minimum: 0, maximum: 10000 }))
+        ),
       }),
     }
   )
@@ -120,7 +122,7 @@ export const programRoutes = new Elysia({ prefix: '/programs' })
         exportDate: t.String(),
         programId: t.String({ minLength: 1 }),
         name: t.String({ minLength: 1, maxLength: 100 }),
-        config: t.Record(t.String(), t.Number()),
+        config: t.Record(t.String({ maxLength: 30 }), t.Number({ minimum: 0, maximum: 10000 })),
         results: t.Record(
           t.String(),
           t.Record(
