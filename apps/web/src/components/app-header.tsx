@@ -1,6 +1,5 @@
 'use client';
 
-import Image from 'next/image';
 import { useAuth } from '@/contexts/auth-context';
 import { AvatarDropdown } from './avatar-dropdown';
 
@@ -36,14 +35,7 @@ export function AppHeader({
             &larr; {backLabel ?? 'Back'}
           </button>
         )}
-        <Image
-          src="/logo.webp"
-          alt="Logo"
-          width={32}
-          height={32}
-          className="rounded-full"
-          priority
-        />
+        <img src="/logo.webp" alt="Logo" width={32} height={32} className="rounded-full" />
         <span className="text-sm font-bold tracking-tight text-[var(--text-header)]">
           The Real Hyperbolic Time Chamber
         </span>

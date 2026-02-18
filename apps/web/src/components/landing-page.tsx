@@ -1,7 +1,6 @@
 'use client';
 
-import Image from 'next/image';
-import Link from 'next/link';
+import { Link } from 'react-router-dom';
 import { FEATURES, STEPS, METRICS, PERSONAS } from '@/lib/landing-page-data';
 import { useFadeInOnScroll } from '@/hooks/use-fade-in-on-scroll';
 import { useScrollSpy } from '@/hooks/use-scroll-spy';
@@ -41,14 +40,7 @@ export function LandingPage(): React.ReactNode {
         className="sticky top-0 z-50 flex items-center justify-between px-6 sm:px-10 py-4 bg-[var(--bg-header)]/90 backdrop-blur-md border-b border-[var(--border-color)]"
       >
         <div className="flex items-center gap-3">
-          <Image
-            src="/logo.webp"
-            alt="RSN logo"
-            width={36}
-            height={36}
-            className="rounded-full"
-            priority
-          />
+          <img src="/logo.webp" alt="RSN logo" width={36} height={36} className="rounded-full" />
           <span className="text-sm font-bold tracking-tight text-[var(--text-header)]">
             The Real Hyperbolic Time Chamber
           </span>
@@ -69,7 +61,7 @@ export function LandingPage(): React.ReactNode {
           ))}
         </div>
         <Link
-          href="/login"
+          to="/login"
           className="text-xs font-bold text-[var(--btn-text)] border border-[var(--btn-border)] px-4 py-2 hover:bg-[var(--btn-hover-bg)] hover:text-[var(--btn-hover-text)] hover:scale-[1.02] hover:shadow-[0_0_12px_rgba(200,168,78,0.3)] transition-all duration-200"
         >
           Sign In
@@ -101,7 +93,7 @@ export function LandingPage(): React.ReactNode {
             </p>
             <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
               <Link
-                href="/login"
+                to="/login"
                 className="px-8 py-3.5 text-sm font-bold border-2 border-[var(--btn-border)] bg-[var(--btn-hover-bg)] text-[var(--btn-hover-text)] hover:opacity-90 transition-all min-w-[200px]"
               >
                 Start Training
@@ -367,7 +359,7 @@ export function LandingPage(): React.ReactNode {
           Built for lifters who refuse to stall.
         </p>
         <div className="flex items-center justify-center gap-4 text-[11px] text-[var(--text-muted)] opacity-60">
-          <Link href="/privacy" className="hover:text-[var(--text-main)] transition-colors">
+          <Link to="/privacy" className="hover:text-[var(--text-main)] transition-colors">
             Privacy Policy
           </Link>
           <span aria-hidden="true">&middot;</span>

@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useCallback } from 'react';
-import Link from 'next/link';
+import { Link } from 'react-router-dom';
 import type { UserInfo } from '@/contexts/auth-context';
 import { DropdownMenu, DropdownItem, DropdownDivider } from './dropdown-menu';
 
@@ -46,7 +46,7 @@ export function AvatarDropdown({
   if (!user) {
     return (
       <Link
-        href="/login"
+        to="/login"
         className="px-2 py-2 sm:px-3.5 sm:py-2.5 min-h-[44px] border-2 border-[var(--btn-border)] text-[10px] sm:text-xs font-bold cursor-pointer bg-[var(--btn-bg)] text-[var(--btn-text)] whitespace-nowrap transition-all hover:bg-[var(--btn-hover-bg)] hover:text-[var(--btn-hover-text)] inline-flex items-center no-underline"
       >
         Sign In

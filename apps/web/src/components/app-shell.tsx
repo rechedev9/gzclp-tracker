@@ -1,7 +1,5 @@
-'use client';
-
 import { useState, useCallback } from 'react';
-import { useSearchParams, useRouter } from 'next/navigation';
+import { useSearchParams, useNavigate } from 'react-router-dom';
 import { Dashboard } from './dashboard';
 import { GZCLPApp } from './gzclp-app';
 import { ProfilePage } from './profile-page';
@@ -22,17 +20,17 @@ function parseViewParam(param: string | null): View {
 }
 
 export function AppShell(): React.ReactNode {
-  const searchParams = useSearchParams();
-  const router = useRouter();
+  const [searchParams] = useSearchParams();
+  const navigate = useNavigate();
 
   const [view, setViewState] = useState<View>(() => parseViewParam(searchParams.get('view')));
 
   const setView = useCallback(
     (next: View): void => {
       setViewState(next);
-      router.replace(next === 'dashboard' ? '/app' : `/app?view=${next}`, { scroll: false });
+      navigate(next === 'dashboard' ? '/app' : `/app?view=${next}`, { replace: true });
     },
-    [router]
+    [navigate]
   );
 
   const handleSelectProgram = useCallback((): void => {

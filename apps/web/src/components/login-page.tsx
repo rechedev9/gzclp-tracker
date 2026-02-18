@@ -1,9 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef, useCallback } from 'react';
-import Image from 'next/image';
-import Link from 'next/link';
-import { useRouter, useSearchParams } from 'next/navigation';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '@/contexts/auth-context';
 import { Button } from './button';
 import { sanitizeAuthError } from '@/lib/auth-errors';
@@ -14,8 +12,8 @@ type AuthMode = 'sign-in' | 'sign-up';
 
 export function LoginPage(): React.ReactNode {
   const { user, signIn, signUp } = useAuth();
-  const router = useRouter();
-  const searchParams = useSearchParams();
+  const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const [mode, setMode] = useState<AuthMode>(
     searchParams.get('mode') === 'signup' ? 'sign-up' : 'sign-in'
   );
@@ -32,16 +30,16 @@ export function LoginPage(): React.ReactNode {
       setMode(next);
       setError(null);
       setSuccess(null);
-      router.replace(next === 'sign-up' ? '/login?mode=signup' : '/login', { scroll: false });
+      navigate(next === 'sign-up' ? '/login?mode=signup' : '/login', { replace: true });
     },
-    [router]
+    [navigate]
   );
 
   useEffect(() => {
     if (user) {
-      router.push('/app?view=programs');
+      navigate('/app?view=programs');
     }
-  }, [user, router]);
+  }, [user, navigate]);
 
   useEffect(() => {
     emailRef.current?.focus();
@@ -91,13 +89,12 @@ export function LoginPage(): React.ReactNode {
     <div className="min-h-dvh flex flex-col bg-[var(--bg-body)]">
       {/* Header */}
       <header className="text-center py-8 sm:py-12 px-5 bg-[var(--bg-header)]">
-        <Image
+        <img
           src="/logo.webp"
           alt="RSN logo"
           width={80}
           height={80}
           className="mx-auto mb-3 rounded-full"
-          priority
         />
         <h1 className="text-[22px] sm:text-[28px] font-extrabold tracking-tight text-[var(--text-header)] mb-1.5">
           The Real Hyperbolic Time Chamber
@@ -258,7 +255,7 @@ export function LoginPage(): React.ReactNode {
           {/* Continue without account */}
           <div className="text-center mt-6">
             <Link
-              href="/app?view=programs"
+              to="/app?view=programs"
               className="text-xs text-[var(--text-muted)] hover:text-[var(--text-main)] transition-colors underline underline-offset-2"
             >
               Continue without an account
