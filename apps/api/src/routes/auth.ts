@@ -62,9 +62,7 @@ export const authRoutes = new Elysia({ prefix: '/auth' })
   // -----------------------------------------------------------------------
   .post(
     '/signup',
-    async ({ jwt, body, cookie, request, set, reqLogger }) => {
-      const rawIp = request.headers.get('x-forwarded-for') ?? 'unknown';
-      const ip = rawIp.split(',')[0]?.trim() ?? 'unknown';
+    async ({ jwt, body, cookie, set, reqLogger, ip }) => {
       rateLimit(ip, '/auth/signup');
       const existing = await findUserByEmail(body.email);
       if (existing) {
@@ -101,9 +99,7 @@ export const authRoutes = new Elysia({ prefix: '/auth' })
   // -----------------------------------------------------------------------
   .post(
     '/signin',
-    async ({ jwt, body, cookie, request, reqLogger }) => {
-      const rawIp = request.headers.get('x-forwarded-for') ?? 'unknown';
-      const ip = rawIp.split(',')[0]?.trim() ?? 'unknown';
+    async ({ jwt, body, cookie, reqLogger, ip }) => {
       rateLimit(ip, '/auth/signin');
       const user = await findUserByEmail(body.email);
       if (!user) {
@@ -138,9 +134,7 @@ export const authRoutes = new Elysia({ prefix: '/auth' })
   // -----------------------------------------------------------------------
   // POST /auth/refresh
   // -----------------------------------------------------------------------
-  .post('/refresh', async ({ jwt, cookie, request, reqLogger }) => {
-    const rawIp = request.headers.get('x-forwarded-for') ?? 'unknown';
-    const ip = rawIp.split(',')[0]?.trim() ?? 'unknown';
+  .post('/refresh', async ({ jwt, cookie, reqLogger, ip }) => {
     rateLimit(ip, '/auth/refresh');
 
     const refreshCookie = cookie[REFRESH_COOKIE_NAME];
@@ -181,9 +175,7 @@ export const authRoutes = new Elysia({ prefix: '/auth' })
   // -----------------------------------------------------------------------
   // POST /auth/signout
   // -----------------------------------------------------------------------
-  .post('/signout', async ({ cookie, set, request, reqLogger }) => {
-    const rawIp = request.headers.get('x-forwarded-for') ?? 'unknown';
-    const ip = rawIp.split(',')[0]?.trim() ?? 'unknown';
+  .post('/signout', async ({ cookie, set, reqLogger, ip }) => {
     rateLimit(ip, '/auth/signout');
 
     const refreshCookie = cookie[REFRESH_COOKIE_NAME];
