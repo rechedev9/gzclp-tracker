@@ -2,6 +2,13 @@ import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 import { resolve } from 'path';
 
+if (process.env.NODE_ENV === 'production' && !process.env.VITE_API_URL) {
+  throw new Error(
+    'VITE_API_URL must be set for production builds — ' +
+      'without it the API URL is baked in as http://localhost:3001'
+  );
+}
+
 export default defineConfig({
   plugins: [react()],
   resolve: { alias: { '@': resolve(__dirname, 'src') } },

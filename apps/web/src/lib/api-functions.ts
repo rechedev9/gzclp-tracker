@@ -14,7 +14,7 @@ import type { StartWeights, Results, UndoHistory, Tier, ResultValue } from '@gzc
 import type { GenericResults, GenericUndoHistory } from '@gzclp/shared/types/program';
 import { isRecord } from '@gzclp/shared/type-guards';
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3001';
+const API_URL = import.meta.env.VITE_API_URL ?? 'http://localhost:3001';
 
 // ---------------------------------------------------------------------------
 // Response types (what our API functions return to consumers)
