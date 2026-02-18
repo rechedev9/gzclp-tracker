@@ -1,0 +1,75 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="theme-color" content="#c8a84e" />
+    <meta
+      http-equiv="Content-Security-Policy"
+      content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; connect-src 'self' https://*.supabase.co; font-src 'self' https://fonts.gstatic.com; img-src 'self' data:; object-src 'none'; base-uri 'self'; form-action 'self'; worker-src 'self'"
+    />
+
+    <title>The Real Hyperbolic Time Chamber</title>
+    <meta
+      name="description"
+      content="Train smarter, progress faster. Science-backed training programs with automatic progression."
+    />
+    <link rel="canonical" href="https://hyperbolictimechamber.app/" />
+    <link rel="manifest" href="/manifest.webmanifest" />
+    <link rel="apple-touch-icon" href="/logo.webp" />
+
+    <!-- Open Graph -->
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content="https://hyperbolictimechamber.app/" />
+    <meta property="og:site_name" content="The Real Hyperbolic Time Chamber" />
+    <meta property="og:title" content="The Real Hyperbolic Time Chamber" />
+    <meta
+      property="og:description"
+      content="Stop guessing in the gym. Follow proven programs that auto-adjust weight, sets, and reps."
+    />
+    <meta property="og:image" content="/logo.webp" />
+    <meta property="og:image:width" content="512" />
+    <meta property="og:image:height" content="512" />
+    <meta property="og:image:alt" content="Hyperbolic Time Chamber logo" />
+
+    <!-- Twitter Card -->
+    <meta name="twitter:card" content="summary" />
+    <meta name="twitter:title" content="The Real Hyperbolic Time Chamber" />
+    <meta
+      name="twitter:description"
+      content="Stop guessing in the gym. Follow proven programs that auto-adjust weight, sets, and reps."
+    />
+
+    <!-- Geist Sans via Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Geist:wght@100..900&display=swap"
+      rel="stylesheet"
+    />
+
+    <!-- JSON-LD -->
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@type": "SoftwareApplication",
+        "name": "The Real Hyperbolic Time Chamber",
+        "applicationCategory": "HealthApplication",
+        "operatingSystem": "Web",
+        "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" },
+        "description": "Science-backed training programs with automatic progression for the GZCLP weightlifting program."
+      }
+    </script>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+    <script>
+      if ('serviceWorker' in navigator) {
+        window.addEventListener('load', function () {
+          navigator.serviceWorker.register('/service-worker.js');
+        });
+      }
+    </script>
+  </body>
+</html>
