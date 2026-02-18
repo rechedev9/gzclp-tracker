@@ -17,6 +17,7 @@
     "./programs/registry": "./src/programs/registry.ts"
   },
   "scripts": {
+    "lint": "eslint",
     "typecheck": "tsc --noEmit",
     "test": "bun test"
   },

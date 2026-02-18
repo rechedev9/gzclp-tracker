@@ -15,7 +15,7 @@ import { version } from '../package.json';
 const CORS_ORIGIN = process.env['CORS_ORIGIN'] ?? 'http://localhost:3000';
 const PORT = Number(process.env['PORT'] ?? 3001);
 
-const app = new Elysia()
+export const app = new Elysia()
   .use(
     cors({
       origin: CORS_ORIGIN,
