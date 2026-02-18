@@ -2,7 +2,7 @@
  * Program service — CRUD for program instances, results reconstruction.
  * Framework-agnostic: no Elysia dependency.
  */
-import { eq, and } from 'drizzle-orm';
+import { eq, and, lt, desc } from 'drizzle-orm';
 import { getDb } from '../db';
 import { programInstances, workoutResults, undoEntries } from '../db/schema';
 import { getProgramDefinition } from '@gzclp/shared/programs/registry';
@@ -122,8 +122,25 @@ export interface ProgramInstanceListItem {
   readonly updatedAt: string;
 }
 
-export async function getInstances(userId: string): Promise<ProgramInstanceListItem[]> {
-  const instances = await getDb()
+export interface PaginatedInstances {
+  readonly data: ProgramInstanceListItem[];
+  readonly nextCursor: string | null;
+}
+
+export async function getInstances(
+  userId: string,
+  options: { limit?: number; cursor?: string } = {}
+): Promise<PaginatedInstances> {
+  const limit = Math.min(options.limit ?? 20, 100);
+
+  const conditions = options.cursor
+    ? and(
+        eq(programInstances.userId, userId),
+        lt(programInstances.createdAt, new Date(options.cursor))
+      )
+    : eq(programInstances.userId, userId);
+
+  const rows = await getDb()
     .select({
       id: programInstances.id,
       programId: programInstances.programId,
@@ -133,16 +150,26 @@ export async function getInstances(userId: string): Promise<ProgramInstanceListI
       updatedAt: programInstances.updatedAt,
     })
     .from(programInstances)
-    .where(eq(programInstances.userId, userId));
+    .where(conditions)
+    .orderBy(desc(programInstances.createdAt))
+    .limit(limit + 1);
 
-  return instances.map((i) => ({
-    id: i.id,
-    programId: i.programId,
-    name: i.name,
-    status: i.status,
-    createdAt: i.createdAt.toISOString(),
-    updatedAt: i.updatedAt.toISOString(),
-  }));
+  const hasMore = rows.length > limit;
+  const page = hasMore ? rows.slice(0, limit) : rows;
+  const lastRow = page[page.length - 1];
+  const nextCursor = hasMore && lastRow ? lastRow.createdAt.toISOString() : null;
+
+  return {
+    data: page.map((i) => ({
+      id: i.id,
+      programId: i.programId,
+      name: i.name,
+      status: i.status,
+      createdAt: i.createdAt.toISOString(),
+      updatedAt: i.updatedAt.toISOString(),
+    })),
+    nextCursor,
+  };
 }
 
 export async function getInstance(
