@@ -41,11 +41,16 @@ async function verifyInstanceOwnership(userId: string, instanceId: string): Prom
 // Record a workout result
 // ---------------------------------------------------------------------------
 
+const MAX_AMRAP_REPS = 99;
+
 export async function recordResult(
   userId: string,
   instanceId: string,
   input: RecordResultInput
 ): Promise<WorkoutResultRow> {
+  if (input.amrapReps !== undefined && input.amrapReps > MAX_AMRAP_REPS) {
+    throw new ApiError(400, `amrapReps cannot exceed ${MAX_AMRAP_REPS}`, 'INVALID_DATA');
+  }
   await verifyInstanceOwnership(userId, instanceId);
 
   return await getDb().transaction(async (tx) => {

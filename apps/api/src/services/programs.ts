@@ -273,9 +273,12 @@ export async function importInstance(
     if (!Number.isInteger(idx) || idx < 0 || idx > maxWorkoutIndex) {
       throw new ApiError(400, `Invalid workoutIndex: ${indexStr}`, 'INVALID_DATA');
     }
-    for (const slotId of Object.keys(slots)) {
+    for (const [slotId, slotData] of Object.entries(slots)) {
       if (!validSlotIds.has(slotId)) {
         throw new ApiError(400, `Unknown slotId: ${slotId}`, 'INVALID_DATA');
+      }
+      if (slotData.amrapReps !== undefined && slotData.amrapReps > 99) {
+        throw new ApiError(400, 'amrapReps cannot exceed 99', 'INVALID_DATA');
       }
     }
   }
