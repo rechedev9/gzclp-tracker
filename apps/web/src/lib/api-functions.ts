@@ -171,11 +171,13 @@ function parseSummary(rec: unknown): ProgramSummary {
 // API Functions
 // ---------------------------------------------------------------------------
 
-/** Fetch all program instances for the current user. */
+/** Fetch all program instances for the current user (first page). */
 export async function fetchPrograms(): Promise<ProgramSummary[]> {
   const data = await apiFetch('/programs');
-  if (!Array.isArray(data)) return [];
-  return data.map(parseSummary);
+  // Handle both legacy array response and new paginated { data, nextCursor } shape
+  if (Array.isArray(data)) return data.map(parseSummary);
+  if (isRecord(data) && Array.isArray(data.data)) return data.data.map(parseSummary);
+  return [];
 }
 
 /** Fetch a single program instance with full results and undo history. */

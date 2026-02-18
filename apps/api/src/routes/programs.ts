@@ -18,11 +18,19 @@ export const programRoutes = new Elysia({ prefix: '/programs' })
   .use(jwtPlugin)
   .resolve(resolveUserId)
 
-  // GET /programs — list user's program instances
-  .get('/', async ({ userId }) => {
-    const instances = await getInstances(userId);
-    return instances;
-  })
+  // GET /programs — list user's program instances (cursor-based pagination)
+  .get(
+    '/',
+    async ({ userId, query }) => {
+      return getInstances(userId, { limit: query.limit, cursor: query.cursor });
+    },
+    {
+      query: t.Object({
+        limit: t.Optional(t.Numeric({ minimum: 1, maximum: 100 })),
+        cursor: t.Optional(t.String()),
+      }),
+    }
+  )
 
   // POST /programs — create a new program instance
   .post(
