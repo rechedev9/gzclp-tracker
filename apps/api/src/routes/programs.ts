@@ -3,6 +3,7 @@
  */
 import { Elysia, t } from 'elysia';
 import { jwtPlugin, resolveUserId } from '../middleware/auth-guard';
+import { rateLimit } from '../middleware/rate-limit';
 import {
   createInstance,
   getInstances,
@@ -27,6 +28,7 @@ export const programRoutes = new Elysia({ prefix: '/programs' })
   .post(
     '/',
     async ({ userId, body, set }) => {
+      rateLimit(userId, 'POST /programs');
       const instance = await createInstance(userId, body.programId, body.name, body.config);
       set.status = 201;
       return instance;
@@ -107,6 +109,7 @@ export const programRoutes = new Elysia({ prefix: '/programs' })
   .post(
     '/import',
     async ({ userId, body, set }) => {
+      rateLimit(userId, 'POST /programs/import');
       const instance = await importInstance(userId, body);
       set.status = 201;
       return instance;
