@@ -1,6 +1,10 @@
 import { Elysia } from 'elysia';
 import { cors } from '@elysiajs/cors';
 import { sql } from 'drizzle-orm';
+import { drizzle } from 'drizzle-orm/postgres-js';
+import { migrate } from 'drizzle-orm/postgres-js/migrator';
+import postgres from 'postgres';
+import { join } from 'path';
 import { ApiError } from './middleware/error-handler';
 import { requestLogger } from './middleware/request-logger';
 import { cleanupExpiredTokens } from './services/auth';
@@ -18,6 +22,31 @@ if (!rawCorsOrigin && process.env['NODE_ENV'] === 'production') {
 }
 const CORS_ORIGIN = rawCorsOrigin ?? 'http://localhost:3000';
 const PORT = Number(process.env['PORT'] ?? 3001);
+
+// ---------------------------------------------------------------------------
+// Database migrations — run before accepting traffic
+// ---------------------------------------------------------------------------
+
+async function runMigrations(): Promise<void> {
+  const url = process.env['DATABASE_URL'];
+  if (!url) throw new Error('DATABASE_URL environment variable is required');
+
+  // Single-connection client for migrations (DDL must run serially)
+  const migrationClient = postgres(url, { max: 1 });
+  const migrationDb = drizzle(migrationClient);
+  const migrationsFolder = join(import.meta.dir, '..', 'drizzle');
+
+  logger.info({ migrationsFolder }, 'running database migrations');
+  await migrate(migrationDb, { migrationsFolder });
+  await migrationClient.end();
+  logger.info('database migrations complete');
+}
+
+await runMigrations();
+
+// ---------------------------------------------------------------------------
+// Elysia app
+// ---------------------------------------------------------------------------
 
 export const app = new Elysia()
   .use(
