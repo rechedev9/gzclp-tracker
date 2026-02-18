@@ -1,5 +1,3 @@
-'use client';
-
 import type { ProgramDefinition } from '@gzclp/shared/types/program';
 
 interface ProgramCardProps {

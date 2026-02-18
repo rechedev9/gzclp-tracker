@@ -1,5 +1,3 @@
-'use client';
-
 import { useMemo } from 'react';
 import { useProgram } from '@/hooks/use-program';
 import { useAuth } from '@/contexts/auth-context';

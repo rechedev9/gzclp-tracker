@@ -1,5 +1,3 @@
-'use client';
-
 import { memo, useRef, useEffect } from 'react';
 import type { ChartDataPoint } from '@gzclp/shared/types';
 

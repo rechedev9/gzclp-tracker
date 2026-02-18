@@ -1,5 +1,3 @@
-'use client';
-
 import { memo, useMemo } from 'react';
 import { NAMES, T1_EXERCISES } from '@gzclp/shared/program';
 import { extractChartData, calculateStats } from '@gzclp/shared/stats';

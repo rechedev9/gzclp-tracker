@@ -1,5 +1,3 @@
-'use client';
-
 import { useState, useMemo, useCallback, type ReactNode } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import type { Tier, ResultValue } from '@gzclp/shared/types';

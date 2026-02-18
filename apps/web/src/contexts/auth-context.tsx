@@ -1,5 +1,3 @@
-'use client';
-
 import { createContext, useContext, useEffect, useState, useCallback, useMemo } from 'react';
 import { api, setAccessToken, refreshAccessToken } from '@/lib/api';
 import { isRecord } from '@gzclp/shared/type-guards';

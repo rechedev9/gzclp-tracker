@@ -1,5 +1,3 @@
-'use client';
-
 import { useState, useRef, useEffect } from 'react';
 import { WorkoutRow } from './workout-row';
 import { WorkoutRowCard } from './workout-row-card';

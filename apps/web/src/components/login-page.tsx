@@ -1,5 +1,3 @@
-'use client';
-
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '@/contexts/auth-context';

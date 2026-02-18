@@ -1,5 +1,3 @@
-'use client';
-
 import { useCallback, useMemo } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import type { StartWeights, Results, UndoHistory, Tier, ResultValue } from '@gzclp/shared/types';

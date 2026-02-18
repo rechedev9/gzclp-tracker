@@ -1,5 +1,3 @@
-'use client';
-
 import { memo, useCallback } from 'react';
 import { NAMES } from '@gzclp/shared/program';
 import type { WorkoutRow as WorkoutRowType, Tier, ResultValue } from '@gzclp/shared/types';

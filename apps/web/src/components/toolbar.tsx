@@ -1,5 +1,3 @@
-'use client';
-
 import { useState, useCallback, type ReactNode } from 'react';
 import { Button } from './button';
 import { ConfirmDialog } from './confirm-dialog';

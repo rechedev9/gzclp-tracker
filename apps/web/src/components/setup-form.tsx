@@ -1,5 +1,3 @@
-'use client';
-
 import { useState, useCallback } from 'react';
 import { StartWeightsSchema } from '@gzclp/shared/schemas/legacy';
 import type { StartWeights } from '@gzclp/shared/types';

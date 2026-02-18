@@ -1,5 +1,3 @@
-'use client';
-
 interface ProfileStatCardProps {
   readonly value: string;
   readonly label: string;

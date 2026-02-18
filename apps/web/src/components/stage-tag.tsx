@@ -1,5 +1,3 @@
-'use client';
-
 import { memo } from 'react';
 
 const STAGE_STYLES = [

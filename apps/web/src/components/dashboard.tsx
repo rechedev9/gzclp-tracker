@@ -1,5 +1,3 @@
-'use client';
-
 import { useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { getAllPresetPrograms, getProgramDefinition } from '@gzclp/shared/programs/registry';

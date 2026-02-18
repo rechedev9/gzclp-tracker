@@ -1,5 +1,3 @@
-'use client';
-
 import { useEffect, useRef } from 'react';
 import type { StartWeights, Results, WorkoutRow, ResultValue, Tier } from '@gzclp/shared/types';
 import { TOTAL_WORKOUTS, T1_EXERCISES, NAMES } from '@gzclp/shared/program';

@@ -1,5 +1,3 @@
-'use client';
-
 import { Link } from 'react-router-dom';
 import { FEATURES, STEPS, METRICS, PERSONAS } from '@/lib/landing-page-data';
 import { useFadeInOnScroll } from '@/hooks/use-fade-in-on-scroll';
