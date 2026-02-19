@@ -11,6 +11,7 @@
 import { Elysia } from 'elysia';
 import { jwt } from '@elysiajs/jwt';
 import { ApiError } from './error-handler';
+import { logger } from '../lib/logger';
 
 const rawSecret = process.env['JWT_SECRET'];
 if (process.env['NODE_ENV'] === 'production') {
@@ -20,6 +21,8 @@ if (process.env['NODE_ENV'] === 'production') {
   if (rawSecret.length < 32) {
     throw new Error('JWT_SECRET must be at least 32 characters in production');
   }
+} else if (!rawSecret) {
+  logger.warn('JWT_SECRET not set — using insecure default. MUST NOT be used in production.');
 }
 const JWT_SECRET = rawSecret ?? 'dev-secret-change-me';
 
