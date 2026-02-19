@@ -1,11 +1,21 @@
 import { drizzle } from 'drizzle-orm/postgres-js';
 import postgres from 'postgres';
 import * as schema from './schema';
+import { logger } from '../lib/logger';
 
 type DbInstance = ReturnType<typeof drizzle<typeof schema>>;
 
 let _client: postgres.Sql | undefined;
 let _db: DbInstance | undefined;
+
+const devQueryLogger =
+  process.env['NODE_ENV'] !== 'production'
+    ? {
+        logQuery(query: string, params: unknown[]): void {
+          logger.debug({ sql: query, params }, 'SQL');
+        },
+      }
+    : undefined;
 
 export function getDb(): DbInstance {
   if (!_db) {
@@ -18,7 +28,7 @@ export function getDb(): DbInstance {
       idle_timeout: 30,
       connect_timeout: 10,
     });
-    _db = drizzle(_client, { schema });
+    _db = drizzle(_client, { schema, logger: devQueryLogger });
   }
   return _db;
 }
