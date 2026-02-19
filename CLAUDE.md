@@ -4,15 +4,15 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-GZCLP Tracker — a Bun monorepo with a Next.js 16 frontend and an ElysiaJS API backend (in progress). Implements the GZCLP linear progression weightlifting program.
+GZCLP Tracker — a Bun monorepo with a Vite + React 19 SPA frontend and an ElysiaJS API backend. Implements the GZCLP linear progression weightlifting program.
 
 ### Monorepo structure
 
 ```
 gzclp-tracker/
 ├── apps/
-│   ├── web/          ← Next.js 16 frontend (React 19, Tailwind CSS 4, static export)
-│   └── api/          ← ElysiaJS backend (in progress)
+│   ├── web/          ← Vite + React 19 SPA (react-router-dom v7, Tailwind CSS 4)
+│   └── api/          ← ElysiaJS backend (Bun, PostgreSQL, Redis, JWT auth)
 ├── packages/
 │   └── shared/       ← Pure computation shared between web and API
 │       └── src/
@@ -31,7 +31,7 @@ gzclp-tracker/
 **Workspace packages:**
 
 - `@gzclp/shared` — import as `@gzclp/shared/engine`, `@gzclp/shared/types`, etc.
-- `web` — Next.js frontend at `apps/web/`
+- `web` — Vite React SPA at `apps/web/`
 - `api` — ElysiaJS backend at `apps/api/`
 
 ## Commands
@@ -58,7 +58,7 @@ gzclp-tracker/
 - **Shared tests:** Config in `packages/shared/bunfig.toml` — root is `./src`. Test fixtures: `packages/shared/test/fixtures.ts`.
 - **Web tests:** Config in `apps/web/bunfig.toml` — preloads `test/register-dom.ts` (happy-dom) and `test/setup.ts`; root is `./src`. Test helpers: `apps/web/test/helpers/`.
 
-**E2E:** Playwright (Chromium only). Tests in `apps/web/e2e/` with `.spec.ts` extension. Builds to `out/` and serves on port 3333 via `bunx serve`. Helpers: `apps/web/e2e/helpers/`.
+**E2E:** Playwright (Chromium only). Tests in `apps/web/e2e/` with `.spec.ts` extension. The webServer command is `bun run build:web && bun run dev:api` — it builds the web app to `dist/` and starts the API (which serves the SPA). BaseURL is `http://localhost:3001`. Helpers: `apps/web/e2e/helpers/`.
 
 **Git hooks:** Lefthook — pre-commit (typecheck + lint + format, parallel), pre-push (test + build).
 
@@ -81,29 +81,35 @@ Pure computation code with zero DOM/React dependencies. Imported by both web and
 
 ### Web app (`apps/web/`)
 
-Next.js 16 static export (`output: 'export'`). All state lives in localStorage with optional Supabase cloud sync.
+Vite SPA with react-router-dom v7. All state is server-authoritative — the frontend communicates exclusively with the ElysiaJS API. Auth is JWT-based: short-lived access token stored in-memory, refresh token in an httpOnly cookie.
 
 **Key modules (web-only):**
 
-- **`src/lib/storage.ts`** — Legacy localStorage CRUD. Storage key: `gzclp-v3`.
-- **`src/lib/storage-v2.ts`** — New multi-program localStorage format (`wt-programs-v1`) with auto-migration.
-- **`src/lib/supabase.ts`** — Singleton Supabase client; graceful degradation when env vars missing.
-- **`src/lib/sync.ts`** / **`sync-machine.ts`** — Cloud sync state machine with exponential backoff.
-- **`src/hooks/use-program.ts`** — Central state hook: start weights, results, undo history, localStorage persistence.
-- **`src/hooks/use-cloud-sync.ts`** — React wrapper for sync state machine.
-- **`src/contexts/auth-context.tsx`** — Supabase Auth with PKCE flow.
+- **`src/lib/api.ts`** — In-memory access token management + promise-based refresh mutex (prevents concurrent refresh races on 401).
+- **`src/lib/api-functions.ts`** — Typed fetch wrappers for all API endpoints (programs, results, auth).
+- **`src/lib/auth-errors.ts`** — Auth error parsing and user-facing message formatting.
+- **`src/lib/query-keys.ts`** — TanStack Query key factory.
+- **`src/hooks/use-program.ts`** — Central state hook: TanStack Query + optimistic mutations for results/weights/undo.
+- **`src/contexts/auth-context.tsx`** — JWT auth context: `signUp`/`signIn`/`signOut` via API, session restored on mount via refresh cookie.
 
-**Routes** (all client-side `'use client'`):
+**Provider tree** (outermost → innermost):
 
-| Route      | Purpose                                        |
-| ---------- | ---------------------------------------------- |
-| `/`        | Landing page                                   |
-| `/app`     | Main workout tracker (setup → tracker routing) |
-| `/login`   | Auth page (sign in / sign up)                  |
-| `/health`  | Health check endpoint                          |
-| `/privacy` | Privacy policy                                 |
+1. `providers.tsx` — `ErrorBoundary` (root reload fallback) + `QueryClientProvider`
+2. `root-layout.tsx` — `AuthProvider` + `ToastProvider` (wraps all routes via `<Outlet />`)
 
-**Error boundaries:** Two-tier — root boundary in `providers.tsx`, stats boundary in `gzclp-app.tsx`. Reusable component: `src/components/error-boundary.tsx`.
+**Routes** (defined in `src/main.tsx`, all client-side SPA routing):
+
+| Route              | Purpose                                        |
+| ------------------ | ---------------------------------------------- |
+| `/`                | Landing page                                   |
+| `/app`             | Main workout tracker (setup → tracker routing) |
+| `/login`           | Auth page (sign in / sign up)                  |
+| `/forgot-password` | Password reset request                         |
+| `/reset-password`  | Password reset confirmation                    |
+| `/privacy`         | Privacy policy                                 |
+| `*`                | 404 Not Found                                  |
+
+**Error boundaries:** Two-tier — root boundary in `providers.tsx` (reload fallback), stats boundary in `gzclp-app.tsx` (reset fallback). Reusable component: `src/components/error-boundary.tsx`.
 
 ## Key domain concepts
 
@@ -119,9 +125,7 @@ Next.js 16 static export (`output: 'export'`). All state lives in localStorage w
 - `zod/v4` import path (Zod v4)
 - Shared code: `@gzclp/shared/*` imports (e.g., `@gzclp/shared/engine`, `@gzclp/shared/types`)
 - Web internal: `@/` path alias maps to `apps/web/src/`
-- All components are client-side (`'use client'`)
-- Static export: no SSR, no API routes, no middleware in web app
-- Supabase is optional: the app works fully offline when env vars are absent
+- `VITE_API_URL` is **required for production builds** — it is baked into the bundle at build time. The build will throw if unset. In development it defaults to `http://localhost:3001`.
 - **Lockfile hygiene:** After any `package.json` change, always run `bun install` and commit the updated `bun.lock` in the same commit.
 
 ### ESLint strictness
@@ -142,10 +146,11 @@ Next.js 16 static export (`output: 'export'`). All state lives in localStorage w
 
 ## Environment variables
 
-Required for cloud sync (optional — app works without them):
+**Web (`apps/web/`):**
 
-- `NEXT_PUBLIC_SUPABASE_URL`
-- `NEXT_PUBLIC_SUPABASE_ANON_KEY`
+- `VITE_API_URL` — Required for production. URL of the ElysiaJS API (e.g. `https://api.example.com`).
+
+**API (`apps/api/`):** PostgreSQL connection, Redis URL, JWT secrets — see `apps/api/.env.example` if present.
 
 ## Formatting
 
