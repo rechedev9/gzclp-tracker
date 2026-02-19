@@ -274,7 +274,7 @@ export const authRoutes = new Elysia({ prefix: '/auth' })
   // -----------------------------------------------------------------------
   .post(
     '/reset-password',
-    async ({ body }) => {
+    async ({ body, reqLogger }) => {
       const leaked = await checkLeakedPassword(body.password);
       if (leaked) {
         throw new ApiError(400, 'Password found in known data breaches', 'WEAK_PASSWORD');
@@ -287,6 +287,10 @@ export const authRoutes = new Elysia({ prefix: '/auth' })
       }
 
       await markPasswordResetTokenUsed(tokenHash, body.password);
+      reqLogger.info(
+        { event: 'auth.password_reset', userId: record.userId },
+        'password reset completed'
+      );
       return { message: 'Password reset successfully.' };
     },
     {

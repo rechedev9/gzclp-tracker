@@ -17,11 +17,22 @@ import { getDb } from './db';
 import { logger } from './lib/logger';
 import { version } from '../package.json';
 
-const rawCorsOrigin = process.env['CORS_ORIGIN'];
-if (!rawCorsOrigin && process.env['NODE_ENV'] === 'production') {
-  throw new Error('CORS_ORIGIN env var must be set in production');
+function parseCorsOrigin(raw: string | undefined): string {
+  if (!raw) {
+    if (process.env['NODE_ENV'] === 'production') {
+      throw new Error('CORS_ORIGIN env var must be set in production');
+    }
+    return 'http://localhost:3000';
+  }
+  try {
+    new URL(raw);
+  } catch {
+    throw new Error(`CORS_ORIGIN is not a valid URL: "${raw}"`);
+  }
+  return raw;
 }
-const CORS_ORIGIN = rawCorsOrigin ?? 'http://localhost:3000';
+
+const CORS_ORIGIN = parseCorsOrigin(process.env['CORS_ORIGIN']);
 const PORT = Number(process.env['PORT'] ?? 3001);
 
 // ---------------------------------------------------------------------------
@@ -136,10 +147,19 @@ export const app = new Elysia()
 export type App = typeof app;
 
 // ---------------------------------------------------------------------------
-// Expired refresh token cleanup — run at startup then every 24h
+// Graceful shutdown
 // ---------------------------------------------------------------------------
 
-const TOKEN_CLEANUP_INTERVAL_MS = 24 * 60 * 60 * 1000;
+process.on('SIGTERM', () => {
+  logger.info('SIGTERM received, shutting down gracefully');
+  process.exit(0);
+});
+
+// ---------------------------------------------------------------------------
+// Expired refresh token cleanup — run at startup then every 6h
+// ---------------------------------------------------------------------------
+
+const TOKEN_CLEANUP_INTERVAL_MS = 6 * 60 * 60 * 1000;
 
 cleanupExpiredTokens().catch((e: unknown) => logger.error({ err: e }, 'Token cleanup failed'));
 setInterval(() => {
