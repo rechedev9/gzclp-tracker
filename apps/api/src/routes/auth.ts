@@ -91,7 +91,7 @@ export const authRoutes = new Elysia({ prefix: '/auth' })
   .post(
     '/signup',
     async ({ jwt, body, cookie, set, reqLogger, ip }) => {
-      rateLimit(ip, '/auth/signup');
+      await rateLimit(ip, '/auth/signup');
 
       const [leaked, existing] = await Promise.all([
         checkLeakedPassword(body.password),
@@ -140,7 +140,7 @@ export const authRoutes = new Elysia({ prefix: '/auth' })
   .post(
     '/signin',
     async ({ jwt, body, cookie, reqLogger, ip }) => {
-      rateLimit(ip, '/auth/signin');
+      await rateLimit(ip, '/auth/signin');
       const user = await findUserByEmail(body.email);
       if (!user) {
         throw new ApiError(401, 'Invalid email or password', 'AUTH_INVALID_CREDENTIALS');
@@ -181,7 +181,7 @@ export const authRoutes = new Elysia({ prefix: '/auth' })
   .post(
     '/refresh',
     async ({ jwt, cookie, reqLogger, ip }) => {
-      rateLimit(ip, '/auth/refresh');
+      await rateLimit(ip, '/auth/refresh');
 
       const refreshCookie = cookie[REFRESH_COOKIE_NAME];
       const tokenValue = refreshCookie?.value;
@@ -249,7 +249,7 @@ export const authRoutes = new Elysia({ prefix: '/auth' })
   .post(
     '/signout',
     async ({ cookie, set, reqLogger, ip }) => {
-      rateLimit(ip, '/auth/signout');
+      await rateLimit(ip, '/auth/signout');
 
       const refreshCookie = cookie[REFRESH_COOKIE_NAME];
       const tokenValue = refreshCookie?.value;
@@ -320,7 +320,7 @@ export const authRoutes = new Elysia({ prefix: '/auth' })
   .post(
     '/forgot-password',
     async ({ body, reqLogger, ip }) => {
-      rateLimit(ip, '/auth/forgot-password');
+      await rateLimit(ip, '/auth/forgot-password');
 
       // Always return 200 — never reveal whether the email exists
       const user = await findUserByEmail(body.email);

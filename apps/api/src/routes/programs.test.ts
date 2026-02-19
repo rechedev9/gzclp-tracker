@@ -12,9 +12,7 @@ import { mock, describe, it, expect } from 'bun:test';
 // ---------------------------------------------------------------------------
 
 mock.module('../middleware/rate-limit', () => ({
-  rateLimit: (): void => {
-    /* no-op */
-  },
+  rateLimit: (): Promise<void> => Promise.resolve(),
 }));
 
 const mockGetInstances = mock(() => Promise.resolve({ data: [], nextCursor: null }));

@@ -9,6 +9,8 @@ import { join } from 'path';
 import { ApiError } from './middleware/error-handler';
 import { requestLogger } from './middleware/request-logger';
 import { swaggerPlugin } from './plugins/swagger';
+import { metricsPlugin } from './plugins/metrics';
+import { registry } from './lib/metrics';
 import { cleanupExpiredTokens } from './services/auth';
 import { authRoutes } from './routes/auth';
 import { programRoutes } from './routes/programs';
@@ -76,6 +78,7 @@ export const app = new Elysia()
     })
   )
   .use(swaggerPlugin)
+  .use(metricsPlugin)
   .onAfterHandle(({ set }) => {
     set.headers['x-content-type-options'] = 'nosniff';
     set.headers['x-frame-options'] = 'DENY';
@@ -155,6 +158,10 @@ export const app = new Elysia()
       },
     }
   )
+  .get('/metrics', async ({ set }) => {
+    set.headers['content-type'] = registry.contentType;
+    return registry.metrics();
+  })
   .use(staticPlugin({ assets: '../web/dist', prefix: '/' }))
   .get('/*', () => Bun.file('../web/dist/index.html'))
   .listen({ port: PORT, maxRequestBodySize: 1_048_576 }, () => {

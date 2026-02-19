@@ -97,9 +97,7 @@ mock.module('../lib/email', () => ({
 }));
 
 mock.module('../middleware/rate-limit', () => ({
-  rateLimit: (): void => {
-    /* no-op */
-  },
+  rateLimit: (): Promise<void> => Promise.resolve(),
 }));
 
 import { Elysia } from 'elysia';
