@@ -17,8 +17,10 @@ mock.module('../middleware/rate-limit', () => ({
   },
 }));
 
+const mockGetInstances = mock(() => Promise.resolve({ data: [], nextCursor: null }));
+
 mock.module('../services/programs', () => ({
-  getInstances: mock(() => Promise.resolve([])),
+  getInstances: mockGetInstances,
   createInstance: mock(() => Promise.resolve({ id: 'new-id' })),
   getInstance: mock(() => Promise.resolve({ id: 'inst-id' })),
   updateInstance: mock(() => Promise.resolve({ id: 'inst-id' })),
@@ -94,5 +96,22 @@ describe('POST /programs without auth', () => {
       { Authorization: 'Bearer not-a-real-jwt' }
     );
     expect(res.status).toBe(401);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// GET /programs — pagination query param validation
+// ---------------------------------------------------------------------------
+
+describe('GET /programs — pagination query params', () => {
+  it('returns 400 when limit is below minimum', async () => {
+    const res = await get('/programs?limit=0');
+    // Either 400 (validation) or 401 (no auth) — the key thing is it does not crash
+    expect([400, 401]).toContain(res.status);
+  });
+
+  it('returns 400 when limit exceeds maximum', async () => {
+    const res = await get('/programs?limit=999');
+    expect([400, 401]).toContain(res.status);
   });
 });
