@@ -8,6 +8,7 @@ import postgres from 'postgres';
 import { join } from 'path';
 import { ApiError } from './middleware/error-handler';
 import { requestLogger } from './middleware/request-logger';
+import { swaggerPlugin } from './plugins/swagger';
 import { cleanupExpiredTokens } from './services/auth';
 import { authRoutes } from './routes/auth';
 import { programRoutes } from './routes/programs';
@@ -74,6 +75,7 @@ export const app = new Elysia()
       credentials: true,
     })
   )
+  .use(swaggerPlugin)
   .onAfterHandle(({ set }) => {
     set.headers['x-content-type-options'] = 'nosniff';
     set.headers['x-frame-options'] = 'DENY';
