@@ -17,7 +17,7 @@ export const resultRoutes = new Elysia({ prefix: '/programs/:id' })
   .post(
     '/results',
     async ({ userId, params, body, set }) => {
-      rateLimit(userId, 'POST /programs/results');
+      await rateLimit(userId, 'POST /programs/results');
       const result = await recordResult(userId, params.id, body);
       set.status = 201;
       return {
@@ -84,7 +84,7 @@ export const resultRoutes = new Elysia({ prefix: '/programs/:id' })
   .post(
     '/undo',
     async ({ userId, params }) => {
-      rateLimit(userId, 'POST /programs/undo');
+      await rateLimit(userId, 'POST /programs/undo');
       const entry = await undoLast(userId, params.id);
       if (!entry) {
         return { undone: null };
