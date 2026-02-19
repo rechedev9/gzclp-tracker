@@ -72,7 +72,12 @@ function ActiveProgramCard({
     enabled: true,
   });
 
-  const completedWorkouts = detailQuery.data ? Object.keys(detailQuery.data.results).length : 0;
+  // Count workouts where ALL three tiers have a result (not just any tier)
+  const completedWorkouts = detailQuery.data
+    ? Object.values(detailQuery.data.results).filter(
+        (r) => r.t1 !== undefined && r.t2 !== undefined && r.t3 !== undefined
+      ).length
+    : 0;
   const totalWorkouts = definition?.totalWorkouts ?? 0;
   const progressPct = totalWorkouts > 0 ? Math.round((completedWorkouts / totalWorkouts) * 100) : 0;
 
