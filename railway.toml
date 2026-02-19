@@ -1,0 +1,10 @@
+[build]
+builder = "nixpacks"
+buildCommand = "bun install --frozen-lockfile && bun run build:web"
+
+[deploy]
+startCommand = "cd apps/api && bun src/index.ts"
+healthcheckPath = "/health"
+healthcheckTimeout = 30
+restartPolicyType = "on_failure"
+restartPolicyMaxRetries = 3
