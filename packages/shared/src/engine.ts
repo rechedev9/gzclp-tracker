@@ -1,124 +1,78 @@
-import {
-  DAYS,
-  T1_STAGES,
-  T2_STAGES,
-  TOTAL_WORKOUTS,
-  T2_INITIAL_MULTIPLIER,
-  T1_DELOAD_MULTIPLIER,
-  T1_MAX_STAGE,
-  T2_MAX_STAGE,
-  T2_RESET_INCREMENT,
-  T3_INCREMENT,
-  inc,
-} from './program';
+import { computeGenericProgram } from './generic-engine';
+import { GZCLP_DEFINITION } from './programs/gzclp';
 import type { StartWeights, Results, WorkoutRow } from './types';
+import type { GenericResults } from './types/program';
+import type { GenericWorkoutRow } from './types/index';
 
-export function roundToNearestHalf(value: number): number {
-  const rounded = Math.round(value * 2) / 2;
-  if (!Number.isFinite(rounded) || rounded < 0) return 0;
-  return rounded;
+export { roundToNearestHalf } from './generic-engine';
+
+// Module-level lookup: for each day index, maps tier → slot id
+const GZCLP_DAY_SLOT_MAP = GZCLP_DEFINITION.days.map((day) => ({
+  t1: day.slots.find((s) => s.tier === 't1')?.id ?? '',
+  t2: day.slots.find((s) => s.tier === 't2')?.id ?? '',
+  t3: day.slots.find((s) => s.tier === 't3')?.id ?? '',
+}));
+
+function convertLegacyResultsForGzclp(results: Results): GenericResults {
+  const generic: GenericResults = {};
+  for (const [indexStr, res] of Object.entries(results)) {
+    const dayMap = GZCLP_DAY_SLOT_MAP[Number(indexStr) % GZCLP_DEFINITION.cycleLength];
+    const workoutResult: Record<string, { result?: 'success' | 'fail'; amrapReps?: number }> = {};
+
+    if (res.t1 !== undefined || res.t1Reps !== undefined) {
+      workoutResult[dayMap.t1] = { result: res.t1, amrapReps: res.t1Reps };
+    }
+    if (res.t2 !== undefined) {
+      workoutResult[dayMap.t2] = { result: res.t2 };
+    }
+    if (res.t3 !== undefined || res.t3Reps !== undefined) {
+      workoutResult[dayMap.t3] = { result: res.t3, amrapReps: res.t3Reps };
+    }
+
+    if (Object.keys(workoutResult).length > 0) {
+      generic[indexStr] = workoutResult;
+    }
+  }
+  return generic;
+}
+
+function mapGenericToWorkoutRow(row: GenericWorkoutRow): WorkoutRow {
+  const t1Slot = row.slots.find((s) => s.tier === 't1');
+  const t2Slot = row.slots.find((s) => s.tier === 't2');
+  const t3Slot = row.slots.find((s) => s.tier === 't3');
+
+  if (t1Slot === undefined || t2Slot === undefined || t3Slot === undefined) {
+    throw new Error(`Invariant violation: GZCLP day missing expected tiers at index ${row.index}`);
+  }
+
+  return {
+    index: row.index,
+    dayName: row.dayName,
+    t1Exercise: t1Slot.exerciseId,
+    t1Weight: t1Slot.weight,
+    t1Stage: t1Slot.stage,
+    t1Sets: t1Slot.sets,
+    t1Reps: t1Slot.reps,
+    t2Exercise: t2Slot.exerciseId,
+    t2Weight: t2Slot.weight,
+    t2Stage: t2Slot.stage,
+    t2Sets: t2Slot.sets,
+    t2Reps: t2Slot.reps,
+    t3Exercise: t3Slot.exerciseId,
+    t3Weight: t3Slot.weight,
+    isChanged: t1Slot.isChanged || t2Slot.isChanged,
+    result: {
+      t1: t1Slot.result,
+      t2: t2Slot.result,
+      t3: t3Slot.result,
+      t1Reps: t1Slot.amrapReps,
+      t3Reps: t3Slot.amrapReps,
+    },
+  };
 }
 
 export function computeProgram(startWeights: StartWeights, results: Results): WorkoutRow[] {
-  const t1: Record<string, { w: number; s: number }> = {
-    squat: { w: startWeights.squat, s: 0 },
-    bench: { w: startWeights.bench, s: 0 },
-    deadlift: { w: startWeights.deadlift, s: 0 },
-    ohp: { w: startWeights.ohp, s: 0 },
-  };
-
-  const t2: Record<string, { w: number; s: number }> = {
-    squat: { w: roundToNearestHalf(startWeights.squat * T2_INITIAL_MULTIPLIER), s: 0 },
-    bench: { w: roundToNearestHalf(startWeights.bench * T2_INITIAL_MULTIPLIER), s: 0 },
-    deadlift: { w: roundToNearestHalf(startWeights.deadlift * T2_INITIAL_MULTIPLIER), s: 0 },
-    ohp: { w: roundToNearestHalf(startWeights.ohp * T2_INITIAL_MULTIPLIER), s: 0 },
-  };
-
-  const t3: Record<string, number> = {
-    latpulldown: startWeights.latpulldown,
-    dbrow: startWeights.dbrow,
-  };
-
-  const changed: Record<string, boolean> = {
-    squat: false,
-    bench: false,
-    deadlift: false,
-    ohp: false,
-  };
-  const t2changed: Record<string, boolean> = {
-    squat: false,
-    bench: false,
-    deadlift: false,
-    ohp: false,
-  };
-
-  const rows: WorkoutRow[] = [];
-
-  for (let i = 0; i < TOTAL_WORKOUTS; i++) {
-    const day = DAYS[i % 4];
-    const t1ex = day.t1;
-    const t2ex = day.t2;
-    const t3ex = day.t3;
-    const t1s = T1_STAGES[t1[t1ex].s];
-    const t2s = T2_STAGES[t2[t2ex].s];
-    const res = results[i] ?? {};
-
-    rows.push({
-      index: i,
-      dayName: day.name,
-      t1Exercise: t1ex,
-      t1Weight: t1[t1ex].w,
-      t1Stage: t1[t1ex].s,
-      t1Sets: t1s.sets,
-      t1Reps: t1s.reps,
-      t2Exercise: t2ex,
-      t2Weight: t2[t2ex].w,
-      t2Stage: t2[t2ex].s,
-      t2Sets: t2s.sets,
-      t2Reps: t2s.reps,
-      t3Exercise: t3ex,
-      t3Weight: t3[t3ex],
-      isChanged: changed[t1ex] || t2changed[t2ex],
-      result: {
-        t1: res.t1,
-        t2: res.t2,
-        t3: res.t3,
-        t1Reps: res.t1Reps,
-        t3Reps: res.t3Reps,
-      },
-    });
-
-    // T1 progression
-    if (res.t1 === 'fail') {
-      changed[t1ex] = true;
-      if (t1[t1ex].s >= T1_MAX_STAGE) {
-        t1[t1ex].w = roundToNearestHalf(t1[t1ex].w * T1_DELOAD_MULTIPLIER);
-        t1[t1ex].s = 0;
-      } else {
-        t1[t1ex].s += 1;
-      }
-    } else {
-      t1[t1ex].w += inc(t1ex);
-    }
-
-    // T2 progression
-    if (res.t2 === 'fail') {
-      t2changed[t2ex] = true;
-      if (t2[t2ex].s >= T2_MAX_STAGE) {
-        t2[t2ex].w += T2_RESET_INCREMENT;
-        t2[t2ex].s = 0;
-      } else {
-        t2[t2ex].s += 1;
-      }
-    } else {
-      t2[t2ex].w += inc(t2ex);
-    }
-
-    // T3 progression
-    if (res.t3 === 'success') {
-      t3[t3ex] += T3_INCREMENT;
-    }
-  }
-
-  return rows;
+  const genericResults = convertLegacyResultsForGzclp(results);
+  const genericRows = computeGenericProgram(GZCLP_DEFINITION, startWeights, genericResults);
+  return genericRows.map(mapGenericToWorkoutRow);
 }

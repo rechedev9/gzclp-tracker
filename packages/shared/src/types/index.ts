@@ -38,6 +38,28 @@ export interface WorkoutRow {
   };
 }
 
+export interface GenericSlotRow {
+  readonly slotId: string;
+  readonly exerciseId: string;
+  readonly exerciseName: string;
+  readonly tier: 't1' | 't2' | 't3';
+  readonly weight: number;
+  readonly stage: number;
+  readonly sets: number;
+  readonly reps: number;
+  readonly isAmrap: boolean;
+  readonly result: ResultValue | undefined;
+  readonly amrapReps: number | undefined;
+  readonly isChanged: boolean;
+}
+
+export interface GenericWorkoutRow {
+  readonly index: number;
+  readonly dayName: string;
+  readonly slots: readonly GenericSlotRow[];
+  readonly isChanged: boolean;
+}
+
 export interface ChartDataPoint {
   workout: number;
   weight: number;

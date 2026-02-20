@@ -3,7 +3,6 @@ import {
   pgEnum,
   uuid,
   varchar,
-  text,
   timestamp,
   jsonb,
   smallint,
@@ -22,13 +21,13 @@ export const instanceStatusEnum = pgEnum('instance_status', ['active', 'complete
 export const resultTypeEnum = pgEnum('result_type', ['success', 'fail']);
 
 // ---------------------------------------------------------------------------
-// users — replaces Supabase Auth
+// users — Google OAuth identity
 // ---------------------------------------------------------------------------
 
 export const users = pgTable('users', {
   id: uuid().defaultRandom().primaryKey(),
   email: varchar({ length: 255 }).unique().notNull(),
-  passwordHash: text('password_hash').notNull(),
+  googleId: varchar('google_id', { length: 255 }).unique().notNull(),
   name: varchar({ length: 100 }),
   createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
   updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
@@ -158,30 +157,4 @@ export const undoEntriesRelations = relations(undoEntries, ({ one }) => ({
     fields: [undoEntries.instanceId],
     references: [programInstances.id],
   }),
-}));
-
-// ---------------------------------------------------------------------------
-// password_reset_tokens — one-time tokens for password reset flow
-// ---------------------------------------------------------------------------
-
-export const passwordResetTokens = pgTable(
-  'password_reset_tokens',
-  {
-    id: uuid().defaultRandom().primaryKey(),
-    userId: uuid('user_id')
-      .references(() => users.id, { onDelete: 'cascade' })
-      .notNull(),
-    tokenHash: varchar('token_hash', { length: 64 }).unique().notNull(),
-    expiresAt: timestamp('expires_at', { withTimezone: true }).notNull(),
-    usedAt: timestamp('used_at', { withTimezone: true }),
-    createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
-  },
-  (table) => [
-    index('password_reset_tokens_user_id_idx').on(table.userId),
-    index('password_reset_tokens_expires_at_idx').on(table.expiresAt),
-  ]
-);
-
-export const passwordResetTokensRelations = relations(passwordResetTokens, ({ one }) => ({
-  user: one(users, { fields: [passwordResetTokens.userId], references: [users.id] }),
 }));

@@ -24,12 +24,17 @@ const NoChangeRuleSchema = z.strictObject({
   type: z.literal('no_change'),
 });
 
+const AdvanceStageAddWeightRuleSchema = z.strictObject({
+  type: z.literal('advance_stage_add_weight'),
+});
+
 export const ProgressionRuleSchema = z.discriminatedUnion('type', [
   AddWeightRuleSchema,
   DeloadPercentRuleSchema,
   AdvanceStageRuleSchema,
   AddWeightResetStageRuleSchema,
   NoChangeRuleSchema,
+  AdvanceStageAddWeightRuleSchema,
 ]);
 
 // --- Stage Definition ---
@@ -52,6 +57,7 @@ export const ExerciseSlotSchema = z.strictObject({
   tier: TierSchema,
   stages: z.array(StageDefinitionSchema).min(1),
   onSuccess: ProgressionRuleSchema,
+  onUndefined: ProgressionRuleSchema.optional(),
   onMidStageFail: ProgressionRuleSchema,
   onFinalStageFail: ProgressionRuleSchema,
   startWeightKey: z.string().min(1),

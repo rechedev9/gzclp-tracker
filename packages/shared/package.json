@@ -5,6 +5,7 @@
   "type": "module",
   "exports": {
     "./engine": "./src/engine.ts",
+    "./generic-engine": "./src/generic-engine.ts",
     "./program": "./src/program.ts",
     "./stats": "./src/stats.ts",
     "./type-guards": "./src/type-guards.ts",
