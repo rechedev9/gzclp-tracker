@@ -48,7 +48,7 @@ export const StatsPanel = memo(function StatsPanel({ startWeights, results }: St
       </div>
 
       {/* Charts */}
-      <div className="grid grid-cols-1 gap-5">
+      <div className="grid grid-cols-2 gap-5 max-[900px]:grid-cols-1">
         {T1_EXERCISES.map((ex) => (
           <div key={ex} className="bg-[var(--bg-th)] border border-[var(--border-color)] p-4">
             <h4 className="text-sm font-bold mb-3">{NAMES[ex]} — Weight Progression</h4>
