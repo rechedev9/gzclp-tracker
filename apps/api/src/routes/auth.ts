@@ -316,7 +316,11 @@ export const authRoutes = new Elysia({ prefix: '/auth' })
         throw new ApiError(401, 'Missing or invalid authorization header', 'UNAUTHORIZED');
       }
 
-      const payload = await jwt.verify(authorization.slice(7));
+      const token = authorization.slice(7);
+      if (!token) {
+        throw new ApiError(401, 'Missing or invalid authorization header', 'UNAUTHORIZED');
+      }
+      const payload = await jwt.verify(token);
       if (!payload || typeof payload['sub'] !== 'string') {
         throw new ApiError(401, 'Invalid or expired token', 'TOKEN_INVALID');
       }
