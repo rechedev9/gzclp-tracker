@@ -25,7 +25,7 @@ export const AmrapInput = memo(function AmrapInput({
         const v = e.target.value;
         onChange(v === '' ? undefined : Math.max(0, parseInt(v, 10) || 0));
       }}
-      className={`${isCard ? 'w-12 px-1.5 py-1 text-[12px]' : 'w-10 px-1 py-0.5 text-[11px]'} text-center font-bold bg-transparent border border-[var(--border-color)] text-[var(--text-main)] focus:border-[var(--fill-progress)] focus:outline-none tabular-nums`}
+      className={`${isCard ? 'w-16 px-2 py-1.5 text-[13px]' : 'w-14 px-2 py-1.5 text-[13px]'} text-center font-bold bg-transparent border border-[var(--border-color)] text-[var(--text-main)] focus:border-[var(--fill-progress)] focus:outline-none tabular-nums`}
       title="AMRAP reps"
     />
   );
