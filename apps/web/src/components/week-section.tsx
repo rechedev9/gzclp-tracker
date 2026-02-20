@@ -75,9 +75,9 @@ export function WeekSection({
     <div className="mb-8 break-inside-avoid">
       <button
         type="button"
-        className="w-full bg-[var(--bg-header)] text-[var(--text-header)] px-5 py-3.5 flex justify-between items-center cursor-pointer select-none hover:opacity-90 border-none"
+        className={`w-full bg-[var(--bg-header)] text-[var(--text-header)] px-5 py-3.5 flex justify-between items-center select-none border-none ${forceExpanded ? 'cursor-default' : 'cursor-pointer hover:opacity-90'}`}
         aria-expanded={!collapsed}
-        onClick={() => setCollapsed(!collapsed)}
+        onClick={forceExpanded ? undefined : () => setCollapsed(!collapsed)}
       >
         <span
           className="font-display flex items-center gap-2.5"
