@@ -140,7 +140,7 @@ export const authRoutes = new Elysia({ prefix: '/auth' })
   .post(
     '/signin',
     async ({ jwt, body, cookie, reqLogger, ip }) => {
-      await rateLimit(ip, '/auth/signin');
+      await rateLimit(ip, '/auth/signin', { maxRequests: 10 });
       const user = await findUserByEmail(body.email);
       if (!user) {
         throw new ApiError(401, 'Invalid email or password', 'AUTH_INVALID_CREDENTIALS');
@@ -320,7 +320,7 @@ export const authRoutes = new Elysia({ prefix: '/auth' })
   .post(
     '/forgot-password',
     async ({ body, reqLogger, ip }) => {
-      await rateLimit(ip, '/auth/forgot-password');
+      await rateLimit(ip, '/auth/forgot-password', { windowMs: 15 * 60_000, maxRequests: 5 });
 
       // Always return 200 — never reveal whether the email exists
       const user = await findUserByEmail(body.email);
