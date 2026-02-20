@@ -37,6 +37,8 @@ function parseCorsOrigin(raw: string | undefined): string {
 
 const CORS_ORIGIN = parseCorsOrigin(process.env['CORS_ORIGIN']);
 const PORT = Number(process.env['PORT'] ?? 3001);
+// METRICS_TOKEN — optional. When set, GET /metrics requires "Authorization: Bearer <token>".
+// Leave unset in local development. Required in production to protect Prometheus metrics.
 
 // ---------------------------------------------------------------------------
 // Database migrations — run before accepting traffic
@@ -158,7 +160,14 @@ export const app = new Elysia()
       },
     }
   )
-  .get('/metrics', async ({ set }) => {
+  .get('/metrics', async ({ set, headers }) => {
+    const expectedToken = process.env['METRICS_TOKEN'];
+    if (expectedToken) {
+      const auth = headers['authorization'];
+      if (auth !== `Bearer ${expectedToken}`) {
+        throw new ApiError(401, 'Invalid metrics token', 'UNAUTHORIZED');
+      }
+    }
     set.headers['content-type'] = registry.contentType;
     return registry.metrics();
   })
