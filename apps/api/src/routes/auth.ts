@@ -27,7 +27,7 @@ import {
   REFRESH_TOKEN_DAYS,
 } from '../services/auth';
 import { checkLeakedPassword } from '../lib/password-check';
-import { sendPasswordResetEmail } from '../lib/email';
+import { sendPasswordResetEmail, sendSecurityAlertEmail } from '../lib/email';
 
 const ACCESS_TOKEN_EXPIRY = process.env['JWT_ACCESS_EXPIRY'] ?? '15m';
 const REFRESH_COOKIE_NAME = 'refresh_token';
@@ -204,6 +204,13 @@ export const authRoutes = new Elysia({ prefix: '/auth' })
             'refresh token reuse detected — revoking all user sessions'
           );
           await revokeAllUserTokens(successor.userId);
+          // Notify the user non-blocking — alert failure must not block the revocation
+          const alertTarget = await findUserById(successor.userId);
+          if (alertTarget) {
+            sendSecurityAlertEmail(alertTarget.email).catch((e: unknown) => {
+              reqLogger.error({ err: e }, 'Failed to send security alert email');
+            });
+          }
         }
         throw new ApiError(401, 'Invalid refresh token', 'AUTH_INVALID_REFRESH');
       }
