@@ -35,7 +35,6 @@ function ActiveProgramCard({
   const detailQuery = useQuery({
     queryKey: queryKeys.programs.detail(program.id),
     queryFn: () => fetchGenericProgramDetail(program.id),
-    enabled: true,
   });
 
   // Count workouts where ALL slots have a result (program-agnostic)

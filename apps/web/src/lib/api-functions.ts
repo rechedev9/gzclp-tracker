@@ -190,15 +190,14 @@ export async function fetchPrograms(): Promise<ProgramSummary[]> {
   return [];
 }
 
-/** Fetch a single program instance with full results and undo history. */
-export async function fetchProgram(id: string): Promise<ProgramDetail> {
-  const data = await apiFetch(`/programs/${encodeURIComponent(id)}`);
-  if (!isRecord(data)) throw new Error('Invalid program response');
+// ---------------------------------------------------------------------------
+// Shared result / undo parsers (used by both legacy and generic fetch)
+// ---------------------------------------------------------------------------
 
-  // Parse results as GenericResults (Record<string, Record<string, { result?, amrapReps? }>>)
-  const rawResults = isRecord(data.results) ? data.results : {};
-  const genericResults: GenericResults = {};
-  for (const [indexStr, slots] of Object.entries(rawResults)) {
+function parseGenericResults(raw: unknown): GenericResults {
+  if (!isRecord(raw)) return {};
+  const results: GenericResults = {};
+  for (const [indexStr, slots] of Object.entries(raw)) {
     if (!isRecord(slots)) continue;
     const slotMap: Record<string, { result?: 'success' | 'fail'; amrapReps?: number }> = {};
     for (const [slotId, slotData] of Object.entries(slots)) {
@@ -210,16 +209,27 @@ export async function fetchProgram(id: string): Promise<ProgramDetail> {
         ...(typeof slotData.amrapReps === 'number' ? { amrapReps: slotData.amrapReps } : {}),
       };
     }
-    genericResults[indexStr] = slotMap;
+    results[indexStr] = slotMap;
   }
+  return results;
+}
 
-  // Parse undo history
-  const rawUndo = Array.isArray(data.undoHistory) ? data.undoHistory : [];
-  const genericUndo: GenericUndoHistory = rawUndo.filter(isRecord).map((entry) => ({
+function parseGenericUndoHistory(raw: unknown): GenericUndoHistory {
+  if (!Array.isArray(raw)) return [];
+  return raw.filter(isRecord).map((entry) => ({
     i: typeof entry.i === 'number' ? entry.i : 0,
     slotId: typeof entry.slotId === 'string' ? entry.slotId : '',
     ...(entry.prev === 'success' || entry.prev === 'fail' ? { prev: entry.prev } : {}),
   }));
+}
+
+/** Fetch a single program instance with full results and undo history. */
+export async function fetchProgram(id: string): Promise<ProgramDetail> {
+  const data = await apiFetch(`/programs/${encodeURIComponent(id)}`);
+  if (!isRecord(data)) throw new Error('Invalid program response');
+
+  const genericResults = parseGenericResults(data.results);
+  const genericUndo = parseGenericUndoHistory(data.undoHistory);
 
   return {
     ...parseSummary(data),
@@ -329,37 +339,13 @@ export async function fetchGenericProgramDetail(id: string): Promise<GenericProg
   const data = await apiFetch(`/programs/${encodeURIComponent(id)}`);
   if (!isRecord(data)) throw new Error('Invalid program response');
 
-  const rawResults = isRecord(data.results) ? data.results : {};
-  const genericResults: GenericResults = {};
-  for (const [indexStr, slots] of Object.entries(rawResults)) {
-    if (!isRecord(slots)) continue;
-    const slotMap: Record<string, { result?: 'success' | 'fail'; amrapReps?: number }> = {};
-    for (const [slotId, slotData] of Object.entries(slots)) {
-      if (!isRecord(slotData)) continue;
-      slotMap[slotId] = {
-        ...(slotData.result === 'success' || slotData.result === 'fail'
-          ? { result: slotData.result }
-          : {}),
-        ...(typeof slotData.amrapReps === 'number' ? { amrapReps: slotData.amrapReps } : {}),
-      };
-    }
-    genericResults[indexStr] = slotMap;
-  }
-
-  const rawUndo = Array.isArray(data.undoHistory) ? data.undoHistory : [];
-  const genericUndo: GenericUndoHistory = rawUndo.filter(isRecord).map((entry) => ({
-    i: typeof entry.i === 'number' ? entry.i : 0,
-    slotId: typeof entry.slotId === 'string' ? entry.slotId : '',
-    ...(entry.prev === 'success' || entry.prev === 'fail' ? { prev: entry.prev } : {}),
-  }));
-
   return {
     id: String(data.id ?? ''),
     programId: String(data.programId ?? ''),
     name: String(data.name ?? ''),
     config: parseNumericRecord(data.config),
-    results: genericResults,
-    undoHistory: genericUndo,
+    results: parseGenericResults(data.results),
+    undoHistory: parseGenericUndoHistory(data.undoHistory),
     status: String(data.status ?? 'active'),
   };
 }

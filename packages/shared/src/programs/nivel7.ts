@@ -5,7 +5,8 @@ import type { ProgramDefinition } from '../types/program';
 // ---------------------------------------------------------------------------
 
 type Tier = 't1' | 't2' | 't3';
-type ProgressionRule = ProgramDefinition['days'][number]['slots'][number]['onSuccess'];
+type ExerciseSlot = ProgramDefinition['days'][number]['slots'][number];
+type ProgressionRule = ExerciseSlot['onSuccess'];
 
 const NO_CHANGE: ProgressionRule = { type: 'no_change' };
 const ADD_WEIGHT: ProgressionRule = { type: 'add_weight' };
@@ -18,17 +19,7 @@ interface MainLiftOpts {
   readonly isDeadlift?: boolean;
 }
 
-function mainLift({ exerciseId, block, sets, reps, isDeadlift }: MainLiftOpts): {
-  id: string;
-  exerciseId: string;
-  tier: Tier;
-  stages: [{ sets: number; reps: number }];
-  onSuccess: ProgressionRule;
-  onUndefined: ProgressionRule;
-  onMidStageFail: ProgressionRule;
-  onFinalStageFail: ProgressionRule;
-  startWeightKey: string;
-} {
+function mainLift({ exerciseId, block, sets, reps, isDeadlift }: MainLiftOpts): ExerciseSlot {
   return {
     id: `${exerciseId}-b${block}`,
     exerciseId,
@@ -42,21 +33,7 @@ function mainLift({ exerciseId, block, sets, reps, isDeadlift }: MainLiftOpts): 
   };
 }
 
-function acc(
-  exerciseId: string,
-  tier: Tier,
-  sets: number,
-  reps: number
-): {
-  id: string;
-  exerciseId: string;
-  tier: Tier;
-  stages: [{ sets: number; reps: number }];
-  onSuccess: ProgressionRule;
-  onMidStageFail: ProgressionRule;
-  onFinalStageFail: ProgressionRule;
-  startWeightKey: string;
-} {
+function acc(exerciseId: string, tier: Tier, sets: number, reps: number): ExerciseSlot {
   return {
     id: exerciseId,
     exerciseId,

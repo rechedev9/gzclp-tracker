@@ -36,6 +36,12 @@ export function AppShell(): React.ReactNode {
     [navigate]
   );
 
+  const clearSelection = useCallback((): void => {
+    setSelectedInstanceId(undefined);
+    setSelectedProgramId(undefined);
+    setPendingProgramId(undefined);
+  }, []);
+
   const handleSelectProgram = useCallback(
     (instanceId: string, programId: string): void => {
       setSelectedInstanceId(instanceId);
@@ -57,19 +63,14 @@ export function AppShell(): React.ReactNode {
   );
 
   const handleContinueProgram = useCallback((): void => {
-    // No specific instance — hooks will pick the first active one
-    setSelectedInstanceId(undefined);
-    setSelectedProgramId(undefined);
-    setPendingProgramId(undefined);
+    clearSelection();
     setView('tracker');
-  }, [setView]);
+  }, [clearSelection, setView]);
 
   const handleBackToDashboard = useCallback((): void => {
-    setSelectedInstanceId(undefined);
-    setSelectedProgramId(undefined);
-    setPendingProgramId(undefined);
+    clearSelection();
     setView('dashboard');
-  }, [setView]);
+  }, [clearSelection, setView]);
 
   const handleGoToProfile = useCallback((): void => {
     setView('profile');
