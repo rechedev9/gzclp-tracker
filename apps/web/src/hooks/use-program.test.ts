@@ -6,6 +6,33 @@ import { DEFAULT_WEIGHTS } from '../../test/helpers/fixtures';
 import type { ProgramSummary, ProgramDetail } from '@/lib/api-functions';
 
 // ---------------------------------------------------------------------------
+// Shared fixtures
+// ---------------------------------------------------------------------------
+
+const PROGRAM_DETAIL: ProgramDetail = {
+  id: 'inst-1',
+  programId: 'gzclp',
+  name: 'GZCLP',
+  config: { ...DEFAULT_WEIGHTS },
+  status: 'active',
+  createdAt: '2025-01-01',
+  updatedAt: '2025-01-01',
+  startWeights: DEFAULT_WEIGHTS,
+  results: {},
+  undoHistory: [],
+};
+
+const PROGRAM_SUMMARY: ProgramSummary = {
+  id: PROGRAM_DETAIL.id,
+  programId: PROGRAM_DETAIL.programId,
+  name: PROGRAM_DETAIL.name,
+  config: PROGRAM_DETAIL.config,
+  status: PROGRAM_DETAIL.status,
+  createdAt: PROGRAM_DETAIL.createdAt,
+  updatedAt: PROGRAM_DETAIL.updatedAt,
+};
+
+// ---------------------------------------------------------------------------
 // Mock setup
 // ---------------------------------------------------------------------------
 
@@ -13,6 +40,13 @@ import type { ProgramSummary, ProgramDetail } from '@/lib/api-functions';
 // This avoids mock.module('@/contexts/auth-context') which contaminates the
 // module registry for auth-context.test.tsx when test files run in a
 // different order on Linux (CI filesystem readdir != Windows alphabetical).
+
+function apiFetchDefault(path: string): Promise<unknown> {
+  if (path === '/auth/me') {
+    return Promise.resolve({ id: 'user-1', email: 'test@test.com', name: null });
+  }
+  return Promise.reject(new Error(`Unexpected apiFetch path: ${path}`));
+}
 
 const mockRefreshAccessToken = mock<() => Promise<string | null>>(() =>
   Promise.resolve('fake-access-token')
@@ -24,32 +58,12 @@ mock.module('@/lib/api', () => ({
   getAccessToken: mock<() => string | null>(() => 'fake-access-token'),
 }));
 
-// apiFetch handles /auth/me for AuthProvider's session restore on mount.
-const mockApiFetch = mock<(path: string, options?: RequestInit) => Promise<unknown>>(
-  (path: string) => {
-    if (path === '/auth/me') {
-      return Promise.resolve({ id: 'user-1', email: 'test@test.com', name: null });
-    }
-    return Promise.reject(new Error(`Unexpected apiFetch path: ${path}`));
-  }
-);
-
+const mockApiFetch =
+  mock<(path: string, options?: RequestInit) => Promise<unknown>>(apiFetchDefault);
 const mockFetchPrograms = mock<() => Promise<ProgramSummary[]>>(() => Promise.resolve([]));
 const mockFetchProgram = mock<(id: string) => Promise<ProgramDetail>>(() =>
-  Promise.resolve({
-    id: 'inst-1',
-    programId: 'gzclp',
-    name: 'GZCLP',
-    config: { ...DEFAULT_WEIGHTS },
-    status: 'active',
-    createdAt: '2025-01-01',
-    updatedAt: '2025-01-01',
-    startWeights: DEFAULT_WEIGHTS,
-    results: {},
-    undoHistory: [],
-  })
+  Promise.resolve(PROGRAM_DETAIL)
 );
-
 const mockImportProgram = mock(() => Promise.resolve({ id: 'imported-1' }));
 
 mock.module('@/lib/api-functions', () => ({
@@ -92,30 +106,15 @@ function createWrapper(): React.FC<{ readonly children: React.ReactNode }> {
 function resetAllMocks(): void {
   mockRefreshAccessToken.mockReset();
   mockRefreshAccessToken.mockImplementation(() => Promise.resolve('fake-access-token'));
+
   mockApiFetch.mockReset();
-  mockApiFetch.mockImplementation((path: string) => {
-    if (path === '/auth/me') {
-      return Promise.resolve({ id: 'user-1', email: 'test@test.com', name: null });
-    }
-    return Promise.reject(new Error(`Unexpected apiFetch path: ${path}`));
-  });
+  mockApiFetch.mockImplementation(apiFetchDefault);
+
   mockFetchPrograms.mockReset();
   mockFetchPrograms.mockImplementation(() => Promise.resolve([]));
+
   mockFetchProgram.mockReset();
-  mockFetchProgram.mockImplementation(() =>
-    Promise.resolve({
-      id: 'inst-1',
-      programId: 'gzclp',
-      name: 'GZCLP',
-      config: { ...DEFAULT_WEIGHTS },
-      status: 'active',
-      createdAt: '2025-01-01',
-      updatedAt: '2025-01-01',
-      startWeights: DEFAULT_WEIGHTS,
-      results: {},
-      undoHistory: [],
-    })
-  );
+  mockFetchProgram.mockImplementation(() => Promise.resolve(PROGRAM_DETAIL));
 }
 
 // ---------------------------------------------------------------------------
@@ -145,32 +144,9 @@ describe('useProgram', () => {
 
   describe('when user has an active program', () => {
     it('should fetch and return the active program data', async () => {
-      mockFetchPrograms.mockImplementation(() =>
-        Promise.resolve([
-          {
-            id: 'inst-1',
-            programId: 'gzclp',
-            name: 'GZCLP',
-            config: { ...DEFAULT_WEIGHTS },
-            status: 'active',
-            createdAt: '2025-01-01',
-            updatedAt: '2025-01-01',
-          },
-        ])
-      );
+      mockFetchPrograms.mockImplementation(() => Promise.resolve([PROGRAM_SUMMARY]));
       mockFetchProgram.mockImplementation(() =>
-        Promise.resolve({
-          id: 'inst-1',
-          programId: 'gzclp',
-          name: 'GZCLP',
-          config: { ...DEFAULT_WEIGHTS },
-          status: 'active',
-          createdAt: '2025-01-01',
-          updatedAt: '2025-01-01',
-          startWeights: DEFAULT_WEIGHTS,
-          results: { 0: { t1: 'success' } },
-          undoHistory: [],
-        })
+        Promise.resolve({ ...PROGRAM_DETAIL, results: { 0: { t1: 'success' } } })
       );
 
       const wrapper = createWrapper();
@@ -240,9 +216,6 @@ describe('useProgram', () => {
 
       const outcome = await result.current.importData(validJson);
       expect(outcome).toBe(false);
-
-      // Restore the mock
-      mockImportProgram.mockImplementation(() => Promise.resolve({ id: 'imported-1' }));
     });
 
     it('returns false for malformed JSON', async () => {
