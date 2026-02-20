@@ -18,6 +18,7 @@ export async function sendPasswordResetEmail(email: string, resetUrl: string): P
 
   const res = await fetch('https://api.resend.com/emails', {
     method: 'POST',
+    signal: AbortSignal.timeout(5_000),
     headers: { Authorization: `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
     body: JSON.stringify({
       from: process.env['EMAIL_FROM'] ?? 'noreply@gzclp.app',
@@ -45,6 +46,7 @@ export async function sendSecurityAlertEmail(email: string): Promise<void> {
 
   const res = await fetch('https://api.resend.com/emails', {
     method: 'POST',
+    signal: AbortSignal.timeout(5_000),
     headers: { Authorization: `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
     body: JSON.stringify({
       from: process.env['EMAIL_FROM'] ?? 'noreply@gzclp.app',
