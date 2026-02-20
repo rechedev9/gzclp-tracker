@@ -10,12 +10,12 @@ describe('convertResultsToLegacy', () => {
     expect(convertResultsToLegacy({})).toEqual({});
   });
 
-  it('should map d1-t1/d1-t2/d1-t3 to t1/t2/t3 for Day 1', () => {
+  it('should map d1-t1/d1-t2/latpulldown-t3 to t1/t2/t3 for Day 1', () => {
     const generic: GenericResults = {
       '0': {
         'd1-t1': { result: 'success' },
         'd1-t2': { result: 'fail' },
-        'd1-t3': { result: 'success' },
+        'latpulldown-t3': { result: 'success' },
       },
     };
     const legacy = convertResultsToLegacy(generic);
@@ -43,7 +43,7 @@ describe('convertResultsToLegacy', () => {
     const generic: GenericResults = {
       '0': {
         'd1-t1': { result: 'success', amrapReps: 12 },
-        'd1-t3': { result: 'success', amrapReps: 25 },
+        'latpulldown-t3': { result: 'success', amrapReps: 25 },
       },
     };
     const legacy = convertResultsToLegacy(generic);
@@ -69,7 +69,7 @@ describe('convertResultsToLegacy', () => {
     const generic: GenericResults = {
       '0': { 'd1-t1': { result: 'success' } },
       '50': { 'd3-t2': { result: 'fail' } },
-      '89': { 'd2-t3': { result: 'success' } },
+      '89': { 'dbrow-t3': { result: 'success' } },
     };
     const legacy = convertResultsToLegacy(generic);
 
@@ -99,7 +99,7 @@ describe('convertUndoToLegacy', () => {
   });
 
   it('should handle entries without prev value', () => {
-    const generic: GenericUndoHistory = [{ i: 0, slotId: 'd1-t3' }];
+    const generic: GenericUndoHistory = [{ i: 0, slotId: 'latpulldown-t3' }];
     const legacy = convertUndoToLegacy(generic);
 
     expect(legacy[0]).toEqual({ i: 0, tier: 't3', prev: undefined });
