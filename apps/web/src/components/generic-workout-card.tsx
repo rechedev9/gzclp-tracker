@@ -125,12 +125,11 @@ export const GenericWorkoutCard = memo(function GenericWorkoutCard({
 }: GenericWorkoutCardProps) {
   const allDone = row.slots.every((s) => s.result !== undefined);
 
-  // Build per-slot wrapper callbacks that capture the slotId.
+  // Wrapper callbacks that capture the slotId for each slot.
   // ResultCell calls back with (index, tier, value) but we route to (index, slotId, value).
   const slotCallbacks = useMemo(
     () =>
       row.slots.map((slot) => ({
-        slotId: slot.slotId,
         mark: (_index: number, _tier: Tier, value: ResultValue): void => {
           onMark(row.index, slot.slotId, value);
         },
