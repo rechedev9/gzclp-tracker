@@ -11,7 +11,7 @@ import { requestLogger } from './middleware/request-logger';
 import { swaggerPlugin } from './plugins/swagger';
 import { metricsPlugin } from './plugins/metrics';
 import { registry } from './lib/metrics';
-import { cleanupExpiredTokens, cleanupExpiredPasswordResetTokens } from './services/auth';
+import { cleanupExpiredTokens } from './services/auth';
 import { authRoutes } from './routes/auth';
 import { programRoutes } from './routes/programs';
 import { catalogRoutes } from './routes/catalog';
@@ -196,19 +196,12 @@ process.on('SIGTERM', () => {
 });
 
 // ---------------------------------------------------------------------------
-// Expired token cleanup — run at startup then every 6h
+// Expired refresh token cleanup — run at startup then every 6h
 // ---------------------------------------------------------------------------
 
 const TOKEN_CLEANUP_INTERVAL_MS = 6 * 60 * 60 * 1000;
 
-function runCleanup(): void {
-  cleanupExpiredTokens().catch((e: unknown) =>
-    logger.error({ err: e }, 'Refresh token cleanup failed')
-  );
-  cleanupExpiredPasswordResetTokens().catch((e: unknown) =>
-    logger.error({ err: e }, 'Password reset token cleanup failed')
-  );
-}
-
-runCleanup();
-setInterval(runCleanup, TOKEN_CLEANUP_INTERVAL_MS);
+cleanupExpiredTokens().catch((e: unknown) => logger.error({ err: e }, 'Token cleanup failed'));
+setInterval(() => {
+  cleanupExpiredTokens().catch((e: unknown) => logger.error({ err: e }, 'Token cleanup failed'));
+}, TOKEN_CLEANUP_INTERVAL_MS);
