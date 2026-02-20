@@ -253,7 +253,7 @@ export function SetupForm({ initialWeights, onGenerate, onUpdateWeights }: Setup
         </>
       ) : (
         <div className="bg-[var(--bg-card)] border border-[var(--border-color)] p-4 sm:p-7 mb-7">
-          {formContent}
+          <div className="max-w-2xl">{formContent}</div>
         </div>
       )}
 
