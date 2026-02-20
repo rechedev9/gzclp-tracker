@@ -7,6 +7,7 @@ interface WeekSectionProps {
   week: number;
   rows: WorkoutRowType[];
   firstPendingIdx: number;
+  forceExpanded?: boolean;
   onMark: (index: number, tier: Tier, value: ResultValue) => void;
   onSetAmrapReps: (index: number, field: 't1Reps' | 't3Reps', reps: number | undefined) => void;
   onUndo: (index: number, tier: Tier) => void;
@@ -52,6 +53,7 @@ export function WeekSection({
   week,
   rows,
   firstPendingIdx,
+  forceExpanded,
   onMark,
   onSetAmrapReps,
   onUndo,
@@ -62,9 +64,9 @@ export function WeekSection({
   const startWo = rows[0].index + 1;
   const endWo = rows[rows.length - 1].index + 1;
 
-  // Force-render current week and neighbors immediately
+  // Force-render current week and neighbors immediately; or when explicitly forced
   const currentWeek = firstPendingIdx >= 0 ? Math.floor(firstPendingIdx / 3) + 1 : 1;
-  const forceVisible = Math.abs(week - currentWeek) <= 1;
+  const forceVisible = forceExpanded === true || Math.abs(week - currentWeek) <= 1;
 
   // Only expand current week and its neighbors; all others start collapsed
   const [collapsed, setCollapsed] = useState(!forceVisible);
@@ -73,9 +75,9 @@ export function WeekSection({
     <div className="mb-8 break-inside-avoid">
       <button
         type="button"
-        className="w-full bg-[var(--bg-header)] text-[var(--text-header)] px-5 py-3.5 flex justify-between items-center cursor-pointer select-none hover:opacity-90 border-none"
+        className={`w-full bg-[var(--bg-header)] text-[var(--text-header)] px-5 py-3.5 flex justify-between items-center select-none border-none ${forceExpanded ? 'cursor-default' : 'cursor-pointer hover:opacity-90'}`}
         aria-expanded={!collapsed}
-        onClick={() => setCollapsed(!collapsed)}
+        onClick={forceExpanded ? undefined : () => setCollapsed(!collapsed)}
       >
         <span
           className="font-display flex items-center gap-2.5"

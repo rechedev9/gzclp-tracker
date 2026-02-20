@@ -1,4 +1,4 @@
-import { useState, useMemo, useCallback, type ReactNode } from 'react';
+import { useState, useMemo, useCallback, useEffect, useRef, type ReactNode } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import type { Tier, ResultValue } from '@gzclp/shared/types';
 import { useProgram } from '@/hooks/use-program';
@@ -36,6 +36,85 @@ function TabButton({
     >
       {children}
     </button>
+  );
+}
+
+interface WeekNavigatorProps {
+  readonly selectedWeek: number;
+  readonly totalWeeks: number;
+  readonly currentWeekNumber: number;
+  readonly weekDoneCount: number;
+  readonly weekTotalCount: number;
+  readonly onPrev: () => void;
+  readonly onNext: () => void;
+  readonly onGoToCurrent: () => void;
+}
+
+function WeekNavigator({
+  selectedWeek,
+  totalWeeks,
+  currentWeekNumber,
+  weekDoneCount,
+  weekTotalCount,
+  onPrev,
+  onNext,
+  onGoToCurrent,
+}: WeekNavigatorProps): ReactNode {
+  return (
+    <div className="flex items-center gap-3 mb-4">
+      <button
+        type="button"
+        onClick={onPrev}
+        disabled={selectedWeek <= 1}
+        aria-label="Previous week"
+        className="font-mono text-[11px] font-bold tracking-widest uppercase px-4 py-2.5 border-2 border-[var(--border-color)] bg-[var(--bg-card)] text-[var(--text-muted)] disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer transition-colors hover:bg-[var(--bg-hover-row)] hover:text-[var(--text-main)]"
+      >
+        ← Prev
+      </button>
+
+      <div className="flex-1 flex flex-col items-center gap-1">
+        <div className="flex items-center gap-2">
+          <span className="font-display" style={{ fontSize: '20px', letterSpacing: '0.05em' }}>
+            Week {selectedWeek}
+          </span>
+          <span
+            className="font-mono text-[var(--text-muted)] tabular-nums"
+            style={{ fontSize: '10px', letterSpacing: '0.1em' }}
+          >
+            / {totalWeeks}
+          </span>
+        </div>
+        <div className="flex items-center gap-3">
+          <span
+            className={`font-mono ${weekDoneCount === weekTotalCount ? 'text-[var(--fill-progress)]' : 'text-[var(--text-muted)]'}`}
+            style={{ fontSize: '11px', letterSpacing: '0.25em' }}
+            aria-label={`${weekDoneCount} of ${weekTotalCount} workouts done`}
+          >
+            {'●'.repeat(weekDoneCount)}
+            {'○'.repeat(weekTotalCount - weekDoneCount)}
+          </span>
+          {selectedWeek !== currentWeekNumber && (
+            <button
+              type="button"
+              onClick={onGoToCurrent}
+              className="font-mono text-[10px] font-bold tracking-widest uppercase text-[var(--fill-progress)] hover:underline cursor-pointer bg-transparent border-none p-0"
+            >
+              → Current
+            </button>
+          )}
+        </div>
+      </div>
+
+      <button
+        type="button"
+        onClick={onNext}
+        disabled={selectedWeek >= totalWeeks}
+        aria-label="Next week"
+        className="font-mono text-[11px] font-bold tracking-widest uppercase px-4 py-2.5 border-2 border-[var(--border-color)] bg-[var(--bg-card)] text-[var(--text-muted)] disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer transition-colors hover:bg-[var(--bg-hover-row)] hover:text-[var(--text-main)]"
+      >
+        Next →
+      </button>
+    </div>
   );
 }
 
@@ -95,6 +174,33 @@ export function GZCLPApp({
     [rows]
   );
 
+  const currentWeekNumber = useMemo(
+    () => (firstPendingIdx >= 0 ? Math.floor(firstPendingIdx / 3) + 1 : Math.max(weeks.length, 1)),
+    [firstPendingIdx, weeks.length]
+  );
+
+  const [selectedWeek, setSelectedWeek] = useState<number>(1);
+
+  // Ref holds the latest currentWeekNumber without being a dep of the effect below,
+  // so we only jump to the current week when the program is generated/weights updated,
+  // not on every result mark.
+  const currentWeekNumberRef = useRef(currentWeekNumber);
+  currentWeekNumberRef.current = currentWeekNumber;
+
+  useEffect(() => {
+    if (currentWeekNumberRef.current > 0) {
+      setSelectedWeek(currentWeekNumberRef.current);
+    }
+  }, [startWeights]);
+
+  const weekDoneCount = useMemo(
+    () =>
+      (weeks[selectedWeek - 1]?.rows ?? []).filter((r) => r.result.t1 && r.result.t2 && r.result.t3)
+        .length,
+    [weeks, selectedWeek]
+  );
+  const weekTotalCount = weeks[selectedWeek - 1]?.rows.length ?? 3;
+
   const handleMarkResult = useCallback(
     (index: number, tier: Tier, value: ResultValue): void => {
       markResult(index, tier, value);
@@ -116,17 +222,34 @@ export function GZCLPApp({
   );
 
   const jumpToCurrent = useCallback(() => {
-    const el = document.querySelector('[data-current-row]');
-    if (el) {
-      el.scrollIntoView({ behavior: 'smooth', block: 'center' });
-      el.classList.add('highlight-current');
-      const handleEnd = (): void => {
-        el.classList.remove('highlight-current');
-        el.removeEventListener('animationend', handleEnd);
-      };
-      el.addEventListener('animationend', handleEnd);
-    }
-  }, []);
+    setSelectedWeek(currentWeekNumber);
+    // Double rAF ensures the new week's DOM is fully painted before scrolling
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        const el = document.querySelector('[data-current-row]');
+        if (el) {
+          el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          el.classList.add('highlight-current');
+          const handleEnd = (): void => {
+            el.classList.remove('highlight-current');
+            el.removeEventListener('animationend', handleEnd);
+          };
+          el.addEventListener('animationend', handleEnd);
+        }
+      });
+    });
+  }, [currentWeekNumber]);
+
+  useEffect(() => {
+    if (activeTab !== 'program' || !startWeights) return;
+    const handleKeyDown = (e: KeyboardEvent): void => {
+      if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return;
+      if (e.key === 'ArrowLeft') setSelectedWeek((w) => Math.max(1, w - 1));
+      else if (e.key === 'ArrowRight') setSelectedWeek((w) => Math.min(weeks.length, w + 1));
+    };
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, [activeTab, startWeights, weeks.length]);
 
   const handleSignOut = useCallback(async (): Promise<void> => {
     await signOut();
@@ -221,34 +344,43 @@ export function GZCLPApp({
                         <strong>Yellow rows</strong> — Recalculated because of a previous Fail
                       </li>
                     </ul>
+                    <div className="flex items-center gap-4 mt-4 pt-4 border-t border-[var(--border-light)] text-[12px] font-bold">
+                      <span className="text-[var(--text-muted)] mr-1">Stages:</span>
+                      <span className="inline-flex items-center gap-1.5">
+                        <StageTag stage={0} size="md" /> Normal
+                      </span>
+                      <span className="inline-flex items-center gap-1.5">
+                        <StageTag stage={1} size="md" /> Caution
+                      </span>
+                      <span className="inline-flex items-center gap-1.5">
+                        <StageTag stage={2} size="md" /> Reset
+                      </span>
+                    </div>
                   </div>
                 </details>
 
-                {/* Stage Legend */}
-                <div className="flex items-center gap-4 mb-5 text-[12px] font-bold">
-                  <span className="text-[var(--text-muted)] mr-1">Stages:</span>
-                  <span className="inline-flex items-center gap-1.5">
-                    <StageTag stage={0} size="md" /> Normal
-                  </span>
-                  <span className="inline-flex items-center gap-1.5">
-                    <StageTag stage={1} size="md" /> Caution
-                  </span>
-                  <span className="inline-flex items-center gap-1.5">
-                    <StageTag stage={2} size="md" /> Reset
-                  </span>
-                </div>
-
-                {weeks.map(({ week, rows: weekRows }) => (
+                <WeekNavigator
+                  selectedWeek={selectedWeek}
+                  totalWeeks={weeks.length}
+                  currentWeekNumber={currentWeekNumber}
+                  weekDoneCount={weekDoneCount}
+                  weekTotalCount={weekTotalCount}
+                  onPrev={() => setSelectedWeek((w) => Math.max(1, w - 1))}
+                  onNext={() => setSelectedWeek((w) => Math.min(weeks.length, w + 1))}
+                  onGoToCurrent={jumpToCurrent}
+                />
+                {weeks[selectedWeek - 1] && (
                   <WeekSection
-                    key={week}
-                    week={week}
-                    rows={weekRows}
+                    key={selectedWeek}
+                    week={selectedWeek}
+                    rows={weeks[selectedWeek - 1].rows}
                     firstPendingIdx={firstPendingIdx}
+                    forceExpanded
                     onMark={handleMarkResult}
                     onSetAmrapReps={setAmrapReps}
                     onUndo={undoSpecific}
                   />
-                ))}
+                )}
               </>
             )}
 
