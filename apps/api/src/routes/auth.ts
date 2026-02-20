@@ -32,6 +32,28 @@ import { sendPasswordResetEmail, sendSecurityAlertEmail } from '../lib/email';
 const ACCESS_TOKEN_EXPIRY = process.env['JWT_ACCESS_EXPIRY'] ?? '15m';
 const REFRESH_COOKIE_NAME = 'refresh_token';
 
+function resolveAppUrl(): string {
+  const raw = process.env['APP_URL'];
+  if (!raw) {
+    if (process.env['NODE_ENV'] === 'production') {
+      throw new Error('APP_URL env var must be set in production');
+    }
+    return 'http://localhost:3000';
+  }
+  try {
+    const url = new URL(raw);
+    if (process.env['NODE_ENV'] === 'production' && url.protocol !== 'https:') {
+      throw new Error('APP_URL must use HTTPS in production');
+    }
+  } catch (e) {
+    if (e instanceof Error && e.message.startsWith('APP_URL')) throw e;
+    throw new Error(`APP_URL is not a valid URL: "${raw}"`);
+  }
+  return raw;
+}
+
+const APP_URL = resolveAppUrl();
+
 function isProductionEnv(): boolean {
   return process.env['NODE_ENV'] === 'production';
 }
@@ -333,7 +355,6 @@ export const authRoutes = new Elysia({ prefix: '/auth' })
       const user = await findUserByEmail(body.email);
       if (user) {
         const token = await createPasswordResetToken(user.id);
-        const APP_URL = process.env['APP_URL'] ?? 'http://localhost:3000';
         const resetUrl = `${APP_URL}/reset-password?token=${token}`;
         await sendPasswordResetEmail(user.email, resetUrl).catch((e: unknown) => {
           reqLogger.error({ err: e }, 'Failed to send reset email');
@@ -363,7 +384,7 @@ export const authRoutes = new Elysia({ prefix: '/auth' })
   .post(
     '/reset-password',
     async ({ body, reqLogger, ip }) => {
-      await rateLimit(ip, '/auth/reset-password');
+      await rateLimit(ip, '/auth/reset-password', { windowMs: 15 * 60_000, maxRequests: 5 });
       const leaked = await checkLeakedPassword(body.password);
       if (leaked) {
         throw new ApiError(400, 'Password found in known data breaches', 'WEAK_PASSWORD');

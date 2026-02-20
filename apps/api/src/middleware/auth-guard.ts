@@ -54,6 +54,9 @@ export async function resolveUserId({
   }
 
   const token = authorization.slice(7);
+  if (!token) {
+    throw new ApiError(401, 'Missing or invalid authorization header', 'UNAUTHORIZED');
+  }
   const payload = await jwtCtx.verify(token);
 
   if (!payload) {
