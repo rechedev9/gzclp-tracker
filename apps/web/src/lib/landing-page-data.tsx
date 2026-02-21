@@ -44,8 +44,8 @@ export const FEATURES: readonly Feature[] = [
         <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z" strokeLinecap="round" strokeLinejoin="round" />
       </svg>
     ),
-    title: 'Smart Progression',
-    desc: 'The app decides when to add weight and how to handle failure. You just show up and lift.',
+    title: 'Progresión Inteligente',
+    desc: 'La app decide cuándo agregar peso y cómo manejar el fallo. Tú solo apareces y entrenas.',
   },
   {
     icon: (
@@ -61,8 +61,8 @@ export const FEATURES: readonly Feature[] = [
         <path d="M16 2v4M8 2v4M3 10h18" strokeLinecap="round" />
       </svg>
     ),
-    title: 'Proven Programs',
-    desc: 'Science-backed training programs with structured periodization. New programs added regularly.',
+    title: 'Programas Probados',
+    desc: 'Programas de entrenamiento respaldados por la ciencia con periodización estructurada. Nuevos programas agregados regularmente.',
   },
   {
     icon: (
@@ -77,8 +77,8 @@ export const FEATURES: readonly Feature[] = [
         <path d="M22 12h-4l-3 9L9 3l-3 9H2" strokeLinecap="round" strokeLinejoin="round" />
       </svg>
     ),
-    title: 'Stats & Charts',
-    desc: 'See your strength curve over time. Real data, not guesswork.',
+    title: 'Estadísticas y Gráficas',
+    desc: 'Ve tu curva de fuerza a lo largo del tiempo. Datos reales, no suposiciones.',
   },
   {
     icon: (
@@ -97,32 +97,33 @@ export const FEATURES: readonly Feature[] = [
         />
       </svg>
     ),
-    title: 'Offline First',
-    desc: 'Works without internet. Your data stays on your device. Optional cloud sync if you want it.',
+    title: 'Sin Conexión Primero',
+    desc: 'Funciona sin internet. Tus datos se quedan en tu dispositivo. Sincronización opcional si la necesitas.',
   },
 ];
 
 export const STEPS: readonly Step[] = [
   {
     num: '01',
-    title: 'Set Your Weights',
-    desc: 'Enter your starting weights for each lift. The program builds your entire 90-workout plan instantly.',
-    quote: '"I\'ll surpass my limits right here, right now."',
-    source: '\u2014 Goku, entering the Hyperbolic Time Chamber',
+    title: 'Establece tus Pesos',
+    desc: 'Ingresa tus pesos iniciales para cada levantamiento. El programa construye tu plan completo de 90 entrenamientos al instante.',
+    quote: '"Superaré mis límites aquí y ahora."',
+    source: '\u2014 Goku, entrando a la Cámara del Tiempo',
   },
   {
     num: '02',
-    title: 'Follow the Program',
-    desc: 'Each workout tells you exactly what to do \u2014 exercise, sets, reps, weight. No guessing.',
-    quote: '"A year in here is only a day outside. Let\'s make every second count."',
-    source: '\u2014 Vegeta, Hyperbolic Time Chamber',
+    title: 'Sigue el Programa',
+    desc: 'Cada entrenamiento te dice exactamente qué hacer \u2014 ejercicio, series, repeticiones, peso. Sin adivinar.',
+    quote: '"Un año aquí es solo un día afuera. Hagamos que cada segundo cuente."',
+    source: '\u2014 Vegeta, Cámara del Tiempo',
   },
   {
     num: '03',
-    title: 'Progress Automatically',
-    desc: 'Hit your reps and weight goes up. Miss and the program adapts \u2014 adjusting volume to keep you moving.',
-    quote: '"The real training begins when you push past what you think is your limit."',
-    source: '\u2014 Goku, training Gohan',
+    title: 'Progresa Automáticamente',
+    desc: 'Completa tus reps y el peso sube. Fallas y el programa se adapta \u2014 ajustando el volumen para mantenerte avanzando.',
+    quote:
+      '"El entrenamiento real comienza cuando empujas más allá de lo que crees que es tu límite."',
+    source: '\u2014 Goku, entrenando a Gohan',
   },
 ];
 
@@ -142,8 +143,8 @@ export const SCIENCE_CARDS: readonly Feature[] = [
         <path d="M17 6h6v6" strokeLinecap="round" strokeLinejoin="round" />
       </svg>
     ),
-    title: 'Progressive Overload',
-    desc: "Weight goes up when you're ready. Not before, not after. The program decides.",
+    title: 'Sobrecarga Progresiva',
+    desc: 'El peso sube cuando estás listo. Ni antes, ni después. El programa decide.',
   },
   {
     icon: (
@@ -159,8 +160,8 @@ export const SCIENCE_CARDS: readonly Feature[] = [
         <path d="M12 20V10M18 20V4M6 20v-4" strokeLinecap="round" strokeLinejoin="round" />
       </svg>
     ),
-    title: 'Failure Management',
-    desc: 'Missed a lift? The program adapts \u2014 adjusting volume and intensity to keep you progressing.',
+    title: 'Manejo del Fallo',
+    desc: '¿Fallaste un levantamiento? El programa se adapta \u2014 ajustando volumen e intensidad para que sigas progresando.',
   },
   {
     icon: (
@@ -177,15 +178,15 @@ export const SCIENCE_CARDS: readonly Feature[] = [
         <path d="M12 6v6l4 2" strokeLinecap="round" strokeLinejoin="round" />
       </svg>
     ),
-    title: 'Zero Thinking',
-    desc: 'Walk into the gym knowing exactly what to do. No planning, no spreadsheets, no wasted time.',
+    title: 'Cero Pensar',
+    desc: 'Entra al gimnasio sabiendo exactamente qué hacer. Sin planeación, sin hojas de cálculo, sin tiempo perdido.',
   },
 ];
 
 export const METRICS: readonly Metric[] = [
-  { value: '90', label: 'Workouts Planned', suffix: '' },
-  { value: '6', label: 'Core Lifts Tracked', suffix: '' },
-  { value: '3', label: 'Tier System', suffix: 'tiers' },
+  { value: '90', label: 'Entrenamientos Planificados', suffix: '' },
+  { value: '6', label: 'Levantamientos Principales', suffix: '' },
+  { value: '3', label: 'Sistema de Niveles', suffix: 'niveles' },
 ];
 
 export const PERSONAS: readonly Persona[] = [
@@ -203,8 +204,8 @@ export const PERSONAS: readonly Persona[] = [
         <path d="M12 6v6l4 2" strokeLinecap="round" strokeLinejoin="round" />
       </svg>
     ),
-    title: 'Beginners',
-    desc: 'No experience needed. The program tells you exactly what to do every session \u2014 just follow along.',
+    title: 'Principiantes',
+    desc: 'No se necesita experiencia. El programa te dice exactamente qué hacer cada sesión \u2014 solo síguelo.',
   },
   {
     icon: (
@@ -219,8 +220,8 @@ export const PERSONAS: readonly Persona[] = [
         <path d="M6 18L18 6M8 6h10v10" strokeLinecap="round" strokeLinejoin="round" />
       </svg>
     ),
-    title: 'Intermediate Lifters',
-    desc: 'Break through plateaus with structured periodization. The tier system adapts when you stall.',
+    title: 'Atletas Intermedios',
+    desc: 'Rompe estancamientos con periodización estructurada. El sistema de niveles se adapta cuando te estancas.',
   },
   {
     icon: (
@@ -239,7 +240,7 @@ export const PERSONAS: readonly Persona[] = [
         />
       </svg>
     ),
-    title: 'Program Hoppers',
-    desc: 'Stop jumping between programs. Stick with one proven system and watch the numbers climb.',
+    title: 'Saltadores de Programa',
+    desc: 'Deja de saltar entre programas. Mantente con un sistema probado y observa cómo suben los números.',
   },
 ];

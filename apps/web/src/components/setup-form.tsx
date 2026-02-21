@@ -11,21 +11,21 @@ interface SetupFormProps {
 }
 
 const FIELDS = [
-  { key: 'squat', label: 'Squat (T1)', defaultVal: 60 },
-  { key: 'bench', label: 'Bench Press (T1)', defaultVal: 40 },
-  { key: 'deadlift', label: 'Deadlift (T1)', defaultVal: 60 },
-  { key: 'ohp', label: 'OHP (T1)', defaultVal: 30 },
-  { key: 'latpulldown', label: 'Lat Pulldown (T3)', defaultVal: 30 },
-  { key: 'dbrow', label: 'DB Bent Over Row (T3)', defaultVal: 12.5 },
+  { key: 'squat', label: 'Sentadilla (T1)', defaultVal: 60 },
+  { key: 'bench', label: 'Press Banca (T1)', defaultVal: 40 },
+  { key: 'deadlift', label: 'Peso Muerto (T1)', defaultVal: 60 },
+  { key: 'ohp', label: 'Press Militar (T1)', defaultVal: 30 },
+  { key: 'latpulldown', label: 'Jalón al Pecho (T3)', defaultVal: 30 },
+  { key: 'dbrow', label: 'Remo con Mancuernas (T3)', defaultVal: 12.5 },
 ] as const;
 
 const STEP = 0.5;
 
 function validateField(value: string): string | null {
   const num = parseFloat(value);
-  if (value.trim() === '' || isNaN(num)) return 'Required';
-  if (num < 2.5) return 'Min 2.5 kg';
-  if (num > 500) return 'Max 500 kg';
+  if (value.trim() === '' || isNaN(num)) return 'Requerido';
+  if (num < 2.5) return 'Mín 2.5 kg';
+  if (num > 500) return 'Máx 500 kg';
 
   return null;
 }
@@ -86,7 +86,7 @@ export function SetupForm({ initialWeights, onGenerate, onUpdateWeights }: Setup
     setTouched(Object.fromEntries(FIELDS.map((f) => [f.key, true])));
 
     if (hasError) {
-      setError('Please fix the highlighted fields.');
+      setError('Por favor corrige los campos resaltados.');
       return null;
     }
 
@@ -97,7 +97,7 @@ export function SetupForm({ initialWeights, onGenerate, onUpdateWeights }: Setup
 
     const result = StartWeightsSchema.safeParse(parsed);
     if (!result.success) {
-      setError('Invalid weights. Please check all fields.');
+      setError('Pesos inválidos. Por favor revisa todos los campos.');
       return null;
     }
 
@@ -136,12 +136,12 @@ export function SetupForm({ initialWeights, onGenerate, onUpdateWeights }: Setup
         className="font-display mb-1.5 leading-none"
         style={{ fontSize: '28px', color: 'var(--text-header)' }}
       >
-        {isEditMode ? 'Edit Starting Weights (kg)' : 'Starting Weights (kg)'}
+        {isEditMode ? 'Editar Pesos Iniciales (kg)' : 'Pesos Iniciales (kg)'}
       </h2>
       <p className="text-[13px] text-[var(--text-muted)] mb-5">
         {isEditMode
-          ? 'Update your starting weights — the program will recalculate from these new values'
-          : 'Enter your current working weight for T1 exercises (85% of 5RM recommended)'}
+          ? 'Actualiza tus pesos iniciales — el programa se recalculará con los nuevos valores'
+          : 'Ingresa tu peso de trabajo actual para ejercicios T1 (85% de tu 5RM recomendado)'}
       </p>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
@@ -171,7 +171,7 @@ export function SetupForm({ initialWeights, onGenerate, onUpdateWeights }: Setup
             &#9888;
           </span>
           <div className="flex-1">
-            <p className="text-xs mb-1">Please fix the following:</p>
+            <p className="text-xs mb-1">Por favor corrige lo siguiente:</p>
             <ul className="text-[11px] font-normal list-disc ml-4">
               {FIELDS.filter((f) => fieldErrors[f.key]).map((f) => (
                 <li key={f.key}>
@@ -196,14 +196,14 @@ export function SetupForm({ initialWeights, onGenerate, onUpdateWeights }: Setup
             onClick={() => setIsExpanded(false)}
             className="flex-1 py-3.5 border-2 border-[var(--border-color)] bg-[var(--bg-card)] text-[var(--text-muted)] text-base font-bold cursor-pointer hover:bg-[var(--bg-hover-row)] hover:text-[var(--text-main)] transition-colors"
           >
-            Cancel
+            Cancelar
           </button>
         )}
         <button
           onClick={handleSubmit}
           className="flex-1 py-3.5 border-none bg-[var(--bg-header)] text-[var(--text-header)] text-base font-bold cursor-pointer hover:opacity-85 transition-opacity"
         >
-          {isEditMode ? 'Update Weights' : 'Generate Program'}
+          {isEditMode ? 'Actualizar Pesos' : 'Generar Programa'}
         </button>
       </div>
     </>
@@ -220,7 +220,7 @@ export function SetupForm({ initialWeights, onGenerate, onUpdateWeights }: Setup
                   className="font-display mb-1 leading-none"
                   style={{ fontSize: '22px', color: 'var(--text-header)' }}
                 >
-                  Starting Weights
+                  Pesos Iniciales
                 </h2>
                 <p className="text-xs text-[var(--text-muted)]">
                   {FIELDS.map((f) => `${f.label.split(' (')[0]}: ${initialWeights[f.key]}kg`).join(
@@ -232,7 +232,7 @@ export function SetupForm({ initialWeights, onGenerate, onUpdateWeights }: Setup
                 onClick={() => setIsExpanded(true)}
                 className="px-4 py-2.5 min-h-[44px] border-2 border-[var(--btn-border)] text-xs font-bold cursor-pointer bg-[var(--btn-bg)] text-[var(--btn-text)] whitespace-nowrap transition-all hover:bg-[var(--btn-hover-bg)] hover:text-[var(--btn-hover-text)]"
               >
-                Edit Weights
+                Editar Pesos
               </button>
             </div>
           </div>
@@ -259,9 +259,9 @@ export function SetupForm({ initialWeights, onGenerate, onUpdateWeights }: Setup
 
       <ConfirmDialog
         open={showConfirm}
-        title="Update Starting Weights"
-        message="This will recalculate the entire program from the new starting weights. Your pass/fail history will be preserved, but projected weights will change. Continue?"
-        confirmLabel="Update Weights"
+        title="Actualizar Pesos Iniciales"
+        message="Esto recalculará todo el programa con los nuevos pesos iniciales. Tu historial de éxitos/fallos se conservará, pero los pesos proyectados cambiarán. ¿Continuar?"
+        confirmLabel="Actualizar Pesos"
         onConfirm={handleConfirmUpdate}
         onCancel={handleCancelUpdate}
       />

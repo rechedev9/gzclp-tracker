@@ -135,11 +135,11 @@ export function GenericProgramApp({
           variant: 'pr',
         });
       } else {
-        const resultLabel = value === 'success' ? 'Success' : 'Fail';
+        const resultLabel = value === 'success' ? 'Éxito' : 'Fallo';
         toast({
           message: `#${workoutIndex + 1}: ${slot.exerciseName} ${slot.tier.toUpperCase()} — ${resultLabel}`,
           action: {
-            label: 'Undo',
+            label: 'Deshacer',
             onClick: () => undoSpecific(workoutIndex, slotId),
           },
         });
@@ -185,7 +185,7 @@ export function GenericProgramApp({
   if (!definition) {
     return (
       <div className="min-h-dvh flex items-center justify-center text-[var(--text-muted)]">
-        Unknown program: {programId}
+        Programa desconocido: {programId}
       </div>
     );
   }
@@ -194,7 +194,7 @@ export function GenericProgramApp({
     <>
       <div className="sticky top-0 z-50">
         <AppHeader
-          backLabel="Programs"
+          backLabel="Programas"
           onBack={onBackToDashboard}
           onGoToProfile={onGoToProfile}
           onSignOut={() => void handleSignOut()}
@@ -225,10 +225,10 @@ export function GenericProgramApp({
             {/* Tabs */}
             <div className="flex gap-0 mb-6 border-b-2 border-[var(--border-color)]">
               <TabButton active={activeTab === 'program'} onClick={() => setActiveTab('program')}>
-                Program
+                Programa
               </TabButton>
               <TabButton active={activeTab === 'stats'} onClick={() => setActiveTab('stats')}>
-                Stats &amp; Charts
+                Estadísticas
               </TabButton>
             </div>
 
@@ -237,7 +237,7 @@ export function GenericProgramApp({
                 {/* Program info */}
                 <details className="bg-[var(--bg-card)] border border-[var(--border-color)] mb-6 overflow-hidden">
                   <summary className="font-mono px-5 py-3.5 font-bold cursor-pointer select-none flex justify-between items-center [&::marker]:hidden list-none text-[11px] tracking-widest uppercase">
-                    About {definition.name}
+                    Acerca de {definition.name}
                     <span className="transition-transform duration-200 [[open]>&]:rotate-90">
                       &#9656;
                     </span>
@@ -248,13 +248,13 @@ export function GenericProgramApp({
                     </p>
                     {definition.author && (
                       <p className="mt-2 text-[11px] text-[var(--text-muted)]">
-                        By {definition.author}
+                        Por {definition.author}
                       </p>
                     )}
                     <div className="flex flex-wrap gap-x-4 gap-y-1 mt-2 text-[11px] text-[var(--text-muted)]">
-                      <span>{totalWorkouts} total workouts</span>
-                      <span>{workoutsPerWeek} per week</span>
-                      <span>{definition.days.length}-day rotation</span>
+                      <span>{totalWorkouts} entrenamientos en total</span>
+                      <span>{workoutsPerWeek} por semana</span>
+                      <span>Rotación de {definition.days.length} días</span>
                     </div>
                   </div>
                 </details>
@@ -289,12 +289,14 @@ export function GenericProgramApp({
               <ErrorBoundary
                 fallback={({ reset }) => (
                   <div className="text-center py-16">
-                    <p className="text-[var(--text-muted)] mb-4">Stats could not be loaded.</p>
+                    <p className="text-[var(--text-muted)] mb-4">
+                      No se pudieron cargar las estadísticas.
+                    </p>
                     <button
                       onClick={reset}
                       className="px-5 py-2 bg-[var(--fill-progress)] text-white font-bold cursor-pointer"
                     >
-                      Retry
+                      Reintentar
                     </button>
                   </div>
                 )}

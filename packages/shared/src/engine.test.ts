@@ -98,15 +98,15 @@ describe('computeProgram: fresh program snapshot', () => {
 
     // No results = implicit pass = weight increases each appearance
     expect(first8).toEqual([
-      { i: 0, day: 'Day 1', t1: 'squat@60kg s0', t2: 'bench@26kg s0', t3: 'latpulldown@30kg' },
-      { i: 1, day: 'Day 2', t1: 'ohp@25kg s0', t2: 'deadlift@52kg s0', t3: 'dbrow@15kg' },
-      { i: 2, day: 'Day 3', t1: 'bench@40kg s0', t2: 'squat@39kg s0', t3: 'latpulldown@30kg' },
-      { i: 3, day: 'Day 4', t1: 'deadlift@80kg s0', t2: 'ohp@16.5kg s0', t3: 'dbrow@15kg' },
+      { i: 0, day: 'Día 1', t1: 'squat@60kg s0', t2: 'bench@26kg s0', t3: 'latpulldown@30kg' },
+      { i: 1, day: 'Día 2', t1: 'ohp@25kg s0', t2: 'deadlift@52kg s0', t3: 'dbrow@15kg' },
+      { i: 2, day: 'Día 3', t1: 'bench@40kg s0', t2: 'squat@39kg s0', t3: 'latpulldown@30kg' },
+      { i: 3, day: 'Día 4', t1: 'deadlift@80kg s0', t2: 'ohp@16.5kg s0', t3: 'dbrow@15kg' },
       // Cycle 2: each exercise has had one implicit pass
-      { i: 4, day: 'Day 1', t1: 'squat@65kg s0', t2: 'bench@28.5kg s0', t3: 'latpulldown@30kg' },
-      { i: 5, day: 'Day 2', t1: 'ohp@27.5kg s0', t2: 'deadlift@57kg s0', t3: 'dbrow@15kg' },
-      { i: 6, day: 'Day 3', t1: 'bench@42.5kg s0', t2: 'squat@44kg s0', t3: 'latpulldown@30kg' },
-      { i: 7, day: 'Day 4', t1: 'deadlift@85kg s0', t2: 'ohp@19kg s0', t3: 'dbrow@15kg' },
+      { i: 4, day: 'Día 1', t1: 'squat@65kg s0', t2: 'bench@28.5kg s0', t3: 'latpulldown@30kg' },
+      { i: 5, day: 'Día 2', t1: 'ohp@27.5kg s0', t2: 'deadlift@57kg s0', t3: 'dbrow@15kg' },
+      { i: 6, day: 'Día 3', t1: 'bench@42.5kg s0', t2: 'squat@44kg s0', t3: 'latpulldown@30kg' },
+      { i: 7, day: 'Día 4', t1: 'deadlift@85kg s0', t2: 'ohp@19kg s0', t3: 'dbrow@15kg' },
     ]);
   });
 

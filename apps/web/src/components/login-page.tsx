@@ -115,7 +115,7 @@ export function LoginPage(): React.ReactNode {
           className="font-mono text-[9px] tracking-[0.35em] uppercase flex-shrink-0"
           style={{ color: 'var(--text-header)', textShadow: '0 0 10px rgba(200,168,78,0.5)' }}
         >
-          Enter the Chamber
+          Entra a la Cámara
         </span>
         <div
           className="flex-1 h-px"
@@ -152,7 +152,7 @@ export function LoginPage(): React.ReactNode {
             className="font-mono text-[9px] tracking-[0.35em] uppercase mb-5"
             style={{ color: 'var(--text-header)' }}
           >
-            Authenticate
+            Autenticar
           </p>
 
           {/* Google button — dark inset slot */}
@@ -168,7 +168,7 @@ export function LoginPage(): React.ReactNode {
                 if (credential) void handleGoogleSuccess(credential);
               }}
               onError={() => {
-                setError('Google sign-in failed. Please try again.');
+                setError('Error al iniciar sesión con Google. Inténtalo de nuevo.');
               }}
               theme="filled_black"
               size="large"
@@ -208,7 +208,7 @@ export function LoginPage(): React.ReactNode {
             to="/app?view=programs"
             className="block w-full text-center py-2.5 font-mono text-[10px] tracking-[0.2em] uppercase transition-colors border border-[var(--border-color)] text-[var(--text-muted)] hover:border-[var(--text-header)] hover:text-[var(--text-header)]"
           >
-            Continue without account
+            Continuar sin cuenta
           </Link>
         </div>
       </div>
@@ -223,7 +223,7 @@ export function LoginPage(): React.ReactNode {
           animationDelay: '0.32s',
         }}
       >
-        Train smarter · Progress faster
+        Entrena mejor · Progresa más rápido
       </p>
     </div>
   );

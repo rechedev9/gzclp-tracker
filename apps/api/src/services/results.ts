@@ -30,6 +30,13 @@ const MAX_UNDO_STACK = 50;
 
 type Tx = Parameters<Parameters<ReturnType<typeof getDb>['transaction']>[0]>[0];
 
+async function touchInstanceTimestamp(tx: Tx, instanceId: string): Promise<void> {
+  await tx
+    .update(programInstances)
+    .set({ updatedAt: new Date() })
+    .where(eq(programInstances.id, instanceId));
+}
+
 async function trimUndoStack(tx: Tx, instanceId: string): Promise<void> {
   const [overflow] = await tx
     .select({ id: undoEntries.id })
@@ -122,11 +129,7 @@ export async function recordResult(
       prevRpe: existing?.rpe ?? null,
     });
 
-    // Update instance timestamp
-    await tx
-      .update(programInstances)
-      .set({ updatedAt: new Date() })
-      .where(eq(programInstances.id, instanceId));
+    await touchInstanceTimestamp(tx, instanceId);
 
     await trimUndoStack(tx, instanceId);
 

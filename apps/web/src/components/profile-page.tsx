@@ -36,7 +36,7 @@ export function ProfilePage({ onBack }: ProfilePageProps): React.ReactNode {
         {/* User identity */}
         <section className="mb-10">
           <h1 className="text-xl sm:text-2xl font-extrabold text-[var(--text-header)] leading-tight">
-            Training Profile
+            Perfil de Entrenamiento
           </h1>
           <p className="text-sm text-[var(--text-muted)] mt-1">{displayName}</p>
         </section>
@@ -44,15 +44,15 @@ export function ProfilePage({ onBack }: ProfilePageProps): React.ReactNode {
         {/* Empty state */}
         {!profileData && (
           <div className="bg-[var(--bg-card)] border border-[var(--border-color)] p-8 sm:p-12 text-center">
-            <p className="text-lg font-bold text-[var(--text-header)] mb-2">No program yet</p>
+            <p className="text-lg font-bold text-[var(--text-header)] mb-2">Sin programa aún</p>
             <p className="text-sm text-[var(--text-muted)]">
-              Start a program from the Dashboard to see your training profile.
+              Inicia un programa desde el Dashboard para ver tu perfil de entrenamiento.
             </p>
             <button
               onClick={onBack}
               className="mt-5 px-5 py-2.5 text-xs font-bold border-2 border-[var(--btn-border)] bg-[var(--btn-hover-bg)] text-[var(--btn-hover-text)] cursor-pointer transition-all hover:opacity-90"
             >
-              Go to Dashboard
+              Ir al Dashboard
             </button>
           </div>
         )}
@@ -62,24 +62,24 @@ export function ProfilePage({ onBack }: ProfilePageProps): React.ReactNode {
             {/* Summary stats */}
             <section className="mb-10">
               <h2 className="text-xs font-bold uppercase tracking-[0.15em] text-[var(--text-muted)] mb-3">
-                Overview
+                Resumen
               </h2>
               <div className="grid grid-cols-3 gap-3">
                 <ProfileStatCard
                   value={String(profileData.completion.workoutsCompleted)}
-                  label="Workouts"
-                  sublabel={`of ${profileData.completion.totalWorkouts}`}
+                  label="Entrenamientos"
+                  sublabel={`de ${profileData.completion.totalWorkouts}`}
                 />
                 <ProfileStatCard
                   value={`${profileData.completion.overallSuccessRate}%`}
-                  label="Success Rate"
+                  label="Tasa de Éxito"
                 />
                 <ProfileStatCard
                   value={`${profileData.completion.completionPct}%`}
-                  label="Completion"
+                  label="Completado"
                   progress={{
                     value: profileData.completion.completionPct,
-                    label: `${profileData.completion.workoutsCompleted} of ${profileData.completion.totalWorkouts} workouts`,
+                    label: `${profileData.completion.workoutsCompleted} de ${profileData.completion.totalWorkouts} entrenamientos`,
                   }}
                 />
               </div>
@@ -89,18 +89,18 @@ export function ProfilePage({ onBack }: ProfilePageProps): React.ReactNode {
             {(profileData.streak.current > 0 || profileData.streak.longest > 0) && (
               <section className="mb-10">
                 <h2 className="text-xs font-bold uppercase tracking-[0.15em] text-[var(--text-muted)] mb-3">
-                  Streak
+                  Racha
                 </h2>
                 <div className="grid grid-cols-2 gap-3">
                   <ProfileStatCard
                     value={String(profileData.streak.current)}
-                    label="Current Streak"
-                    sublabel="consecutive workouts"
+                    label="Racha Actual"
+                    sublabel="entrenamientos consecutivos"
                   />
                   <ProfileStatCard
                     value={String(profileData.streak.longest)}
-                    label="Longest Streak"
-                    sublabel="consecutive workouts"
+                    label="Racha Más Larga"
+                    sublabel="entrenamientos consecutivos"
                   />
                 </div>
               </section>
@@ -115,22 +115,22 @@ export function ProfilePage({ onBack }: ProfilePageProps): React.ReactNode {
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                   <ProfileStatCard
                     value={String(profileData.monthlyReport.workoutsCompleted)}
-                    label="Workouts"
-                    sublabel="this month"
+                    label="Entrenamientos"
+                    sublabel="este mes"
                   />
                   <ProfileStatCard
                     value={`${profileData.monthlyReport.successRate}%`}
-                    label="Success Rate"
+                    label="Tasa de Éxito"
                   />
                   <ProfileStatCard
                     value={String(profileData.monthlyReport.personalRecords)}
-                    label="New PRs"
+                    label="Nuevos PRs"
                     accent={profileData.monthlyReport.personalRecords > 0}
                   />
                   <ProfileStatCard
                     value={`${formatVolume(profileData.monthlyReport.totalVolume)} kg`}
-                    label="Volume"
-                    sublabel={`${profileData.monthlyReport.totalSets} sets / ${profileData.monthlyReport.totalReps} reps`}
+                    label="Volumen"
+                    sublabel={`${profileData.monthlyReport.totalSets} series / ${profileData.monthlyReport.totalReps} reps`}
                   />
                 </div>
               </section>
@@ -139,7 +139,7 @@ export function ProfilePage({ onBack }: ProfilePageProps): React.ReactNode {
             {/* Personal Records */}
             <section className="mb-10">
               <h2 className="text-xs font-bold uppercase tracking-[0.15em] text-[var(--text-muted)] mb-3">
-                Personal Records (T1)
+                Récords Personales (T1)
               </h2>
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                 {profileData.personalRecords.map((pr) => {
@@ -150,7 +150,9 @@ export function ProfilePage({ onBack }: ProfilePageProps): React.ReactNode {
                       value={`${pr.weight} kg`}
                       label={NAMES[pr.exercise] ?? pr.exercise}
                       sublabel={
-                        pr.workoutIndex >= 0 ? `Workout #${pr.workoutIndex + 1}` : 'Starting weight'
+                        pr.workoutIndex >= 0
+                          ? `Entrenamiento #${pr.workoutIndex + 1}`
+                          : 'Peso inicial'
                       }
                       accent
                       badge={delta > 0 ? `+${delta} kg` : undefined}
@@ -165,7 +167,7 @@ export function ProfilePage({ onBack }: ProfilePageProps): React.ReactNode {
             {chartData && (
               <section className="mb-10">
                 <h2 className="text-xs font-bold uppercase tracking-[0.15em] text-[var(--text-muted)] mb-3">
-                  Weight Progression
+                  Progresión de Peso
                 </h2>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   {T1_EXERCISES.map((ex) => {
@@ -188,7 +190,7 @@ export function ProfilePage({ onBack }: ProfilePageProps): React.ReactNode {
                                 | +{stats.gained} kg
                               </span>
                             )}{' '}
-                            | {stats.rate}% success
+                            | {stats.rate}% éxito
                           </p>
                         )}
                         <LineChart data={chartData[ex]} label={NAMES[ex]} />

@@ -31,7 +31,7 @@ export function AppHeader({
             className="font-mono text-[11px] font-medium tracking-widest uppercase transition-colors cursor-pointer mr-2 hover:text-[var(--text-header)]"
             style={{ color: 'var(--text-muted)' }}
           >
-            ← {backLabel ?? 'Back'}
+            ← {backLabel ?? 'Volver'}
           </button>
         )}
         <img src="/logo.webp" alt="Logo" width={28} height={28} className="rounded-full" />

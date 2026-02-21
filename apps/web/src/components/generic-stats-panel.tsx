@@ -65,10 +65,10 @@ function StatCard({
       </h4>
       <div className="text-2xl font-extrabold mb-1">{currentWeight} kg</div>
       <div className="text-xs text-[var(--text-muted)]">
-        Started: {startWeight} kg | {gained >= 0 ? '+' : ''}
-        {gained} kg gained
+        Inicio: {startWeight} kg | {gained >= 0 ? '+' : ''}
+        {gained} kg ganados
         <br />
-        Stage {currentStage} | {rate}% success ({successes}/{total})
+        Etapa {currentStage} | {rate}% éxito ({successes}/{total})
       </div>
     </div>
   );
@@ -96,9 +96,9 @@ export const GenericStatsPanel = memo(function GenericStatsPanel({
   if (!hasAnyResults) {
     return (
       <div className="text-center py-16">
-        <p className="text-sm font-bold text-[var(--text-muted)] mb-2">No data yet</p>
+        <p className="text-sm font-bold text-[var(--text-muted)] mb-2">Sin datos aún</p>
         <p className="text-xs text-[var(--text-muted)]">
-          Complete your first workout to see stats and charts.
+          Completa tu primer entrenamiento para ver estadísticas y gráficas.
         </p>
       </div>
     );
@@ -123,10 +123,10 @@ export const GenericStatsPanel = memo(function GenericStatsPanel({
             className="bg-[var(--bg-card)] border border-[var(--border-color)] overflow-hidden"
           >
             <summary className="font-mono px-5 py-3.5 font-bold cursor-pointer select-none flex justify-between items-center [&::marker]:hidden list-none text-[11px] tracking-widest uppercase">
-              {group.label ?? 'Exercises'}
+              {group.label ?? 'Ejercicios'}
               <span className="flex items-center gap-3">
                 <span className="text-[var(--text-muted)] font-normal normal-case tracking-normal">
-                  {exercisesWithData.length} exercise{exercisesWithData.length !== 1 ? 's' : ''}
+                  {exercisesWithData.length} ejercicio{exercisesWithData.length !== 1 ? 's' : ''}
                 </span>
                 <span className="transition-transform duration-200 [[open]>&]:rotate-90">
                   &#9656;
@@ -165,7 +165,7 @@ export const GenericStatsPanel = memo(function GenericStatsPanel({
                         key={id}
                         className="bg-[var(--bg-th)] border border-[var(--border-color)] p-4"
                       >
-                        <h4 className="text-sm font-bold mb-3">{name} — Weight Progression</h4>
+                        <h4 className="text-sm font-bold mb-3">{name} — Progresión de Peso</h4>
                         <LineChart data={chartData[id]} label={name} />
                       </div>
                     );

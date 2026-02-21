@@ -15,10 +15,10 @@ interface AvatarDropdownProps {
 
 const SYNC_LABELS: Readonly<Record<SyncStatus, string>> = {
   idle: '',
-  syncing: 'Syncing...',
-  synced: 'Synced',
-  offline: 'Offline',
-  error: 'Sync error',
+  syncing: 'Sincronizando...',
+  synced: 'Sincronizado',
+  offline: 'Sin conexión',
+  error: 'Error de sincronización',
 };
 
 const SYNC_COLORS: Readonly<Record<SyncStatus, string>> = {
@@ -47,7 +47,7 @@ export function AvatarDropdown({
         to="/login"
         className="px-2 py-2 sm:px-3.5 sm:py-2.5 min-h-[44px] border-2 border-[var(--btn-border)] text-[10px] sm:text-xs font-bold cursor-pointer bg-[var(--btn-bg)] text-[var(--btn-text)] whitespace-nowrap transition-all hover:bg-[var(--btn-hover-bg)] hover:text-[var(--btn-hover-text)] inline-flex items-center no-underline"
       >
-        Sign In
+        Iniciar Sesión
       </Link>
     );
   }
@@ -60,7 +60,7 @@ export function AvatarDropdown({
       <button
         onClick={() => setOpen((prev) => !prev)}
         className="w-9 h-9 rounded-full bg-[var(--btn-hover-bg)] text-[var(--btn-hover-text)] text-sm font-extrabold cursor-pointer transition-opacity hover:opacity-80 flex items-center justify-center"
-        aria-label="User menu"
+        aria-label="Menú de usuario"
         aria-haspopup="true"
         aria-expanded={open}
       >
@@ -89,7 +89,7 @@ export function AvatarDropdown({
               onGoToProfile();
             }}
           >
-            Profile
+            Perfil
           </DropdownItem>
         )}
 
@@ -99,7 +99,7 @@ export function AvatarDropdown({
             onSignOut();
           }}
         >
-          Sign Out
+          Cerrar Sesión
         </DropdownItem>
       </DropdownMenu>
     </div>

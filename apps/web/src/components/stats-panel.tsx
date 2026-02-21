@@ -16,9 +16,9 @@ export const StatsPanel = memo(function StatsPanel({ startWeights, results }: St
   if (!hasAnyResults) {
     return (
       <div className="text-center py-16">
-        <p className="text-sm font-bold text-[var(--text-muted)] mb-2">No data yet</p>
+        <p className="text-sm font-bold text-[var(--text-muted)] mb-2">Sin datos aún</p>
         <p className="text-xs text-[var(--text-muted)]">
-          Complete your first workout to see stats and charts.
+          Completa tu primer entrenamiento para ver estadísticas y gráficas.
         </p>
       </div>
     );
@@ -37,10 +37,10 @@ export const StatsPanel = memo(function StatsPanel({ startWeights, results }: St
               </h4>
               <div className="text-2xl font-extrabold mb-1">{s.currentWeight} kg</div>
               <div className="text-xs text-[var(--text-muted)]">
-                Started: {s.startWeight} kg | {s.gained >= 0 ? '+' : ''}
-                {s.gained} kg gained
+                Inicio: {s.startWeight} kg | {s.gained >= 0 ? '+' : ''}
+                {s.gained} kg ganados
                 <br />
-                Stage {s.currentStage} | {s.rate}% success ({s.successes}/{s.total})
+                Etapa {s.currentStage} | {s.rate}% éxito ({s.successes}/{s.total})
               </div>
             </div>
           );
@@ -51,7 +51,7 @@ export const StatsPanel = memo(function StatsPanel({ startWeights, results }: St
       <div className="grid grid-cols-2 gap-5 max-[900px]:grid-cols-1">
         {T1_EXERCISES.map((ex) => (
           <div key={ex} className="bg-[var(--bg-th)] border border-[var(--border-color)] p-4">
-            <h4 className="text-sm font-bold mb-3">{NAMES[ex]} — Weight Progression</h4>
+            <h4 className="text-sm font-bold mb-3">{NAMES[ex]} — Progresión de Peso</h4>
             <LineChart data={chartData[ex]} label={NAMES[ex]} />
           </div>
         ))}

@@ -12,8 +12,8 @@ export const GZCLP_DEFINITION: ProgramDefinition = {
   id: 'gzclp',
   name: 'GZCLP',
   description:
-    'A linear progression program based on the GZCL method. ' +
-    '4-day rotation with T1, T2, and T3 exercises building strength across compound lifts.',
+    'Un programa de progresión lineal basado en el método GZCL. ' +
+    'Rotación de 4 días con ejercicios T1, T2 y T3 para desarrollar fuerza en los levantamientos compuestos principales.',
   author: 'Cody Lefever',
   version: 1,
   category: 'strength',
@@ -22,20 +22,20 @@ export const GZCLP_DEFINITION: ProgramDefinition = {
   totalWorkouts: 90,
   workoutsPerWeek: 3,
   exercises: {
-    squat: { name: 'Squat' },
-    bench: { name: 'Bench Press' },
-    deadlift: { name: 'Deadlift' },
-    ohp: { name: 'OHP' },
-    latpulldown: { name: 'Lat Pulldown' },
-    dbrow: { name: 'DB Row' },
+    squat: { name: 'Sentadilla' },
+    bench: { name: 'Press Banca' },
+    deadlift: { name: 'Peso Muerto' },
+    ohp: { name: 'Press Militar' },
+    latpulldown: { name: 'Jalón al Pecho' },
+    dbrow: { name: 'Remo con Mancuernas' },
   },
   configFields: [
-    { key: 'squat', label: 'Squat', type: 'weight', min: 2.5, step: 2.5 },
-    { key: 'bench', label: 'Bench Press', type: 'weight', min: 2.5, step: 2.5 },
-    { key: 'deadlift', label: 'Deadlift', type: 'weight', min: 2.5, step: 2.5 },
-    { key: 'ohp', label: 'OHP', type: 'weight', min: 2.5, step: 2.5 },
-    { key: 'latpulldown', label: 'Lat Pulldown', type: 'weight', min: 2.5, step: 2.5 },
-    { key: 'dbrow', label: 'DB Row', type: 'weight', min: 2.5, step: 2.5 },
+    { key: 'squat', label: 'Sentadilla', type: 'weight', min: 2.5, step: 2.5 },
+    { key: 'bench', label: 'Press Banca', type: 'weight', min: 2.5, step: 2.5 },
+    { key: 'deadlift', label: 'Peso Muerto', type: 'weight', min: 2.5, step: 2.5 },
+    { key: 'ohp', label: 'Press Militar', type: 'weight', min: 2.5, step: 2.5 },
+    { key: 'latpulldown', label: 'Jalón al Pecho', type: 'weight', min: 2.5, step: 2.5 },
+    { key: 'dbrow', label: 'Remo con Mancuernas', type: 'weight', min: 2.5, step: 2.5 },
   ],
   weightIncrements: {
     squat: 5,
@@ -47,7 +47,7 @@ export const GZCLP_DEFINITION: ProgramDefinition = {
   },
   days: [
     {
-      name: 'Day 1',
+      name: 'Día 1',
       slots: [
         {
           id: 'd1-t1',
@@ -92,7 +92,7 @@ export const GZCLP_DEFINITION: ProgramDefinition = {
       ],
     },
     {
-      name: 'Day 2',
+      name: 'Día 2',
       slots: [
         {
           id: 'd2-t1',
@@ -137,7 +137,7 @@ export const GZCLP_DEFINITION: ProgramDefinition = {
       ],
     },
     {
-      name: 'Day 3',
+      name: 'Día 3',
       slots: [
         {
           id: 'd3-t1',
@@ -182,7 +182,7 @@ export const GZCLP_DEFINITION: ProgramDefinition = {
       ],
     },
     {
-      name: 'Day 4',
+      name: 'Día 4',
       slots: [
         {
           id: 'd4-t1',
