@@ -82,10 +82,10 @@ export function GenericWeekSection({
           className="font-display flex items-center gap-2.5"
           style={{ fontSize: '20px', letterSpacing: '0.05em' }}
         >
-          Week {week}
+          Semana {week}
           {weekDone && (
             <span className="inline-block week-badge bg-[var(--text-header)] text-[var(--bg-header)] px-2.5 py-0.5">
-              DONE &#10003;
+              LISTO &#10003;
             </span>
           )}
         </span>

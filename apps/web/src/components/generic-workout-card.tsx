@@ -88,7 +88,7 @@ function SlotSection({
       </div>
       {slot.result && slot.isAmrap && onSetAmrapReps && (
         <div className="mt-1.5 flex items-center gap-2 pl-1">
-          <span className="text-[10px] text-[var(--text-muted)]">Reps AMRAP:</span>
+          <span className="text-[10px] text-[var(--text-muted)]">Rep. AMRAP:</span>
           <AmrapInput value={slot.amrapReps} onChange={onSetAmrapReps} variant="card" />
         </div>
       )}

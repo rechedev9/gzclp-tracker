@@ -54,7 +54,11 @@ function TierSection({
         </div>
         <div
           className="text-center shrink-0"
-          title={tier === 't3' ? 'T3 weight increases when AMRAP set reaches 25+ reps' : undefined}
+          title={
+            tier === 't3'
+              ? 'El peso T3 sube cuando el set AMRAP llega a 25+ repeticiones'
+              : undefined
+          }
         >
           <div className="text-[15px] font-extrabold tabular-nums">{weight} kg</div>
           <div className="text-[12px] font-semibold text-[var(--text-muted)]">
@@ -80,7 +84,7 @@ function TierSection({
       </div>
       {result && onSetAmrapReps && (
         <div className="mt-1.5 flex items-center gap-2 pl-1">
-          <span className="text-[10px] text-[var(--text-muted)]">AMRAP reps:</span>
+          <span className="text-[10px] text-[var(--text-muted)]">Rep. AMRAP:</span>
           <AmrapInput value={amrapReps} onChange={onSetAmrapReps} variant="card" />
         </div>
       )}
@@ -156,7 +160,7 @@ export const WorkoutRowCard = memo(function WorkoutRowCard({
             href={buildGoogleCalendarUrl(row).calendarUrl}
             target="_blank"
             rel="noopener noreferrer"
-            title="Add to Google Calendar"
+            title="Agregar a Google Calendar"
             className="text-[10px] text-[var(--text-muted)] hover:text-[var(--fill-progress)] transition-colors"
           >
             ↗ Cal
@@ -167,7 +171,7 @@ export const WorkoutRowCard = memo(function WorkoutRowCard({
 
       <div data-testid={`t1-result-${row.index}`}>
         <TierSection
-          label="T1 — Main Lift"
+          label="T1 — Levantamiento Principal"
           exercise={NAMES[row.t1Exercise]}
           weight={row.t1Weight}
           scheme={`${row.t1Sets}\u00d7${row.t1Reps}`}
@@ -189,7 +193,7 @@ export const WorkoutRowCard = memo(function WorkoutRowCard({
       </div>
       <div data-testid={`t2-result-${row.index}`}>
         <TierSection
-          label="T2 — Secondary"
+          label="T2 — Secundario"
           exercise={NAMES[row.t2Exercise]}
           weight={row.t2Weight}
           scheme={`${row.t2Sets}\u00d7${row.t2Reps}`}
@@ -204,7 +208,7 @@ export const WorkoutRowCard = memo(function WorkoutRowCard({
       </div>
       <div data-testid={`t3-result-${row.index}`}>
         <TierSection
-          label="T3 — Accessory"
+          label="T3 — Accesorio"
           exercise={NAMES[row.t3Exercise]}
           weight={row.t3Weight}
           scheme="3&times;15"

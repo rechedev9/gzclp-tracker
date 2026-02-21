@@ -27,7 +27,7 @@ export const StageTag = memo(function StageTag({
   return (
     <span
       className={`inline-block font-bold tracking-wider font-mono ${sizeClass} ${cls}`}
-      title={`Stage ${stage + 1}: ${label}`}
+      title={`Etapa ${stage + 1}: ${label}`}
     >
       S{stage + 1}
     </span>

@@ -89,7 +89,7 @@ export const WorkoutRow = memo(function WorkoutRow({
             href={buildGoogleCalendarUrl(row).calendarUrl}
             target="_blank"
             rel="noopener noreferrer"
-            title="Add to Google Calendar"
+            title="Agregar a Google Calendar"
             className="font-mono block text-[10px] text-[var(--text-muted)] hover:text-[var(--fill-progress)] transition-colors leading-none mt-0.5"
           >
             ↗ Cal
@@ -179,7 +179,7 @@ export const WorkoutRow = memo(function WorkoutRow({
       <td
         data-testid={`t3-weight-${row.index}`}
         className="font-mono border border-[var(--border-light)] px-2 py-3 text-center align-middle font-extrabold text-[15px] tabular-nums"
-        title="T3 weight increases when AMRAP set reaches 25+ reps"
+        title="El peso T3 sube cuando el set AMRAP llega a 25+ repeticiones"
       >
         {row.t3Weight}
         <br />
