@@ -1,7 +1,7 @@
 import { useMemo } from 'react';
 import { useProgram } from '@/hooks/use-program';
 import { useAuth } from '@/contexts/auth-context';
-import { computeProfileData } from '@/lib/profile-stats';
+import { computeProfileData, formatVolume } from '@/lib/profile-stats';
 import { extractChartData, calculateStats } from '@gzclp/shared/stats';
 import { NAMES, T1_EXERCISES } from '@gzclp/shared/program';
 import { ProfileStatCard } from './profile-stat-card';
@@ -13,13 +13,13 @@ interface ProfilePageProps {
 }
 
 export function ProfilePage({ onBack }: ProfilePageProps): React.ReactNode {
-  const { startWeights, results } = useProgram();
+  const { startWeights, results, resultTimestamps } = useProgram();
   const { user } = useAuth();
 
   const profileData = useMemo(() => {
     if (!startWeights) return null;
-    return computeProfileData(startWeights, results);
-  }, [startWeights, results]);
+    return computeProfileData(startWeights, results, resultTimestamps);
+  }, [startWeights, results, resultTimestamps]);
 
   const chartData = useMemo(() => {
     if (!startWeights) return null;
@@ -84,6 +84,57 @@ export function ProfilePage({ onBack }: ProfilePageProps): React.ReactNode {
                 />
               </div>
             </section>
+
+            {/* Streak */}
+            {(profileData.streak.current > 0 || profileData.streak.longest > 0) && (
+              <section className="mb-10">
+                <h2 className="text-xs font-bold uppercase tracking-[0.15em] text-[var(--text-muted)] mb-3">
+                  Streak
+                </h2>
+                <div className="grid grid-cols-2 gap-3">
+                  <ProfileStatCard
+                    value={String(profileData.streak.current)}
+                    label="Current Streak"
+                    sublabel="consecutive workouts"
+                  />
+                  <ProfileStatCard
+                    value={String(profileData.streak.longest)}
+                    label="Longest Streak"
+                    sublabel="consecutive workouts"
+                  />
+                </div>
+              </section>
+            )}
+
+            {/* Monthly Summary */}
+            {profileData.monthlyReport && (
+              <section className="mb-10">
+                <h2 className="text-xs font-bold uppercase tracking-[0.15em] text-[var(--text-muted)] mb-3">
+                  {profileData.monthlyReport.monthLabel}
+                </h2>
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                  <ProfileStatCard
+                    value={String(profileData.monthlyReport.workoutsCompleted)}
+                    label="Workouts"
+                    sublabel="this month"
+                  />
+                  <ProfileStatCard
+                    value={`${profileData.monthlyReport.successRate}%`}
+                    label="Success Rate"
+                  />
+                  <ProfileStatCard
+                    value={String(profileData.monthlyReport.personalRecords)}
+                    label="New PRs"
+                    accent={profileData.monthlyReport.personalRecords > 0}
+                  />
+                  <ProfileStatCard
+                    value={`${formatVolume(profileData.monthlyReport.totalVolume)} kg`}
+                    label="Volume"
+                    sublabel={`${profileData.monthlyReport.totalSets} sets / ${profileData.monthlyReport.totalReps} reps`}
+                  />
+                </div>
+              </section>
+            )}
 
             {/* Personal Records */}
             <section className="mb-10">

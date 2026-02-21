@@ -4,6 +4,7 @@ import type { ResultValue } from '@gzclp/shared/types';
 import { useGenericProgram } from '@/hooks/use-generic-program';
 import { useAuth } from '@/contexts/auth-context';
 import { useToast } from '@/contexts/toast-context';
+import { detectGenericPersonalRecord } from '@/lib/pr-detection';
 import { AppHeader } from './app-header';
 import { ToastContainer } from './toast';
 import { GenericSetupForm } from './generic-setup-form';
@@ -99,14 +100,22 @@ export function GenericProgramApp({
       if (!row) return;
       const slot = row.slots.find((s) => s.slotId === slotId);
       if (!slot) return;
-      const resultLabel = value === 'success' ? 'Success' : 'Fail';
-      toast({
-        message: `#${workoutIndex + 1}: ${slot.exerciseName} ${slot.tier.toUpperCase()} — ${resultLabel}`,
-        action: {
-          label: 'Undo',
-          onClick: () => undoSpecific(workoutIndex, slotId),
-        },
-      });
+      const isPr = detectGenericPersonalRecord(rows, workoutIndex, slotId, value);
+      if (isPr) {
+        toast({
+          message: `${slot.exerciseName} ${slot.weight} kg`,
+          variant: 'pr',
+        });
+      } else {
+        const resultLabel = value === 'success' ? 'Success' : 'Fail';
+        toast({
+          message: `#${workoutIndex + 1}: ${slot.exerciseName} ${slot.tier.toUpperCase()} — ${resultLabel}`,
+          action: {
+            label: 'Undo',
+            onClick: () => undoSpecific(workoutIndex, slotId),
+          },
+        });
+      }
     },
     [markResult, rows, toast, undoSpecific]
   );

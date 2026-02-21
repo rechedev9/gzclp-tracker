@@ -96,6 +96,7 @@ interface UseProgramReturn {
   readonly startWeights: StartWeights | null;
   readonly results: Results;
   readonly undoHistory: UndoHistory;
+  readonly resultTimestamps: Readonly<Record<string, string>>;
   readonly isLoading: boolean;
   readonly activeInstanceId: string | null;
   readonly generateProgram: (weights: StartWeights) => void;
@@ -146,6 +147,7 @@ export function useProgram(instanceId?: string): UseProgramReturn {
   const startWeights = detail?.startWeights ?? null;
   const results = detail?.results ?? {};
   const undoHistory = detail?.undoHistory ?? [];
+  const resultTimestamps = detail?.resultTimestamps ?? {};
   const isLoading = programsQuery.isLoading || detailQuery.isLoading;
 
   // -------------------------------------------------------------------------
@@ -344,6 +346,7 @@ export function useProgram(instanceId?: string): UseProgramReturn {
     startWeights,
     results,
     undoHistory,
+    resultTimestamps,
     isLoading,
     activeInstanceId,
     generateProgram: generateProgramCb,
