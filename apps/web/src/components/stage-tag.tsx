@@ -6,7 +6,7 @@ const STAGE_STYLES = [
   'bg-[var(--stage-s3)] text-white border-[var(--stage-s3)]',
 ] as const;
 
-const STAGE_LABELS = ['Normal', 'Caution', 'Reset next fail'] as const;
+const STAGE_LABELS = ['Normal', 'Precaución', 'Reinicio próximo fallo'] as const;
 
 interface StageTagProps {
   stage: number;

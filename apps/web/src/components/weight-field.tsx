@@ -42,7 +42,7 @@ export const WeightField = memo(function WeightField({
           type="button"
           onClick={() => onAdjust(fieldKey, -step)}
           className="px-2.5 border-2 border-r-0 border-[var(--border-color)] bg-[var(--bg-card)] text-[var(--btn-text)] text-lg font-bold cursor-pointer hover:bg-[var(--bg-hover-row)] transition-colors"
-          aria-label={`Decrease ${label}`}
+          aria-label={`Disminuir ${label}`}
         >
           &minus;
         </button>
@@ -71,7 +71,7 @@ export const WeightField = memo(function WeightField({
           type="button"
           onClick={() => onAdjust(fieldKey, step)}
           className="px-2.5 border-2 border-l-0 border-[var(--border-color)] bg-[var(--bg-card)] text-[var(--btn-text)] text-lg font-bold cursor-pointer hover:bg-[var(--bg-hover-row)] transition-colors"
-          aria-label={`Increase ${label}`}
+          aria-label={`Aumentar ${label}`}
         >
           +
         </button>
@@ -86,10 +86,10 @@ export const WeightField = memo(function WeightField({
         </p>
       ) : isValid ? (
         <p className="flex items-center gap-1 text-[11px] font-bold text-[var(--text-badge-ok)] mt-1">
-          <span aria-hidden="true">&#10003;</span> Valid
+          <span aria-hidden="true">&#10003;</span> Válido
         </p>
       ) : (
-        <p className="text-[10px] text-[var(--text-muted)] mt-1">Min 2.5 kg</p>
+        <p className="text-[10px] text-[var(--text-muted)] mt-1">Mín 2.5 kg</p>
       )}
     </div>
   );

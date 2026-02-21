@@ -56,6 +56,80 @@ export interface ProfileData {
   readonly monthlyReport: MonthlyReport | null;
 }
 
+// ─── Row-level helpers (shared between computeVolume / computeMonthlyReport) ─
+
+interface VolumeTick {
+  volume: number;
+  sets: number;
+  reps: number;
+}
+
+interface SuccessTick {
+  isComplete: boolean;
+  successes: number;
+  marks: number;
+}
+
+function rowVolumeTick(row: WorkoutRow): VolumeTick {
+  let volume = 0;
+  let sets = 0;
+  let reps = 0;
+
+  if (row.result.t1) {
+    const stage = T1_STAGES[row.t1Stage];
+    const regularReps = (stage.sets - 1) * stage.reps;
+    const amrapReps = row.result.t1Reps ?? stage.reps;
+    const total = regularReps + amrapReps;
+    volume += total * row.t1Weight;
+    sets += stage.sets;
+    reps += total;
+  }
+  if (row.result.t2) {
+    const total = row.t2Sets * row.t2Reps;
+    volume += total * row.t2Weight;
+    sets += row.t2Sets;
+    reps += total;
+  }
+  if (row.result.t3) {
+    const regularReps = (T3_SETS - 1) * T3_PRESCRIBED_REPS;
+    const amrapReps = row.result.t3Reps ?? T3_PRESCRIBED_REPS;
+    const total = regularReps + amrapReps;
+    volume += total * row.t3Weight;
+    sets += T3_SETS;
+    reps += total;
+  }
+
+  return { volume, sets, reps };
+}
+
+function rowSuccessTick(row: WorkoutRow): SuccessTick {
+  let successes = 0;
+  let marks = 0;
+
+  if (row.result.t1) {
+    marks += 1;
+    if (row.result.t1 === 'success') successes += 1;
+  }
+  if (row.result.t2) {
+    marks += 1;
+    if (row.result.t2 === 'success') successes += 1;
+  }
+  if (row.result.t3) {
+    marks += 1;
+    if (row.result.t3 === 'success') successes += 1;
+  }
+
+  return {
+    isComplete: !!(row.result.t1 && row.result.t2 && row.result.t3),
+    successes,
+    marks,
+  };
+}
+
+function toPercentage(numerator: number, denominator: number): number {
+  return denominator > 0 ? Math.round((numerator / denominator) * 100) : 0;
+}
+
 // ─── Sub-computations ───────────────────────────────────────────────
 
 function computePersonalRecords(
@@ -124,45 +198,13 @@ function computeVolume(rows: readonly WorkoutRow[]): VolumeStats {
   let totalReps = 0;
 
   for (const row of rows) {
-    // T1 volume
-    if (row.result.t1) {
-      const t1Stage = T1_STAGES[row.t1Stage];
-      const regularSets = t1Stage.sets - 1; // Last set is AMRAP
-      const regularReps = regularSets * t1Stage.reps;
-      const amrapReps = row.result.t1Reps ?? t1Stage.reps; // Fallback to prescribed reps
-      const t1Reps = regularReps + amrapReps;
-
-      totalVolume += t1Reps * row.t1Weight;
-      totalSets += t1Stage.sets;
-      totalReps += t1Reps;
-    }
-
-    // T2 volume — no AMRAP, straightforward sets * reps
-    if (row.result.t2) {
-      const t2Reps = row.t2Sets * row.t2Reps;
-      totalVolume += t2Reps * row.t2Weight;
-      totalSets += row.t2Sets;
-      totalReps += t2Reps;
-    }
-
-    // T3 volume — last set is AMRAP
-    if (row.result.t3) {
-      const t3RegularSets = T3_SETS - 1; // last set is AMRAP
-      const t3RegularReps = t3RegularSets * T3_PRESCRIBED_REPS;
-      const t3AmrapReps = row.result.t3Reps ?? T3_PRESCRIBED_REPS;
-      const t3Reps = t3RegularReps + t3AmrapReps;
-
-      totalVolume += t3Reps * row.t3Weight;
-      totalSets += T3_SETS;
-      totalReps += t3Reps;
-    }
+    const { volume, sets, reps } = rowVolumeTick(row);
+    totalVolume += volume;
+    totalSets += sets;
+    totalReps += reps;
   }
 
-  return {
-    totalVolume: Math.round(totalVolume),
-    totalSets,
-    totalReps,
-  };
+  return { totalVolume: Math.round(totalVolume), totalSets, totalReps };
 }
 
 function computeCompletion(
@@ -174,48 +216,27 @@ function computeCompletion(
   let totalMarks = 0;
 
   for (const row of rows) {
-    const isComplete = !!(row.result.t1 && row.result.t2 && row.result.t3);
-    if (isComplete) {
-      completed += 1;
-    }
-
-    // Count individual tier results for success rate
-    if (row.result.t1) {
-      totalMarks += 1;
-      if (row.result.t1 === 'success') successes += 1;
-    }
-    if (row.result.t2) {
-      totalMarks += 1;
-      if (row.result.t2 === 'success') successes += 1;
-    }
-    if (row.result.t3) {
-      totalMarks += 1;
-      if (row.result.t3 === 'success') successes += 1;
-    }
+    const tick = rowSuccessTick(row);
+    if (tick.isComplete) completed += 1;
+    successes += tick.successes;
+    totalMarks += tick.marks;
   }
 
-  // Total weight gained across all T1 lifts
-  let totalWeightGained = 0;
   const lastSuccessWeight: Record<string, number> = {};
-
   for (const row of rows) {
-    if (row.result.t1 === 'success') {
-      lastSuccessWeight[row.t1Exercise] = row.t1Weight;
-    }
+    if (row.result.t1 === 'success') lastSuccessWeight[row.t1Exercise] = row.t1Weight;
   }
 
-  for (const ex of T1_EXERCISES) {
+  const totalWeightGained = T1_EXERCISES.reduce((sum, ex) => {
     const gained = (lastSuccessWeight[ex] ?? startWeights[ex]) - startWeights[ex];
-    if (gained > 0) {
-      totalWeightGained += gained;
-    }
-  }
+    return gained > 0 ? sum + gained : sum;
+  }, 0);
 
   return {
     workoutsCompleted: completed,
     totalWorkouts: TOTAL_WORKOUTS,
-    completionPct: TOTAL_WORKOUTS > 0 ? Math.round((completed / TOTAL_WORKOUTS) * 100) : 0,
-    overallSuccessRate: totalMarks > 0 ? Math.round((successes / totalMarks) * 100) : 0,
+    completionPct: toPercentage(completed, TOTAL_WORKOUTS),
+    overallSuccessRate: toPercentage(successes, totalMarks),
     totalWeightGained,
   };
 }
@@ -244,7 +265,6 @@ function computeMonthlyReport(
   // Filter rows to this month's workouts
   const monthRows = rows.filter((r) => monthIndices.has(r.index));
 
-  // Count completed workouts (all 3 tiers marked)
   let completed = 0;
   let successes = 0;
   let totalMarks = 0;
@@ -253,40 +273,15 @@ function computeMonthlyReport(
   let reps = 0;
 
   for (const row of monthRows) {
-    const isComplete = !!(row.result.t1 && row.result.t2 && row.result.t3);
-    if (isComplete) completed += 1;
+    const st = rowSuccessTick(row);
+    if (st.isComplete) completed += 1;
+    successes += st.successes;
+    totalMarks += st.marks;
 
-    if (row.result.t1) {
-      totalMarks += 1;
-      if (row.result.t1 === 'success') successes += 1;
-      const t1Stage = T1_STAGES[row.t1Stage];
-      const regularSets = t1Stage.sets - 1;
-      const regularReps = regularSets * t1Stage.reps;
-      const amrapReps = row.result.t1Reps ?? t1Stage.reps;
-      const t1Reps = regularReps + amrapReps;
-      volume += t1Reps * row.t1Weight;
-      sets += t1Stage.sets;
-      reps += t1Reps;
-    }
-    if (row.result.t2) {
-      totalMarks += 1;
-      if (row.result.t2 === 'success') successes += 1;
-      const t2Reps = row.t2Sets * row.t2Reps;
-      volume += t2Reps * row.t2Weight;
-      sets += row.t2Sets;
-      reps += t2Reps;
-    }
-    if (row.result.t3) {
-      totalMarks += 1;
-      if (row.result.t3 === 'success') successes += 1;
-      const t3RegularSets = T3_SETS - 1;
-      const t3RegularReps = t3RegularSets * T3_PRESCRIBED_REPS;
-      const t3AmrapReps = row.result.t3Reps ?? T3_PRESCRIBED_REPS;
-      const t3Reps = t3RegularReps + t3AmrapReps;
-      volume += t3Reps * row.t3Weight;
-      sets += T3_SETS;
-      reps += t3Reps;
-    }
+    const vt = rowVolumeTick(row);
+    volume += vt.volume;
+    sets += vt.sets;
+    reps += vt.reps;
   }
 
   // Count PRs: T1 successes this month that exceed pre-month best

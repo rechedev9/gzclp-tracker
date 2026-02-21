@@ -1,17 +1,17 @@
 export const DAYS = [
-  { name: 'Day 1', t1: 'squat', t2: 'bench', t3: 'latpulldown' },
-  { name: 'Day 2', t1: 'ohp', t2: 'deadlift', t3: 'dbrow' },
-  { name: 'Day 3', t1: 'bench', t2: 'squat', t3: 'latpulldown' },
-  { name: 'Day 4', t1: 'deadlift', t2: 'ohp', t3: 'dbrow' },
+  { name: 'Día 1', t1: 'squat', t2: 'bench', t3: 'latpulldown' },
+  { name: 'Día 2', t1: 'ohp', t2: 'deadlift', t3: 'dbrow' },
+  { name: 'Día 3', t1: 'bench', t2: 'squat', t3: 'latpulldown' },
+  { name: 'Día 4', t1: 'deadlift', t2: 'ohp', t3: 'dbrow' },
 ] as const;
 
 export const NAMES: Record<string, string> = {
-  squat: 'Squat',
-  bench: 'Bench Press',
-  deadlift: 'Deadlift',
-  ohp: 'OHP',
-  latpulldown: 'Lat Pulldown',
-  dbrow: 'DB Row',
+  squat: 'Sentadilla',
+  bench: 'Press Banca',
+  deadlift: 'Peso Muerto',
+  ohp: 'Press Militar',
+  latpulldown: 'Jalón al Pecho',
+  dbrow: 'Remo con Mancuernas',
 };
 
 export const T1_STAGES = [

@@ -67,7 +67,7 @@ function WeekNavigator({
         type="button"
         onClick={onPrev}
         disabled={selectedWeek <= 1}
-        aria-label="Previous week"
+        aria-label="Semana anterior"
         className="font-mono text-[11px] font-bold tracking-widest uppercase px-4 py-2.5 border-2 border-[var(--border-color)] bg-[var(--bg-card)] text-[var(--text-muted)] disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer transition-colors hover:bg-[var(--bg-hover-row)] hover:text-[var(--text-main)]"
       >
         ← Prev
@@ -76,7 +76,7 @@ function WeekNavigator({
       <div className="flex-1 flex flex-col items-center gap-1">
         <div className="flex items-center gap-2">
           <span className="font-display" style={{ fontSize: '20px', letterSpacing: '0.05em' }}>
-            Week {selectedWeek}
+            Semana {selectedWeek}
           </span>
           <span
             className="font-mono text-[var(--text-muted)] tabular-nums"
@@ -89,7 +89,7 @@ function WeekNavigator({
           <span
             className={`font-mono ${weekDoneCount === weekTotalCount ? 'text-[var(--fill-progress)]' : 'text-[var(--text-muted)]'}`}
             style={{ fontSize: '11px', letterSpacing: '0.25em' }}
-            aria-label={`${weekDoneCount} of ${weekTotalCount} workouts done`}
+            aria-label={`${weekDoneCount} de ${weekTotalCount} entrenamientos completados`}
           >
             {'●'.repeat(weekDoneCount)}
             {'○'.repeat(weekTotalCount - weekDoneCount)}
@@ -100,7 +100,7 @@ function WeekNavigator({
               onClick={onGoToCurrent}
               className="font-mono text-[10px] font-bold tracking-widest uppercase text-[var(--fill-progress)] hover:underline cursor-pointer bg-transparent border-none p-0"
             >
-              → Current
+              → Actual
             </button>
           )}
         </div>
@@ -110,7 +110,7 @@ function WeekNavigator({
         type="button"
         onClick={onNext}
         disabled={selectedWeek >= totalWeeks}
-        aria-label="Next week"
+        aria-label="Semana siguiente"
         className="font-mono text-[11px] font-bold tracking-widest uppercase px-4 py-2.5 border-2 border-[var(--border-color)] bg-[var(--bg-card)] text-[var(--text-muted)] disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer transition-colors hover:bg-[var(--bg-hover-row)] hover:text-[var(--text-main)]"
       >
         Next →
@@ -218,11 +218,11 @@ export function GZCLPApp({
         });
       } else {
         const tierLabel = tier.toUpperCase();
-        const resultLabel = value === 'success' ? 'Success' : 'Fail';
+        const resultLabel = value === 'success' ? 'Éxito' : 'Fallo';
         toast({
           message: `#${index + 1}: ${NAMES[exerciseKey]} ${tierLabel} — ${resultLabel}`,
           action: {
-            label: 'Undo',
+            label: 'Deshacer',
             onClick: () => undoSpecific(index, tier),
           },
         });
@@ -270,7 +270,7 @@ export function GZCLPApp({
     <>
       <div className="sticky top-0 z-50">
         <AppHeader
-          backLabel="Programs"
+          backLabel="Programas"
           onBack={onBackToDashboard}
           onGoToProfile={onGoToProfile}
           onSignOut={() => void handleSignOut()}
@@ -300,10 +300,10 @@ export function GZCLPApp({
             {/* Tabs */}
             <div className="flex gap-0 mb-6 border-b-2 border-[var(--border-color)]">
               <TabButton active={activeTab === 'program'} onClick={() => setActiveTab('program')}>
-                Program
+                Programa
               </TabButton>
               <TabButton active={activeTab === 'stats'} onClick={() => setActiveTab('stats')}>
-                Stats &amp; Charts
+                Estadísticas
               </TabButton>
             </div>
 
@@ -312,7 +312,7 @@ export function GZCLPApp({
                 {/* Info toggle */}
                 <details className="bg-[var(--bg-card)] border border-[var(--border-color)] mb-6 overflow-hidden">
                   <summary className="font-mono px-5 py-3.5 font-bold cursor-pointer select-none flex justify-between items-center [&::marker]:hidden list-none text-[11px] tracking-widest uppercase">
-                    Progression Rules &amp; How to Use
+                    Reglas de Progresión y Cómo Usar
                     <span className="transition-transform duration-200 [[open]>&]:rotate-90">
                       &#9656;
                     </span>
@@ -320,50 +320,50 @@ export function GZCLPApp({
                   <div className="px-5 pb-5 border-t border-[var(--border-light)]">
                     <ul className="mt-3 ml-5 text-[13px] leading-8 text-[var(--text-info)] list-disc">
                       <li>
-                        <strong>&#10003; Success</strong> — Adds weight next session (+2.5 kg
-                        Bench/OHP, +5 kg Squat/DL)
+                        <strong>&#10003; Éxito</strong> — Agrega peso en la próxima sesión (+2.5 kg
+                        Press Banca/Press Militar, +5 kg Sentadilla/Peso Muerto)
                       </li>
                       <li>
-                        <strong>&#10007; Fail</strong> — Keeps weight, advances stage: 5&times;3 →
-                        6&times;2 → 10&times;1
+                        <strong>&#10007; Fallo</strong> — Mantiene peso, avanza de etapa: 5&times;3
+                        → 6&times;2 → 10&times;1
                       </li>
                       <li>
-                        <strong>T1 Stage 3 Fail</strong> — Weight drops 10%, restarts at 5&times;3
+                        <strong>T1 Etapa 3 Fallo</strong> — El peso baja 10%, reinicia en 5&times;3
                       </li>
                       <li>
-                        <strong>T2 Stage 3 Fail</strong> — Adds 15 kg to original weight, restarts
-                        at 3&times;10
+                        <strong>T2 Etapa 3 Fallo</strong> — Agrega 15 kg al peso original, reinicia
+                        en 3&times;10
                       </li>
                       <li>
-                        <strong>T3 Success</strong> — Adds 2.5 kg when AMRAP set reaches 25+ reps.
-                        Fail = same weight
+                        <strong>T3 Éxito</strong> — Agrega 2.5 kg cuando el set AMRAP llega a 25+
+                        reps. Fallo = mismo peso
                       </li>
                       <li>
-                        <strong>AMRAP</strong> — Last set of T1 and T3 = as many reps as possible
-                        (stop 1-2 before failure)
+                        <strong>AMRAP</strong> — Último set de T1 y T3 = máximas repeticiones
+                        posibles (detente 1-2 antes del fallo)
                       </li>
                       <li>
-                        <strong>Stage Colors</strong> — S1 (black) = normal, S2 (orange) = caution,
-                        S3 (red) = reset next fail
+                        <strong>Colores de Etapa</strong> — E1 (negro) = normal, E2 (naranja) =
+                        precaución, E3 (rojo) = reinicio en próximo fallo
                       </li>
                       <li>
-                        <strong>Undo</strong> — Click any badge to undo, or use the Undo button in
-                        the toolbar
+                        <strong>Deshacer</strong> — Haz clic en cualquier insignia para deshacer, o
+                        usa el botón Deshacer en la barra de herramientas
                       </li>
                       <li>
-                        <strong>Yellow rows</strong> — Recalculated because of a previous Fail
+                        <strong>Filas amarillas</strong> — Recalculadas por un fallo previo
                       </li>
                     </ul>
                     <div className="flex items-center gap-4 mt-4 pt-4 border-t border-[var(--border-light)] text-[12px] font-bold">
-                      <span className="text-[var(--text-muted)] mr-1">Stages:</span>
+                      <span className="text-[var(--text-muted)] mr-1">Etapas:</span>
                       <span className="inline-flex items-center gap-1.5">
                         <StageTag stage={0} size="md" /> Normal
                       </span>
                       <span className="inline-flex items-center gap-1.5">
-                        <StageTag stage={1} size="md" /> Caution
+                        <StageTag stage={1} size="md" /> Precaución
                       </span>
                       <span className="inline-flex items-center gap-1.5">
-                        <StageTag stage={2} size="md" /> Reset
+                        <StageTag stage={2} size="md" /> Reinicio
                       </span>
                     </div>
                   </div>
@@ -399,12 +399,14 @@ export function GZCLPApp({
               <ErrorBoundary
                 fallback={({ reset }) => (
                   <div className="text-center py-16">
-                    <p className="text-[var(--text-muted)] mb-4">Stats could not be loaded.</p>
+                    <p className="text-[var(--text-muted)] mb-4">
+                      No se pudieron cargar las estadísticas.
+                    </p>
                     <button
                       onClick={reset}
                       className="px-5 py-2 bg-[var(--fill-progress)] text-white font-bold cursor-pointer"
                     >
-                      Retry
+                      Reintentar
                     </button>
                   </div>
                 )}

@@ -30,7 +30,7 @@ function ProgressBar({
         aria-valuenow={completed}
         aria-valuemin={0}
         aria-valuemax={total}
-        aria-label="Workout completion progress"
+        aria-label="Progreso de entrenamiento"
       >
         <div
           className="h-full bg-[var(--fill-progress)] transition-[width] duration-300 ease-out"
@@ -69,7 +69,7 @@ export function Toolbar({
         {/* Left */}
         <div className="flex items-center gap-3 shrink-0">
           <Button size="sm" onClick={onUndo} disabled={undoCount === 0}>
-            Undo
+            Deshacer
           </Button>
           {undoCount > 0 && (
             <span className="font-mono text-[10px] text-[var(--text-muted)] tabular-nums">
@@ -88,7 +88,7 @@ export function Toolbar({
         {/* Right */}
         <div className="flex items-center gap-2.5 shrink-0">
           <Button size="sm" onClick={onJumpToCurrent}>
-            Go to current
+            Ir al actual
           </Button>
 
           {/* Overflow menu */}
@@ -110,7 +110,7 @@ export function Toolbar({
                   setConfirmOpen(true);
                 }}
               >
-                Reset All
+                Reiniciar Todo
               </DropdownItem>
             </DropdownMenu>
           </div>
@@ -119,9 +119,9 @@ export function Toolbar({
 
       <ConfirmDialog
         open={confirmOpen}
-        title="Reset All Progress"
-        message="Are you sure you want to reset ALL progress? This cannot be undone."
-        confirmLabel="Reset All"
+        title="Reiniciar Todo el Progreso"
+        message="¿Estás seguro de que quieres reiniciar TODO el progreso? Esto no se puede deshacer."
+        confirmLabel="Reiniciar Todo"
         variant="danger"
         onConfirm={() => {
           onReset();

@@ -12,9 +12,9 @@ interface GenericSetupFormProps {
 
 function validateField(value: string, min: number): string | null {
   const num = parseFloat(value);
-  if (value.trim() === '' || isNaN(num)) return 'Required';
-  if (num < min) return `Min ${min} kg`;
-  if (num > 500) return 'Max 500 kg';
+  if (value.trim() === '' || isNaN(num)) return 'Requerido';
+  if (num < min) return `Mín ${min} kg`;
+  if (num > 500) return 'Máx 500 kg';
   return null;
 }
 
@@ -115,7 +115,7 @@ export function GenericSetupForm({
     setTouched(Object.fromEntries(fields.map((f) => [f.key, true])));
 
     if (hasError) {
-      setError('Please fix the highlighted fields.');
+      setError('Por favor corrige los campos resaltados.');
       return null;
     }
 
@@ -159,12 +159,12 @@ export function GenericSetupForm({
         className="font-display mb-1.5 leading-none"
         style={{ fontSize: '28px', color: 'var(--text-header)' }}
       >
-        {isEditMode ? 'Edit Starting Weights (kg)' : 'Starting Weights (kg)'}
+        {isEditMode ? 'Editar Pesos Iniciales (kg)' : 'Pesos Iniciales (kg)'}
       </h2>
       <p className="text-[13px] text-[var(--text-muted)] mb-5">
         {isEditMode
-          ? 'Update your starting weights — the program will recalculate from these new values'
-          : `Enter your starting weights for ${definition.name}`}
+          ? 'Actualiza tus pesos iniciales — el programa se recalculará con los nuevos valores'
+          : `Ingresa tus pesos iniciales para ${definition.name}`}
       </p>
 
       <div className="mb-6 space-y-5">
@@ -205,7 +205,7 @@ export function GenericSetupForm({
             &#9888;
           </span>
           <div className="flex-1">
-            <p className="text-xs mb-1">Please fix the following:</p>
+            <p className="text-xs mb-1">Por favor corrige lo siguiente:</p>
             <ul className="text-[11px] font-normal list-disc ml-4">
               {fields
                 .filter((f) => fieldErrors[f.key])
@@ -232,14 +232,14 @@ export function GenericSetupForm({
             onClick={() => setIsExpanded(false)}
             className="flex-1 py-3.5 border-2 border-[var(--border-color)] bg-[var(--bg-card)] text-[var(--text-muted)] text-base font-bold cursor-pointer hover:bg-[var(--bg-hover-row)] hover:text-[var(--text-main)] transition-colors"
           >
-            Cancel
+            Cancelar
           </button>
         )}
         <button
           onClick={handleSubmit}
           className="flex-1 py-3.5 border-none bg-[var(--bg-header)] text-[var(--text-header)] text-base font-bold cursor-pointer hover:opacity-85 transition-opacity"
         >
-          {isEditMode ? 'Update Weights' : 'Generate Program'}
+          {isEditMode ? 'Actualizar Pesos' : 'Generar Programa'}
         </button>
       </div>
     </>
@@ -256,7 +256,7 @@ export function GenericSetupForm({
                   className="font-display mb-1 leading-none"
                   style={{ fontSize: '22px', color: 'var(--text-header)' }}
                 >
-                  Starting Weights
+                  Pesos Iniciales
                 </h2>
                 <p className="text-xs text-[var(--text-muted)]">
                   {fields.length <= 4
@@ -271,7 +271,7 @@ export function GenericSetupForm({
                 onClick={() => setIsExpanded(true)}
                 className="px-4 py-2.5 min-h-[44px] border-2 border-[var(--btn-border)] text-xs font-bold cursor-pointer bg-[var(--btn-bg)] text-[var(--btn-text)] whitespace-nowrap transition-all hover:bg-[var(--btn-hover-bg)] hover:text-[var(--btn-hover-text)]"
               >
-                Edit Weights
+                Editar Pesos
               </button>
             </div>
           </div>
@@ -298,9 +298,9 @@ export function GenericSetupForm({
 
       <ConfirmDialog
         open={showConfirm}
-        title="Update Starting Weights"
-        message="This will recalculate the entire program from the new starting weights. Your pass/fail history will be preserved, but projected weights will change. Continue?"
-        confirmLabel="Update Weights"
+        title="Actualizar Pesos Iniciales"
+        message="Esto recalculará todo el programa con los nuevos pesos iniciales. Tu historial de éxitos/fallos se conservará, pero los pesos proyectados cambiarán. ¿Continuar?"
+        confirmLabel="Actualizar Pesos"
         onConfirm={handleConfirmUpdate}
         onCancel={handleCancelUpdate}
       />

@@ -6,9 +6,9 @@ import { useScrollSpy } from '@/hooks/use-scroll-spy';
 const SECTION_IDS = ['features', 'how-it-works', 'programs'] as const;
 
 const NAV_LINKS = [
-  { label: 'Features', href: '#features' },
-  { label: 'How It Works', href: '#how-it-works' },
-  { label: 'Programs', href: '#programs' },
+  { label: 'Características', href: '#features' },
+  { label: 'Cómo Funciona', href: '#how-it-works' },
+  { label: 'Programas', href: '#programs' },
 ] as const;
 
 /* ── Gradient Divider ──────────────────────────── */
@@ -35,7 +35,7 @@ export function LandingPage(): React.ReactNode {
         href="#main-content"
         className="sr-only focus:not-sr-only focus:absolute focus:z-50 focus:top-2 focus:left-2 focus:px-4 focus:py-2 focus:bg-[var(--btn-hover-bg)] focus:text-[var(--btn-hover-text)] focus:text-sm focus:font-bold"
       >
-        Skip to content
+        Ir al contenido
       </a>
 
       {/* ── Nav ─────────────────────────────────────────── */}
@@ -69,7 +69,7 @@ export function LandingPage(): React.ReactNode {
           to="/login"
           className="font-mono text-xs font-bold tracking-widest uppercase text-[var(--btn-text)] border border-[var(--btn-border)] px-5 py-2.5 hover:bg-[var(--btn-hover-bg)] hover:text-[var(--btn-hover-text)] hover:shadow-[0_0_20px_rgba(232,170,32,0.25)] transition-all duration-200"
         >
-          Sign In →
+          Iniciar Sesión →
         </Link>
       </nav>
 
@@ -109,7 +109,7 @@ export function LandingPage(): React.ReactNode {
             <div className="font-mono inline-flex items-center gap-3 mb-8 px-4 py-2 border border-[var(--border-light)] bg-[var(--bg-card)]">
               <span className="w-1.5 h-1.5 rounded-full bg-[var(--fill-progress)] animate-pulse" />
               <span className="text-[10px] font-medium tracking-[0.3em] uppercase text-[var(--text-muted)]">
-                100% Free &middot; Sync Across Devices
+                100% Gratis &middot; Sincroniza entre Dispositivos
               </span>
             </div>
 
@@ -123,17 +123,17 @@ export function LandingPage(): React.ReactNode {
                 letterSpacing: '0.02em',
               }}
             >
-              Train Smarter.
+              Entrena Mejor.
               <br />
-              <span style={{ color: 'var(--text-main)', opacity: 0.9 }}>Progress Faster.</span>
+              <span style={{ color: 'var(--text-main)', opacity: 0.9 }}>Progresa Más Rápido.</span>
             </h1>
 
             <p
               className="text-base sm:text-lg max-w-xl mx-auto mb-12 leading-relaxed"
               style={{ color: 'var(--text-muted)' }}
             >
-              Stop guessing in the gym. Follow proven programs that auto-adjust weight, sets, and
-              reps — so every session moves you forward.
+              Deja de adivinar en el gimnasio. Sigue programas probados que ajustan automáticamente
+              el peso, series y repeticiones — para que cada sesión te haga avanzar.
             </p>
 
             <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
@@ -141,13 +141,13 @@ export function LandingPage(): React.ReactNode {
                 to="/login"
                 className="font-mono px-10 py-4 text-sm font-bold tracking-widest uppercase border-2 border-[var(--btn-border)] bg-[var(--btn-hover-bg)] text-[var(--btn-hover-text)] hover:shadow-[0_0_32px_rgba(232,170,32,0.35)] transition-all duration-300 min-w-[220px]"
               >
-                Start Training →
+                Comenzar →
               </Link>
               <a
                 href="#how-it-works"
                 className="font-mono px-10 py-4 text-sm font-bold tracking-widest uppercase border-2 border-[var(--border-color)] text-[var(--text-muted)] hover:border-[var(--border-light)] hover:text-[var(--text-main)] transition-all duration-300 min-w-[220px]"
               >
-                How It Works
+                Cómo Funciona
               </a>
             </div>
           </div>
@@ -202,7 +202,7 @@ export function LandingPage(): React.ReactNode {
           ref={observe}
           className="landing-fade-in px-6 sm:px-10 py-16 sm:py-24 max-w-5xl mx-auto"
         >
-          <SectionLabel>Features</SectionLabel>
+          <SectionLabel>Características</SectionLabel>
           <h2
             id="features-heading"
             className="font-display text-center mb-4 leading-none"
@@ -212,7 +212,7 @@ export function LandingPage(): React.ReactNode {
               letterSpacing: '0.02em',
             }}
           >
-            Everything You Need
+            Todo lo que Necesitas
           </h2>
           <p
             className="text-center mb-16 max-w-md mx-auto"
@@ -222,7 +222,7 @@ export function LandingPage(): React.ReactNode {
               lineHeight: 1.7,
             }}
           >
-            No fluff. Just focused tools that make every rep count.
+            Sin relleno. Solo herramientas enfocadas que hacen que cada repetición cuente.
           </p>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-px bg-[var(--border-color)]">
             {FEATURES.map((f) => (
@@ -267,7 +267,7 @@ export function LandingPage(): React.ReactNode {
           className="landing-fade-in px-6 sm:px-10 py-16 sm:py-24 bg-[var(--bg-header)]"
         >
           <div className="max-w-4xl mx-auto">
-            <SectionLabel>How It Works</SectionLabel>
+            <SectionLabel>Cómo Funciona</SectionLabel>
             <h2
               id="how-it-works-heading"
               className="font-display text-center mb-4 leading-none"
@@ -277,7 +277,7 @@ export function LandingPage(): React.ReactNode {
                 letterSpacing: '0.02em',
               }}
             >
-              Three Steps. That&apos;s It.
+              Tres Pasos. Eso es Todo.
             </h2>
             <p
               className="text-center mb-16 max-w-lg mx-auto"
@@ -287,7 +287,7 @@ export function LandingPage(): React.ReactNode {
                 lineHeight: 1.7,
               }}
             >
-              No complicated setup. No spreadsheets. Just pick your weights and go.
+              Sin configuración complicada. Sin hojas de cálculo. Solo elige tus pesos y entrena.
             </p>
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-10 sm:gap-12">
               {STEPS.map((s) => (
@@ -358,7 +358,7 @@ export function LandingPage(): React.ReactNode {
           ref={observe}
           className="landing-fade-in px-6 sm:px-10 py-16 sm:py-24 max-w-5xl mx-auto"
         >
-          <SectionLabel>The Science</SectionLabel>
+          <SectionLabel>La Ciencia</SectionLabel>
           <h2
             id="smart-training-heading"
             className="font-display text-center mb-4 leading-none"
@@ -368,7 +368,7 @@ export function LandingPage(): React.ReactNode {
               letterSpacing: '0.02em',
             }}
           >
-            Why Smart Training Wins
+            Por Qué el Entrenamiento Inteligente Gana
           </h2>
           <p
             className="text-center mb-16 max-w-lg mx-auto"
@@ -378,8 +378,9 @@ export function LandingPage(): React.ReactNode {
               lineHeight: 1.7,
             }}
           >
-            Most people stall because they train randomly. Structured programs with built-in
-            progression rules are how you actually get stronger — consistently.
+            La mayoría se estanca porque entrena aleatoriamente. Los programas estructurados con
+            reglas de progresión integradas son cómo realmente te vuelves más fuerte — de forma
+            consistente.
           </p>
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-px bg-[var(--border-color)]">
             {SCIENCE_CARDS.map((card) => (
@@ -417,7 +418,7 @@ export function LandingPage(): React.ReactNode {
           className="landing-fade-in px-6 sm:px-10 py-16 sm:py-24 bg-[var(--bg-header)]"
         >
           <div className="max-w-4xl mx-auto">
-            <SectionLabel>Built For</SectionLabel>
+            <SectionLabel>Diseñado Para</SectionLabel>
             <h2
               id="personas-heading"
               className="font-display text-center mb-4 leading-none"
@@ -427,7 +428,7 @@ export function LandingPage(): React.ReactNode {
                 letterSpacing: '0.02em',
               }}
             >
-              Built for Every Lifter
+              Para Cada Atleta
             </h2>
             <p
               className="text-center mb-16 max-w-lg mx-auto"
@@ -437,8 +438,7 @@ export function LandingPage(): React.ReactNode {
                 lineHeight: 1.7,
               }}
             >
-              Whether you&apos;re touching a barbell for the first time or breaking through a
-              plateau.
+              Ya sea que estés tocando una barra por primera vez o rompiendo un estancamiento.
             </p>
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-px bg-[var(--border-color)]">
               {PERSONAS.map((p) => (
@@ -486,7 +486,7 @@ export function LandingPage(): React.ReactNode {
               className="font-mono text-[11px] tracking-[0.3em] uppercase mb-6"
               style={{ color: 'var(--text-muted)' }}
             >
-              Ready to enter the chamber?
+              ¿Listo para entrar a la cámara?
             </p>
             <h2
               className="font-display mb-10 leading-none"
@@ -496,15 +496,17 @@ export function LandingPage(): React.ReactNode {
                 letterSpacing: '0.02em',
               }}
             >
-              Enter the Chamber.
+              Entra a la Cámara.
               <br />
-              <span style={{ color: 'var(--text-main)', opacity: 0.8 }}>Start Training Today.</span>
+              <span style={{ color: 'var(--text-main)', opacity: 0.8 }}>
+                Comienza a Entrenar Hoy.
+              </span>
             </h2>
             <Link
               to="/login"
               className="font-mono inline-block px-12 py-4 text-sm font-bold tracking-widest uppercase border-2 border-[var(--btn-border)] bg-[var(--btn-hover-bg)] text-[var(--btn-hover-text)] hover:shadow-[0_0_48px_rgba(232,170,32,0.4)] transition-all duration-300"
             >
-              Start For Free →
+              Comienza Gratis →
             </Link>
           </div>
         </section>
@@ -518,7 +520,7 @@ export function LandingPage(): React.ReactNode {
               The Real Hyperbolic Time Chamber
             </p>
             <p className="text-xs" style={{ color: 'var(--text-muted)' }}>
-              Built for lifters who refuse to stall.
+              Para atletas que se niegan a estancarse.
             </p>
           </div>
           <div
@@ -526,7 +528,7 @@ export function LandingPage(): React.ReactNode {
             style={{ color: 'var(--text-muted)' }}
           >
             <Link to="/privacy" className="hover:text-[var(--text-main)] transition-colors">
-              Privacy Policy
+              Política de Privacidad
             </Link>
             <span aria-hidden="true">&middot;</span>
             <span>Built by RSN</span>

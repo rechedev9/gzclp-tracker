@@ -86,7 +86,7 @@ function ActiveProgramCard({
           />
         </div>
         <span className="text-xs font-bold text-[var(--text-muted)] whitespace-nowrap">
-          {completedWorkouts}/{totalWorkouts} workouts
+          {completedWorkouts}/{totalWorkouts} entrenamientos
         </span>
       </div>
 
@@ -95,14 +95,14 @@ function ActiveProgramCard({
           onClick={onContinue}
           className="px-5 py-2.5 text-xs font-bold border-2 border-[var(--btn-border)] bg-[var(--btn-hover-bg)] text-[var(--btn-hover-text)] cursor-pointer transition-all hover:opacity-90"
         >
-          Continue Training
+          Continuar Entrenamiento
         </button>
         {onGoToProfile && (
           <button
             onClick={onGoToProfile}
             className="px-5 py-2.5 text-xs font-bold text-[var(--text-muted)] hover:text-[var(--text-header)] cursor-pointer transition-colors"
           >
-            View Training Profile
+            Ver Perfil de Entrenamiento
           </button>
         )}
       </div>
@@ -135,7 +135,7 @@ function OtherProgramCard({ program, onContinue }: OtherProgramCardProps): React
         onClick={() => onContinue(program.id, program.programId)}
         className="px-4 py-2 text-xs font-bold border border-[var(--border-color)] text-[var(--text-main)] hover:border-[var(--border-light)] cursor-pointer transition-colors whitespace-nowrap"
       >
-        Continue
+        Continuar
       </button>
     </div>
   );
@@ -180,7 +180,7 @@ export function Dashboard({
         {activeProgram && (
           <section className="mb-10">
             <h2 className="text-xs font-bold uppercase tracking-[0.15em] text-[var(--text-muted)] mb-3">
-              Your Program
+              Tu Programa
             </h2>
             <ActiveProgramCard
               program={activeProgram}
@@ -194,7 +194,7 @@ export function Dashboard({
         {otherPrograms.length > 0 && (
           <section className="mb-10">
             <h2 className="text-xs font-bold uppercase tracking-[0.15em] text-[var(--text-muted)] mb-3">
-              Other Programs
+              Otros Programas
             </h2>
             <div className="flex flex-col gap-2">
               {otherPrograms.map((p) => (
@@ -207,7 +207,7 @@ export function Dashboard({
         {/* Program catalog — all real programs from registry */}
         <section>
           <h2 className="text-xs font-bold uppercase tracking-[0.15em] text-[var(--text-muted)] mb-3">
-            {activeProgram ? 'Start a New Program' : 'Choose a Program'}
+            {activeProgram ? 'Iniciar Nuevo Programa' : 'Elegir un Programa'}
           </h2>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             {presets.map((def) => (

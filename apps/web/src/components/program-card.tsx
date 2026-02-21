@@ -9,15 +9,15 @@ interface ProgramCardProps {
 }
 
 const CATEGORY_LABELS: Readonly<Record<string, string>> = {
-  strength: 'Strength',
-  hypertrophy: 'Hypertrophy',
+  strength: 'Fuerza',
+  hypertrophy: 'Hipertrofia',
   powerlifting: 'Powerlifting',
 };
 
 export function ProgramCard({
   definition,
   disabled = false,
-  disabledLabel = 'Coming Soon',
+  disabledLabel = 'Próximamente',
   isActive = false,
   onSelect,
 }: ProgramCardProps): React.ReactNode {
@@ -43,9 +43,9 @@ export function ProgramCard({
       {/* Meta: workouts, frequency, author — hidden for placeholder cards */}
       {!disabled && (
         <div className="flex flex-wrap gap-x-4 gap-y-1 text-[11px] text-[var(--text-info)]">
-          <span>{definition.totalWorkouts} workouts</span>
-          {definition.workoutsPerWeek > 0 && <span>{definition.workoutsPerWeek}x / week</span>}
-          {definition.author && <span>By {definition.author}</span>}
+          <span>{definition.totalWorkouts} entrenamientos</span>
+          {definition.workoutsPerWeek > 0 && <span>{definition.workoutsPerWeek}x / semana</span>}
+          {definition.author && <span>Por {definition.author}</span>}
         </div>
       )}
 
@@ -59,7 +59,7 @@ export function ProgramCard({
             : 'border-[var(--btn-border)] bg-[var(--btn-bg)] text-[var(--btn-text)] hover:bg-[var(--btn-hover-bg)] hover:text-[var(--btn-hover-text)] disabled:hover:bg-[var(--btn-bg)] disabled:hover:text-[var(--btn-text)]'
         }`}
       >
-        {disabled ? disabledLabel : isActive ? 'Continue Training' : 'Start Program'}
+        {disabled ? disabledLabel : isActive ? 'Continuar Entrenamiento' : 'Iniciar Programa'}
       </button>
     </div>
   );

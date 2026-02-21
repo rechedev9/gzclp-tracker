@@ -9,7 +9,7 @@ export function PrivacyPage(): React.ReactNode {
             to="/"
             className="text-sm font-bold text-[var(--text-header)] hover:opacity-80 transition-opacity"
           >
-            &larr; Back
+            &larr; Volver
           </Link>
           <span className="text-sm font-bold text-[var(--text-header)]">
             The Real Hyperbolic Time Chamber
@@ -19,67 +19,72 @@ export function PrivacyPage(): React.ReactNode {
 
       <main className="max-w-3xl mx-auto px-6 sm:px-10 py-10 sm:py-16">
         <h1 className="text-2xl sm:text-3xl font-extrabold text-[var(--text-header)] mb-8">
-          Privacy Policy
+          Política de Privacidad
         </h1>
 
         <div className="space-y-8 text-sm text-[var(--text-muted)] leading-relaxed">
           <section>
-            <h2 className="text-base font-bold text-[var(--text-main)] mb-2">Data We Store</h2>
+            <h2 className="text-base font-bold text-[var(--text-main)] mb-2">
+              Datos que Almacenamos
+            </h2>
             <p>
-              All training data (exercises, weights, sets, reps, and results) is stored locally in
-              your browser&apos;s localStorage. This data never leaves your device unless you
-              explicitly enable cloud sync.
+              Todos los datos de entrenamiento (ejercicios, pesos, series, repeticiones y
+              resultados) se almacenan localmente en el localStorage de tu navegador. Estos datos
+              nunca salen de tu dispositivo a menos que habilites explícitamente la sincronización
+              en la nube.
             </p>
           </section>
 
           <section>
             <h2 className="text-base font-bold text-[var(--text-main)] mb-2">
-              Cloud Sync (Optional)
+              Sincronización en la Nube (Opcional)
             </h2>
             <p>
-              If you create an account, we store your email address and encrypted training data on
-              Supabase servers. This enables cross-device sync. Cloud sync is entirely optional
-              &mdash; the app works fully offline without an account.
+              Si creas una cuenta, almacenamos tu dirección de correo electrónico y datos de
+              entrenamiento cifrados en servidores de Supabase. Esto permite sincronización entre
+              dispositivos. La sincronización en la nube es completamente opcional &mdash; la app
+              funciona totalmente sin conexión sin una cuenta.
             </p>
           </section>
 
           <section>
             <h2 className="text-base font-bold text-[var(--text-main)] mb-2">
-              Google Sign-In (Optional)
+              Inicio de Sesión con Google (Opcional)
             </h2>
             <p>
-              If you sign in with Google, we receive your email address and profile name from
-              Google. We do not access your contacts, calendar, or any other Google data.
+              Si inicias sesión con Google, recibimos tu dirección de correo electrónico y nombre de
+              perfil de Google. No accedemos a tus contactos, calendario ni ningún otro dato de
+              Google.
             </p>
           </section>
 
           <section>
             <h2 className="text-base font-bold text-[var(--text-main)] mb-2">
-              Analytics &amp; Tracking
+              Analíticas y Seguimiento
             </h2>
             <p>
-              We do not use any analytics, tracking cookies, or third-party scripts. No data is
-              shared with advertisers or third parties.
+              No utilizamos ninguna analítica, cookies de seguimiento ni scripts de terceros. No se
+              comparte ningún dato con anunciantes ni terceros.
             </p>
           </section>
 
           <section>
-            <h2 className="text-base font-bold text-[var(--text-main)] mb-2">Deleting Your Data</h2>
+            <h2 className="text-base font-bold text-[var(--text-main)] mb-2">Eliminar tus Datos</h2>
             <p>
-              <strong>Local data:</strong> Clear your browser&apos;s localStorage or use the
-              &quot;Reset All&quot; option in the app.
+              <strong>Datos locales:</strong> Borra el localStorage de tu navegador o usa la opción
+              &quot;Reiniciar Todo&quot; en la app.
             </p>
             <p className="mt-2">
-              <strong>Cloud data:</strong> If you have an account and want your cloud data deleted,
-              contact us and we will remove your account and all associated data from Supabase.
+              <strong>Datos en la nube:</strong> Si tienes una cuenta y deseas eliminar tus datos en
+              la nube, contáctanos y eliminaremos tu cuenta y todos los datos asociados de Supabase.
             </p>
           </section>
 
           <section>
-            <h2 className="text-base font-bold text-[var(--text-main)] mb-2">Contact</h2>
+            <h2 className="text-base font-bold text-[var(--text-main)] mb-2">Contacto</h2>
             <p>
-              For privacy questions or data deletion requests, open an issue on the project
-              repository or reach out to the maintainer.
+              Para preguntas sobre privacidad o solicitudes de eliminación de datos, abre un issue
+              en el repositorio del proyecto o contacta al mantenedor.
             </p>
           </section>
         </div>
