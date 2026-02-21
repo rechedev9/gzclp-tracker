@@ -12,6 +12,7 @@ interface Toast {
   readonly message: string;
   readonly action?: ToastAction;
   readonly variant: ToastVariant;
+  readonly exiting: boolean;
 }
 
 interface ToastOpts {
@@ -40,9 +41,17 @@ export function ToastProvider({
   const [toasts, setToasts] = useState<readonly Toast[]>([]);
   const nextId = useRef(0);
 
-  const dismiss = useCallback((id: number): void => {
+  const remove = useCallback((id: number): void => {
     setToasts((prev) => prev.filter((t) => t.id !== id));
   }, []);
+
+  const dismiss = useCallback(
+    (id: number): void => {
+      setToasts((prev) => prev.map((t) => (t.id === id ? { ...t, exiting: true } : t)));
+      setTimeout(() => remove(id), 200);
+    },
+    [remove]
+  );
 
   const toast = useCallback(
     (opts: ToastOpts): void => {
@@ -50,7 +59,7 @@ export function ToastProvider({
       const variant = opts.variant ?? 'default';
       setToasts((prev) => [
         ...prev.slice(-(MAX_TOASTS - 1)),
-        { id, message: opts.message, action: opts.action, variant },
+        { id, message: opts.message, action: opts.action, variant, exiting: false },
       ]);
       setTimeout(() => dismiss(id), variant === 'pr' ? PR_DISMISS_MS : AUTO_DISMISS_MS);
     },

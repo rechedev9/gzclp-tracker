@@ -101,4 +101,8 @@ export const ProgramDefinitionSchema = z.strictObject({
   exercises: z.record(z.string(), z.strictObject({ name: z.string().min(1) })),
   configFields: z.array(ConfigFieldSchema),
   weightIncrements: z.record(z.string(), z.number().positive()),
+  configTitle: z.string().min(1).optional(),
+  configDescription: z.string().min(1).optional(),
+  configEditTitle: z.string().min(1).optional(),
+  configEditDescription: z.string().min(1).optional(),
 });

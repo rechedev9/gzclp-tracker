@@ -1,0 +1,48 @@
+/**
+ * Full-page skeleton shown while auth state is being restored.
+ * Mirrors AppHeader + Toolbar + 3 workout row placeholders so the layout
+ * doesn't shift once auth resolves and real content mounts.
+ */
+export function AppSkeleton(): React.ReactNode {
+  return (
+    <div className="min-h-dvh bg-[var(--bg-body)]">
+      {/* Header skeleton */}
+      <header className="flex items-center justify-between px-5 sm:px-8 py-3.5 bg-[var(--bg-header)] border-b border-[var(--border-color)]">
+        <div className="flex items-center gap-3">
+          <div className="w-7 h-7 rounded-full bg-[var(--border-color)] animate-pulse" />
+          <div className="h-3.5 w-48 bg-[var(--border-color)] rounded animate-pulse" />
+        </div>
+        <div className="w-8 h-8 rounded-full bg-[var(--border-color)] animate-pulse" />
+      </header>
+
+      {/* Toolbar skeleton */}
+      <div className="bg-[var(--bg-card)] border-b border-[var(--border-color)] px-3 sm:px-5 py-2 sm:py-3">
+        <div className="flex items-center gap-4">
+          <div className="h-8 w-20 bg-[var(--border-color)] rounded animate-pulse" />
+          <div className="flex-1 h-2 bg-[var(--bg-progress)] rounded animate-pulse" />
+          <div className="h-8 w-24 bg-[var(--border-color)] rounded animate-pulse" />
+        </div>
+      </div>
+
+      {/* Content skeleton — 3 workout row placeholders */}
+      <div className="max-w-[1300px] mx-auto px-5 pt-6">
+        {Array.from({ length: 3 }, (_, i) => (
+          <div
+            key={i}
+            className="bg-[var(--bg-card)] border border-[var(--border-color)] mb-3 p-4 sm:p-5 animate-pulse"
+          >
+            <div className="flex items-center gap-3 mb-3">
+              <div className="h-4 w-16 bg-[var(--border-color)] rounded" />
+              <div className="h-3 w-32 bg-[var(--border-color)] rounded" />
+            </div>
+            <div className="flex gap-4">
+              <div className="h-3 w-20 bg-[var(--border-color)] rounded" />
+              <div className="h-3 w-20 bg-[var(--border-color)] rounded" />
+              <div className="h-3 w-20 bg-[var(--border-color)] rounded" />
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}

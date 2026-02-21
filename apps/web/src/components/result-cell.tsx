@@ -28,7 +28,7 @@ export const ResultCell = memo(function ResultCell({
       <button
         onClick={() => onUndo(index, tier)}
         aria-label={`Deshacer ${tier} ${isSuccess ? 'éxito' : 'fallo'}`}
-        className={`px-3${variant === 'table' ? '.5' : ''} py-1${variant === 'table' ? '.5' : ''} text-[13px] font-extrabold cursor-pointer border-3 rounded-sm ${badgeColor} ${
+        className={`px-3${variant === 'table' ? '.5' : ''} py-1${variant === 'table' ? '.5' : ''} text-[13px] font-extrabold cursor-pointer border-3 rounded-sm animate-[pop-in_0.25s_ease-out] ${badgeColor} ${
           variant === 'table'
             ? 'group relative inline-block transition-transform hover:scale-110'
             : ''

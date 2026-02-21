@@ -13,7 +13,11 @@ export function ToastContainer(): React.ReactNode {
       {toasts.map((t) => (
         <div
           key={t.id}
-          className={`pointer-events-auto flex items-center gap-3 px-4 py-3 text-xs font-bold shadow-lg animate-[fadeSlideUp_0.2s_ease-out] ${
+          className={`pointer-events-auto flex items-center gap-3 px-4 py-3 text-xs font-bold shadow-lg ${
+            t.exiting
+              ? 'animate-[fadeSlideDown_0.2s_ease-out_forwards]'
+              : 'animate-[fadeSlideUp_0.2s_ease-out]'
+          } ${
             t.variant === 'pr'
               ? 'bg-[var(--bg-changed)] text-[var(--text-header)] border-2 border-[var(--fill-progress)]'
               : 'bg-[var(--bg-header)] text-[var(--text-header)] border border-[var(--border-color)]'

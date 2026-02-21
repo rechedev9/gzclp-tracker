@@ -27,21 +27,30 @@ import { StatsSkeleton } from './stats-skeleton';
 import { StageTag } from './stage-tag';
 
 const StatsPanel = lazy(() => import('./stats-panel'));
+const preloadStatsPanel = (): void => {
+  void import('./stats-panel');
+};
 import { ErrorBoundary } from './error-boundary';
 import { useWebMcp } from '@/hooks/use-webmcp';
 
 function TabButton({
   active,
   onClick,
+  onMouseEnter,
+  onFocus,
   children,
 }: {
   readonly active: boolean;
   readonly onClick: () => void;
+  readonly onMouseEnter?: () => void;
+  readonly onFocus?: () => void;
   readonly children: ReactNode;
 }): ReactNode {
   return (
     <button
       onClick={onClick}
+      onMouseEnter={onMouseEnter}
+      onFocus={onFocus}
       className={`font-mono px-4 sm:px-6 py-3 text-[10px] sm:text-[11px] font-bold cursor-pointer tracking-widest uppercase transition-colors -mb-[2px] ${
         active
           ? 'border-b-2 border-[var(--fill-progress)] text-[var(--text-main)]'
@@ -333,6 +342,8 @@ export function GZCLPApp({
               <TabButton
                 active={activeTab === 'stats'}
                 onClick={() => startTransition(() => setActiveTab('stats'))}
+                onMouseEnter={preloadStatsPanel}
+                onFocus={preloadStatsPanel}
               >
                 Estadísticas
               </TabButton>
