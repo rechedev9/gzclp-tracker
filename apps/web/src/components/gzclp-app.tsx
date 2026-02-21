@@ -7,139 +7,32 @@ import {
   useCallback,
   useEffect,
   useRef,
-  type ReactNode,
 } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
 import type { Tier, ResultValue } from '@gzclp/shared/types';
-import { useProgram } from '@/hooks/use-program';
-import { useAuth } from '@/contexts/auth-context';
 import { computeProgram } from '@gzclp/shared/engine';
 import { TOTAL_WORKOUTS, NAMES } from '@gzclp/shared/program';
+import { useProgram } from '@/hooks/use-program';
+import { useAuth } from '@/contexts/auth-context';
 import { useToast } from '@/contexts/toast-context';
+import { useWebMcp } from '@/hooks/use-webmcp';
 import { detectT1PersonalRecord } from '@/lib/pr-detection';
 import { AppHeader } from './app-header';
+import { ErrorBoundary } from './error-boundary';
 import { ToastContainer } from './toast';
 import { SetupForm } from './setup-form';
 import { Toolbar } from './toolbar';
+import { WeekNavigator } from './week-navigator';
 import { WeekSection } from './week-section';
 import { StatsSkeleton } from './stats-skeleton';
 import { StageTag } from './stage-tag';
+import { TabButton } from './tab-button';
 
 const StatsPanel = lazy(() => import('./stats-panel'));
 const preloadStatsPanel = (): void => {
   void import('./stats-panel');
 };
-import { ErrorBoundary } from './error-boundary';
-import { useWebMcp } from '@/hooks/use-webmcp';
-
-function TabButton({
-  active,
-  onClick,
-  onMouseEnter,
-  onFocus,
-  children,
-}: {
-  readonly active: boolean;
-  readonly onClick: () => void;
-  readonly onMouseEnter?: () => void;
-  readonly onFocus?: () => void;
-  readonly children: ReactNode;
-}): ReactNode {
-  return (
-    <button
-      onClick={onClick}
-      onMouseEnter={onMouseEnter}
-      onFocus={onFocus}
-      className={`font-mono px-4 sm:px-6 py-3 text-[10px] sm:text-[11px] font-bold cursor-pointer tracking-widest uppercase transition-colors -mb-[2px] ${
-        active
-          ? 'border-b-2 border-[var(--fill-progress)] text-[var(--text-main)]'
-          : 'text-[var(--text-muted)] hover:text-[var(--text-main)]'
-      }`}
-    >
-      {children}
-    </button>
-  );
-}
-
-interface WeekNavigatorProps {
-  readonly selectedWeek: number;
-  readonly totalWeeks: number;
-  readonly currentWeekNumber: number;
-  readonly weekDoneCount: number;
-  readonly weekTotalCount: number;
-  readonly onPrev: () => void;
-  readonly onNext: () => void;
-  readonly onGoToCurrent: () => void;
-}
-
-function WeekNavigator({
-  selectedWeek,
-  totalWeeks,
-  currentWeekNumber,
-  weekDoneCount,
-  weekTotalCount,
-  onPrev,
-  onNext,
-  onGoToCurrent,
-}: WeekNavigatorProps): ReactNode {
-  return (
-    <div className="flex items-center gap-3 mb-4">
-      <button
-        type="button"
-        onClick={onPrev}
-        disabled={selectedWeek <= 1}
-        aria-label="Semana anterior"
-        className="font-mono text-[11px] font-bold tracking-widest uppercase px-4 py-2.5 border-2 border-[var(--border-color)] bg-[var(--bg-card)] text-[var(--text-muted)] disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer transition-colors hover:bg-[var(--bg-hover-row)] hover:text-[var(--text-main)]"
-      >
-        ← Prev
-      </button>
-
-      <div className="flex-1 flex flex-col items-center gap-1">
-        <div className="flex items-center gap-2">
-          <span className="font-display" style={{ fontSize: '20px', letterSpacing: '0.05em' }}>
-            Semana {selectedWeek}
-          </span>
-          <span
-            className="font-mono text-[var(--text-muted)] tabular-nums"
-            style={{ fontSize: '10px', letterSpacing: '0.1em' }}
-          >
-            / {totalWeeks}
-          </span>
-        </div>
-        <div className="flex items-center gap-3">
-          <span
-            className={`font-mono ${weekDoneCount === weekTotalCount ? 'text-[var(--fill-progress)]' : 'text-[var(--text-muted)]'}`}
-            style={{ fontSize: '11px', letterSpacing: '0.25em' }}
-            aria-label={`${weekDoneCount} de ${weekTotalCount} entrenamientos completados`}
-          >
-            {'●'.repeat(weekDoneCount)}
-            {'○'.repeat(weekTotalCount - weekDoneCount)}
-          </span>
-          {selectedWeek !== currentWeekNumber && (
-            <button
-              type="button"
-              onClick={onGoToCurrent}
-              className="font-mono text-[10px] font-bold tracking-widest uppercase text-[var(--fill-progress)] hover:underline cursor-pointer bg-transparent border-none p-0"
-            >
-              → Actual
-            </button>
-          )}
-        </div>
-      </div>
-
-      <button
-        type="button"
-        onClick={onNext}
-        disabled={selectedWeek >= totalWeeks}
-        aria-label="Semana siguiente"
-        className="font-mono text-[11px] font-bold tracking-widest uppercase px-4 py-2.5 border-2 border-[var(--border-color)] bg-[var(--bg-card)] text-[var(--text-muted)] disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer transition-colors hover:bg-[var(--bg-hover-row)] hover:text-[var(--text-main)]"
-      >
-        Next →
-      </button>
-    </div>
-  );
-}
 
 interface GZCLPAppProps {
   readonly instanceId?: string;
@@ -239,8 +132,8 @@ export function GZCLPApp({
       markResult(index, tier, value);
       const row = rows[index];
       if (!row) return;
-      const exerciseKey =
-        tier === 't1' ? row.t1Exercise : tier === 't2' ? row.t2Exercise : row.t3Exercise;
+      const exerciseByTier = { t1: row.t1Exercise, t2: row.t2Exercise, t3: row.t3Exercise };
+      const exerciseKey = exerciseByTier[tier];
       const isPr = detectT1PersonalRecord(rows, index, tier, value);
       if (isPr) {
         toast({

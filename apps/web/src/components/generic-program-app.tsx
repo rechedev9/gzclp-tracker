@@ -7,7 +7,6 @@ import {
   useCallback,
   useEffect,
   useRef,
-  type ReactNode,
 } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
@@ -17,47 +16,19 @@ import { useAuth } from '@/contexts/auth-context';
 import { useToast } from '@/contexts/toast-context';
 import { detectGenericPersonalRecord } from '@/lib/pr-detection';
 import { AppHeader } from './app-header';
-import { ToastContainer } from './toast';
-import { GenericSetupForm } from './generic-setup-form';
-import { StatsSkeleton } from './stats-skeleton';
 import { ErrorBoundary } from './error-boundary';
+import { GenericSetupForm } from './generic-setup-form';
+import { GenericWeekSection } from './generic-week-section';
+import { StatsSkeleton } from './stats-skeleton';
+import { TabButton } from './tab-button';
+import { ToastContainer } from './toast';
+import { Toolbar } from './toolbar';
+import { WeekNavigator } from './week-navigator';
 
 const GenericStatsPanel = lazy(() => import('./generic-stats-panel'));
 const preloadGenericStatsPanel = (): void => {
   void import('./generic-stats-panel');
 };
-import { Toolbar } from './toolbar';
-import { WeekNavigator } from './week-navigator';
-import { GenericWeekSection } from './generic-week-section';
-
-function TabButton({
-  active,
-  onClick,
-  onMouseEnter,
-  onFocus,
-  children,
-}: {
-  readonly active: boolean;
-  readonly onClick: () => void;
-  readonly onMouseEnter?: () => void;
-  readonly onFocus?: () => void;
-  readonly children: ReactNode;
-}): ReactNode {
-  return (
-    <button
-      onClick={onClick}
-      onMouseEnter={onMouseEnter}
-      onFocus={onFocus}
-      className={`font-mono px-4 sm:px-6 py-3 text-[10px] sm:text-[11px] font-bold cursor-pointer tracking-widest uppercase transition-colors -mb-[2px] ${
-        active
-          ? 'border-b-2 border-[var(--fill-progress)] text-[var(--text-main)]'
-          : 'text-[var(--text-muted)] hover:text-[var(--text-main)]'
-      }`}
-    >
-      {children}
-    </button>
-  );
-}
 
 interface GenericProgramAppProps {
   readonly programId: string;

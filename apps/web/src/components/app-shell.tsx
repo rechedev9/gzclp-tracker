@@ -122,17 +122,10 @@ export function AppShell(): React.ReactNode {
     }
   }
 
-  const isForward = VIEW_ORDER[view] >= VIEW_ORDER[prevViewRef.current];
+  const slideDirection = VIEW_ORDER[view] >= VIEW_ORDER[prevViewRef.current] ? 'Right' : 'Left';
 
   return (
-    <div
-      key={view}
-      className={
-        isForward
-          ? 'animate-[slideInFromRight_0.2s_ease-out]'
-          : 'animate-[slideInFromLeft_0.2s_ease-out]'
-      }
-    >
+    <div key={view} className={`animate-[slideInFrom${slideDirection}_0.2s_ease-out]`}>
       {content}
     </div>
   );
