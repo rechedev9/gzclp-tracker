@@ -1,13 +1,17 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useRef } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
+import { useAuth } from '@/contexts/auth-context';
 import { Dashboard } from './dashboard';
 import { GZCLPApp } from './gzclp-app';
 import { GenericProgramApp } from './generic-program-app';
 import { ProfilePage } from './profile-page';
+import { AppSkeleton } from './app-skeleton';
 
 type View = 'dashboard' | 'tracker' | 'profile';
 
 const VALID_VIEWS: ReadonlySet<string> = new Set(['dashboard', 'tracker', 'profile']);
+
+const VIEW_ORDER: Record<View, number> = { dashboard: 0, tracker: 1, profile: 2 };
 
 function isView(value: string): value is View {
   return VALID_VIEWS.has(value);
@@ -20,20 +24,23 @@ function parseViewParam(param: string | null): View {
 }
 
 export function AppShell(): React.ReactNode {
+  const { loading: authLoading } = useAuth();
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
 
   const [view, setViewState] = useState<View>(() => parseViewParam(searchParams.get('view')));
+  const prevViewRef = useRef<View>(view);
   const [selectedInstanceId, setSelectedInstanceId] = useState<string | undefined>(undefined);
   const [selectedProgramId, setSelectedProgramId] = useState<string | undefined>(undefined);
   const [pendingProgramId, setPendingProgramId] = useState<string | undefined>(undefined);
 
   const setView = useCallback(
     (next: View): void => {
+      prevViewRef.current = view;
       setViewState(next);
       navigate(next === 'dashboard' ? '/app' : `/app?view=${next}`, { replace: true });
     },
-    [navigate]
+    [navigate, view]
   );
 
   const clearSelection = useCallback((): void => {
@@ -76,6 +83,8 @@ export function AppShell(): React.ReactNode {
     setView('profile');
   }, [setView]);
 
+  if (authLoading) return <AppSkeleton />;
+
   let content: React.ReactNode;
 
   if (view === 'profile') {
@@ -113,8 +122,10 @@ export function AppShell(): React.ReactNode {
     }
   }
 
+  const slideDirection = VIEW_ORDER[view] >= VIEW_ORDER[prevViewRef.current] ? 'Right' : 'Left';
+
   return (
-    <div key={view} className="animate-[viewFadeIn_0.2s_ease-out]">
+    <div key={view} className={`animate-[slideInFrom${slideDirection}_0.2s_ease-out]`}>
       {content}
     </div>
   );

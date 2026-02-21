@@ -1,13 +1,20 @@
-import { StrictMode } from 'react';
+import { StrictMode, Suspense, lazy } from 'react';
 import { createRoot } from 'react-dom/client';
 import { createBrowserRouter, Navigate, RouterProvider } from 'react-router-dom';
 import { Providers } from '@/components/providers';
 import { RootLayout } from '@/components/root-layout';
 import { AppShell } from '@/components/app-shell';
-import { LoginPage } from '@/components/login-page';
-import { PrivacyPage } from '@/components/privacy-page';
-import { NotFound } from '@/components/not-found';
 import '@/styles/globals.css';
+
+const LoginPage = lazy(() =>
+  import('@/components/login-page').then((m) => ({ default: m.LoginPage }))
+);
+const PrivacyPage = lazy(() =>
+  import('@/components/privacy-page').then((m) => ({ default: m.PrivacyPage }))
+);
+const NotFound = lazy(() =>
+  import('@/components/not-found').then((m) => ({ default: m.NotFound }))
+);
 
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
@@ -21,9 +28,30 @@ const router = createBrowserRouter([
     children: [
       { path: '/', element: <Navigate to="/app" replace /> },
       { path: '/app', element: <AppShell /> },
-      { path: '/login', element: <LoginPage /> },
-      { path: '/privacy', element: <PrivacyPage /> },
-      { path: '*', element: <NotFound /> },
+      {
+        path: '/login',
+        element: (
+          <Suspense fallback={null}>
+            <LoginPage />
+          </Suspense>
+        ),
+      },
+      {
+        path: '/privacy',
+        element: (
+          <Suspense fallback={null}>
+            <PrivacyPage />
+          </Suspense>
+        ),
+      },
+      {
+        path: '*',
+        element: (
+          <Suspense fallback={null}>
+            <NotFound />
+          </Suspense>
+        ),
+      },
     ],
   },
 ]);

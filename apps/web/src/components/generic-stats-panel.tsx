@@ -74,7 +74,7 @@ function StatCard({
   );
 }
 
-export const GenericStatsPanel = memo(function GenericStatsPanel({
+const GenericStatsPanel = memo(function GenericStatsPanel({
   definition,
   rows,
 }: GenericStatsPanelProps): ReactNode {
@@ -179,3 +179,6 @@ export const GenericStatsPanel = memo(function GenericStatsPanel({
     </div>
   );
 });
+
+export { GenericStatsPanel };
+export default GenericStatsPanel;

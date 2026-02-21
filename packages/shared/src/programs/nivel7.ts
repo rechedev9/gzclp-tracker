@@ -37,22 +37,14 @@ interface MainLiftOpts {
   readonly phase: SlotPhase;
   readonly sets: number;
   readonly reps: number;
-  readonly isDeadlift?: boolean;
 }
 
-function mainLift({
-  exerciseId,
-  cycle,
-  phase,
-  sets,
-  reps,
-  isDeadlift,
-}: MainLiftOpts): ExerciseSlot {
+function mainLift({ exerciseId, cycle, phase, sets, reps }: MainLiftOpts): ExerciseSlot {
   const isDeload = phase === 'b1d';
   return {
     id: `${exerciseId}-${cycle}${phase}`,
     exerciseId,
-    tier: isDeadlift ? 't2' : 't1',
+    tier: 't1',
     stages: [{ sets, reps }],
     onSuccess: isDeload ? NO_CHANGE : ADD_WEIGHT,
     onUndefined: isDeload ? NO_CHANGE : ADD_WEIGHT,
@@ -115,7 +107,7 @@ function cycleDays(cycle: Cycle): ProgramDay[] {
     {
       name: 'Mar — Espalda/Gemelo',
       slots: [
-        ml({ exerciseId: 'deadlift', phase: 'b1', sets: 1, reps: 5, isDeadlift: true }),
+        ml({ exerciseId: 'deadlift', phase: 'b1', sets: 1, reps: 5 }),
         dpAcc('remo_bar', 't2'),
         dpAcc('jalon', 't2'),
         dpAcc('face_pull', 't3'),
@@ -158,7 +150,7 @@ function cycleDays(cycle: Cycle): ProgramDay[] {
     {
       name: 'Mar — Espalda/Gemelo',
       slots: [
-        ml({ exerciseId: 'deadlift', phase: 'b1', sets: 1, reps: 5, isDeadlift: true }),
+        ml({ exerciseId: 'deadlift', phase: 'b1', sets: 1, reps: 5 }),
         dpAcc('remo_bar', 't2'),
         dpAcc('jalon', 't2'),
         dpAcc('face_pull', 't3'),
@@ -201,7 +193,7 @@ function cycleDays(cycle: Cycle): ProgramDay[] {
     {
       name: 'Mar — Espalda/Gemelo',
       slots: [
-        ml({ exerciseId: 'deadlift', phase: 'b1d', sets: 1, reps: 5, isDeadlift: true }),
+        ml({ exerciseId: 'deadlift', phase: 'b1d', sets: 1, reps: 5 }),
         dpAcc('remo_bar', 't2'),
         dpAcc('jalon', 't2'),
         dpAcc('face_pull', 't3'),
@@ -248,7 +240,7 @@ function cycleDays(cycle: Cycle): ProgramDay[] {
     {
       name: 'Mar — Espalda/Gemelo',
       slots: [
-        ml({ exerciseId: 'deadlift', phase: 'b2', sets: 1, reps: 3, isDeadlift: true }),
+        ml({ exerciseId: 'deadlift', phase: 'b2', sets: 1, reps: 3 }),
         dpAcc('remo_bar', 't2'),
         dpAcc('jalon', 't2'),
         dpAcc('face_pull', 't3'),
@@ -291,7 +283,7 @@ function cycleDays(cycle: Cycle): ProgramDay[] {
     {
       name: 'Mar — Espalda/Gemelo',
       slots: [
-        ml({ exerciseId: 'deadlift', phase: 'b2', sets: 1, reps: 3, isDeadlift: true }),
+        ml({ exerciseId: 'deadlift', phase: 'b2', sets: 1, reps: 3 }),
         dpAcc('remo_bar', 't2'),
         dpAcc('jalon', 't2'),
         dpAcc('face_pull', 't3'),
@@ -334,7 +326,7 @@ function cycleDays(cycle: Cycle): ProgramDay[] {
     {
       name: 'Mar — Espalda/Gemelo',
       slots: [
-        ml({ exerciseId: 'deadlift', phase: 'b2', sets: 1, reps: 3, isDeadlift: true }),
+        ml({ exerciseId: 'deadlift', phase: 'b2', sets: 1, reps: 3 }),
         dpAcc('remo_bar', 't2'),
         dpAcc('jalon', 't2'),
         dpAcc('face_pull', 't3'),
@@ -393,6 +385,13 @@ export const NIVEL7_DEFINITION: ProgramDefinition = {
   version: 1,
   category: 'strength',
   source: 'preset',
+  configTitle: 'Récords Objetivo (kg)',
+  configDescription:
+    'Configura el récord que quieres alcanzar en la semana 6 para los levantamientos principales, ' +
+    'y el peso inicial de los accesorios.',
+  configEditTitle: 'Editar Récords Objetivo (kg)',
+  configEditDescription:
+    'Actualiza tus récords objetivo — el programa se recalculará con los nuevos valores.',
   cycleLength: 48,
   totalWorkouts: 48,
   workoutsPerWeek: 4,

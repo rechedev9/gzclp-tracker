@@ -163,12 +163,15 @@ export function GenericSetupForm({
         className="font-display mb-1.5 leading-none"
         style={{ fontSize: '28px', color: 'var(--text-header)' }}
       >
-        {isEditMode ? 'Editar Pesos Iniciales (kg)' : 'Pesos Iniciales (kg)'}
+        {isEditMode
+          ? (definition.configEditTitle ?? 'Editar Pesos Iniciales (kg)')
+          : (definition.configTitle ?? 'Pesos Iniciales (kg)')}
       </h2>
       <p className="text-[13px] text-[var(--text-muted)] mb-5">
         {isEditMode
-          ? 'Actualiza tus pesos iniciales — el programa se recalculará con los nuevos valores'
-          : `Ingresa tus pesos iniciales para ${definition.name}`}
+          ? (definition.configEditDescription ??
+            'Actualiza tus pesos iniciales — el programa se recalculará con los nuevos valores')
+          : (definition.configDescription ?? `Ingresa tus pesos iniciales para ${definition.name}`)}
       </p>
 
       <div className="mb-6 space-y-5">
@@ -244,7 +247,13 @@ export function GenericSetupForm({
           disabled={isGenerating}
           className="flex-1 py-3.5 border-none bg-[var(--bg-header)] text-[var(--text-header)] text-base font-bold cursor-pointer hover:opacity-85 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed"
         >
-          {isGenerating ? 'Generando...' : isEditMode ? 'Actualizar Pesos' : 'Generar Programa'}
+          {isGenerating
+            ? 'Generando...'
+            : isEditMode
+              ? definition.configEditTitle
+                ? 'Actualizar'
+                : 'Actualizar Pesos'
+              : 'Generar Programa'}
         </button>
       </div>
     </>
@@ -261,7 +270,7 @@ export function GenericSetupForm({
                   className="font-display mb-1 leading-none"
                   style={{ fontSize: '22px', color: 'var(--text-header)' }}
                 >
-                  Pesos Iniciales
+                  {definition.configTitle ?? 'Pesos Iniciales'}
                 </h2>
                 <p className="text-xs text-[var(--text-muted)]">
                   {fields.length <= 4
@@ -276,7 +285,7 @@ export function GenericSetupForm({
                 onClick={() => setIsExpanded(true)}
                 className="px-4 py-2.5 min-h-[44px] border-2 border-[var(--btn-border)] text-xs font-bold cursor-pointer bg-[var(--btn-bg)] text-[var(--btn-text)] whitespace-nowrap transition-all hover:bg-[var(--btn-hover-bg)] hover:text-[var(--btn-hover-text)]"
               >
-                Editar Pesos
+                {definition.configEditTitle ? 'Editar' : 'Editar Pesos'}
               </button>
             </div>
           </div>
@@ -303,9 +312,13 @@ export function GenericSetupForm({
 
       <ConfirmDialog
         open={showConfirm}
-        title="Actualizar Pesos Iniciales"
-        message="Esto recalculará todo el programa con los nuevos pesos iniciales. Tu historial de éxitos/fallos se conservará, pero los pesos proyectados cambiarán. ¿Continuar?"
-        confirmLabel="Actualizar Pesos"
+        title={definition.configEditTitle ?? 'Actualizar Pesos Iniciales'}
+        message={
+          definition.configEditDescription
+            ? `${definition.configEditDescription} Tu historial de éxitos/fallos se conservará, pero los pesos proyectados cambiarán. ¿Continuar?`
+            : 'Esto recalculará todo el programa con los nuevos pesos iniciales. Tu historial de éxitos/fallos se conservará, pero los pesos proyectados cambiarán. ¿Continuar?'
+        }
+        confirmLabel={definition.configEditTitle ? 'Actualizar' : 'Actualizar Pesos'}
         onConfirm={handleConfirmUpdate}
         onCancel={handleCancelUpdate}
       />

@@ -79,15 +79,6 @@
   }
 }
 
-@keyframes viewFadeIn {
-  from {
-    opacity: 0;
-  }
-  to {
-    opacity: 1;
-  }
-}
-
 @keyframes fadeSlideUp {
   from {
     opacity: 0;
@@ -99,53 +90,51 @@
   }
 }
 
-@keyframes landing-fade-up {
+@keyframes slideInFromRight {
   from {
     opacity: 0;
-    transform: translateY(32px);
+    transform: translateX(24px);
   }
   to {
     opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes slideInFromLeft {
+  from {
+    opacity: 0;
+    transform: translateX(-24px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes fadeSlideDown {
+  from {
+    opacity: 1;
     transform: translateY(0);
   }
-}
-
-@keyframes forge-flicker {
-  0%,
-  100% {
-    opacity: 1;
-  }
-  45% {
-    opacity: 0.85;
-  }
-  50% {
-    opacity: 1;
-  }
-  92% {
-    opacity: 0.9;
+  to {
+    opacity: 0;
+    transform: translateY(8px);
   }
 }
 
-@keyframes scanline {
-  0% {
-    transform: translateY(-100%);
-  }
-  100% {
-    transform: translateY(100vh);
-  }
-}
-
-@keyframes slam-in {
+@keyframes pop-in {
   0% {
     opacity: 0;
-    transform: translateY(-16px) scaleY(0.92);
+    transform: scale(0);
   }
-  60% {
-    transform: translateY(2px) scaleY(1.01);
+  70% {
+    opacity: 1;
+    transform: scale(1.15);
   }
   100% {
     opacity: 1;
-    transform: translateY(0) scaleY(1);
+    transform: scale(1);
   }
 }
 
@@ -220,22 +209,6 @@
 
 .landing-card-glow:hover::before {
   opacity: 1;
-}
-
-/* ── Forge accent bar ──────────────────────────── */
-
-.forge-bar {
-  position: relative;
-}
-
-.forge-bar::after {
-  content: '';
-  position: absolute;
-  bottom: 0;
-  left: 0;
-  right: 0;
-  height: 2px;
-  background: linear-gradient(90deg, var(--fill-progress), transparent);
 }
 
 /* ── Hero number glow ──────────────────────────── */

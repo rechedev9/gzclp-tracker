@@ -1,124 +1,38 @@
-import { useState, useMemo, useCallback, useEffect, useRef, type ReactNode } from 'react';
+import {
+  lazy,
+  Suspense,
+  useState,
+  useTransition,
+  useMemo,
+  useCallback,
+  useEffect,
+  useRef,
+} from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
 import type { Tier, ResultValue } from '@gzclp/shared/types';
-import { useProgram } from '@/hooks/use-program';
-import { useAuth } from '@/contexts/auth-context';
 import { computeProgram } from '@gzclp/shared/engine';
 import { TOTAL_WORKOUTS, NAMES } from '@gzclp/shared/program';
+import { useProgram } from '@/hooks/use-program';
+import { useAuth } from '@/contexts/auth-context';
 import { useToast } from '@/contexts/toast-context';
+import { useWebMcp } from '@/hooks/use-webmcp';
 import { detectT1PersonalRecord } from '@/lib/pr-detection';
 import { AppHeader } from './app-header';
+import { ErrorBoundary } from './error-boundary';
 import { ToastContainer } from './toast';
 import { SetupForm } from './setup-form';
 import { Toolbar } from './toolbar';
+import { WeekNavigator } from './week-navigator';
 import { WeekSection } from './week-section';
-import { StatsPanel } from './stats-panel';
+import { StatsSkeleton } from './stats-skeleton';
 import { StageTag } from './stage-tag';
-import { ErrorBoundary } from './error-boundary';
-import { useWebMcp } from '@/hooks/use-webmcp';
+import { TabButton } from './tab-button';
 
-function TabButton({
-  active,
-  onClick,
-  children,
-}: {
-  readonly active: boolean;
-  readonly onClick: () => void;
-  readonly children: ReactNode;
-}): ReactNode {
-  return (
-    <button
-      onClick={onClick}
-      className={`font-mono px-4 sm:px-6 py-3 text-[10px] sm:text-[11px] font-bold cursor-pointer tracking-widest uppercase transition-colors -mb-[2px] ${
-        active
-          ? 'border-b-2 border-[var(--fill-progress)] text-[var(--text-main)]'
-          : 'text-[var(--text-muted)] hover:text-[var(--text-main)]'
-      }`}
-    >
-      {children}
-    </button>
-  );
-}
-
-interface WeekNavigatorProps {
-  readonly selectedWeek: number;
-  readonly totalWeeks: number;
-  readonly currentWeekNumber: number;
-  readonly weekDoneCount: number;
-  readonly weekTotalCount: number;
-  readonly onPrev: () => void;
-  readonly onNext: () => void;
-  readonly onGoToCurrent: () => void;
-}
-
-function WeekNavigator({
-  selectedWeek,
-  totalWeeks,
-  currentWeekNumber,
-  weekDoneCount,
-  weekTotalCount,
-  onPrev,
-  onNext,
-  onGoToCurrent,
-}: WeekNavigatorProps): ReactNode {
-  return (
-    <div className="flex items-center gap-3 mb-4">
-      <button
-        type="button"
-        onClick={onPrev}
-        disabled={selectedWeek <= 1}
-        aria-label="Semana anterior"
-        className="font-mono text-[11px] font-bold tracking-widest uppercase px-4 py-2.5 border-2 border-[var(--border-color)] bg-[var(--bg-card)] text-[var(--text-muted)] disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer transition-colors hover:bg-[var(--bg-hover-row)] hover:text-[var(--text-main)]"
-      >
-        ← Prev
-      </button>
-
-      <div className="flex-1 flex flex-col items-center gap-1">
-        <div className="flex items-center gap-2">
-          <span className="font-display" style={{ fontSize: '20px', letterSpacing: '0.05em' }}>
-            Semana {selectedWeek}
-          </span>
-          <span
-            className="font-mono text-[var(--text-muted)] tabular-nums"
-            style={{ fontSize: '10px', letterSpacing: '0.1em' }}
-          >
-            / {totalWeeks}
-          </span>
-        </div>
-        <div className="flex items-center gap-3">
-          <span
-            className={`font-mono ${weekDoneCount === weekTotalCount ? 'text-[var(--fill-progress)]' : 'text-[var(--text-muted)]'}`}
-            style={{ fontSize: '11px', letterSpacing: '0.25em' }}
-            aria-label={`${weekDoneCount} de ${weekTotalCount} entrenamientos completados`}
-          >
-            {'●'.repeat(weekDoneCount)}
-            {'○'.repeat(weekTotalCount - weekDoneCount)}
-          </span>
-          {selectedWeek !== currentWeekNumber && (
-            <button
-              type="button"
-              onClick={onGoToCurrent}
-              className="font-mono text-[10px] font-bold tracking-widest uppercase text-[var(--fill-progress)] hover:underline cursor-pointer bg-transparent border-none p-0"
-            >
-              → Actual
-            </button>
-          )}
-        </div>
-      </div>
-
-      <button
-        type="button"
-        onClick={onNext}
-        disabled={selectedWeek >= totalWeeks}
-        aria-label="Semana siguiente"
-        className="font-mono text-[11px] font-bold tracking-widest uppercase px-4 py-2.5 border-2 border-[var(--border-color)] bg-[var(--bg-card)] text-[var(--text-muted)] disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer transition-colors hover:bg-[var(--bg-hover-row)] hover:text-[var(--text-main)]"
-      >
-        Next →
-      </button>
-    </div>
-  );
-}
+const StatsPanel = lazy(() => import('./stats-panel'));
+const preloadStatsPanel = (): void => {
+  void import('./stats-panel');
+};
 
 interface GZCLPAppProps {
   readonly instanceId?: string;
@@ -158,6 +72,7 @@ export function GZCLPApp({
   const { toast } = useToast();
 
   const [activeTab, setActiveTab] = useState<'program' | 'stats'>('program');
+  const [isPending, startTransition] = useTransition();
 
   const rows = useMemo(
     () => (startWeights ? computeProgram(startWeights, results) : []),
@@ -217,8 +132,8 @@ export function GZCLPApp({
       markResult(index, tier, value);
       const row = rows[index];
       if (!row) return;
-      const exerciseKey =
-        tier === 't1' ? row.t1Exercise : tier === 't2' ? row.t2Exercise : row.t3Exercise;
+      const exerciseByTier = { t1: row.t1Exercise, t2: row.t2Exercise, t3: row.t3Exercise };
+      const exerciseKey = exerciseByTier[tier];
       const isPr = detectT1PersonalRecord(rows, index, tier, value);
       if (isPr) {
         toast({
@@ -311,10 +226,18 @@ export function GZCLPApp({
           <>
             {/* Tabs */}
             <div className="flex gap-0 mb-6 border-b-2 border-[var(--border-color)]">
-              <TabButton active={activeTab === 'program'} onClick={() => setActiveTab('program')}>
+              <TabButton
+                active={activeTab === 'program'}
+                onClick={() => startTransition(() => setActiveTab('program'))}
+              >
                 Programa
               </TabButton>
-              <TabButton active={activeTab === 'stats'} onClick={() => setActiveTab('stats')}>
+              <TabButton
+                active={activeTab === 'stats'}
+                onClick={() => startTransition(() => setActiveTab('stats'))}
+                onMouseEnter={preloadStatsPanel}
+                onFocus={preloadStatsPanel}
+              >
                 Estadísticas
               </TabButton>
             </div>
@@ -408,23 +331,30 @@ export function GZCLPApp({
             )}
 
             {activeTab === 'stats' && (
-              <ErrorBoundary
-                fallback={({ reset }) => (
-                  <div className="text-center py-16">
-                    <p className="text-[var(--text-muted)] mb-4">
-                      No se pudieron cargar las estadísticas.
-                    </p>
-                    <button
-                      onClick={reset}
-                      className="px-5 py-2 bg-[var(--fill-progress)] text-white font-bold cursor-pointer"
-                    >
-                      Reintentar
-                    </button>
-                  </div>
-                )}
+              <div
+                className="transition-opacity duration-150"
+                style={{ opacity: isPending ? 0.6 : 1 }}
               >
-                <StatsPanel startWeights={startWeights} results={results} />
-              </ErrorBoundary>
+                <ErrorBoundary
+                  fallback={({ reset }) => (
+                    <div className="text-center py-16">
+                      <p className="text-[var(--text-muted)] mb-4">
+                        No se pudieron cargar las estadísticas.
+                      </p>
+                      <button
+                        onClick={reset}
+                        className="px-5 py-2 bg-[var(--fill-progress)] text-white font-bold cursor-pointer"
+                      >
+                        Reintentar
+                      </button>
+                    </div>
+                  )}
+                >
+                  <Suspense fallback={<StatsSkeleton />}>
+                    <StatsPanel startWeights={startWeights} results={results} />
+                  </Suspense>
+                </ErrorBoundary>
+              </div>
             )}
           </>
         )}

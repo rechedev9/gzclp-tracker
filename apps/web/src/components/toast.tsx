@@ -10,29 +10,35 @@ export function ToastContainer(): React.ReactNode {
       aria-live="polite"
       className="fixed bottom-6 left-1/2 -translate-x-1/2 z-[200] flex flex-col gap-2 items-center pointer-events-none"
     >
-      {toasts.map((t) => (
-        <div
-          key={t.id}
-          className={`pointer-events-auto flex items-center gap-3 px-4 py-3 text-xs font-bold shadow-lg animate-[fadeSlideUp_0.2s_ease-out] ${
-            t.variant === 'pr'
-              ? 'bg-[var(--bg-changed)] text-[var(--text-header)] border-2 border-[var(--fill-progress)]'
-              : 'bg-[var(--bg-header)] text-[var(--text-header)] border border-[var(--border-color)]'
-          }`}
-        >
-          <span>{t.variant === 'pr' ? `NEW PR — ${t.message}` : t.message}</span>
-          {t.action && (
-            <button
-              onClick={() => {
-                t.action?.onClick();
-                dismiss(t.id);
-              }}
-              className="text-[var(--fill-progress)] font-bold underline cursor-pointer bg-transparent border-none p-0 text-xs whitespace-nowrap"
-            >
-              {t.action.label}
-            </button>
-          )}
-        </div>
-      ))}
+      {toasts.map((t) => {
+        const animation = t.exiting
+          ? 'animate-[fadeSlideDown_0.2s_ease-out_forwards]'
+          : 'animate-[fadeSlideUp_0.2s_ease-out]';
+        const variantStyle =
+          t.variant === 'pr'
+            ? 'bg-[var(--bg-changed)] text-[var(--text-header)] border-2 border-[var(--fill-progress)]'
+            : 'bg-[var(--bg-header)] text-[var(--text-header)] border border-[var(--border-color)]';
+
+        return (
+          <div
+            key={t.id}
+            className={`pointer-events-auto flex items-center gap-3 px-4 py-3 text-xs font-bold shadow-lg ${animation} ${variantStyle}`}
+          >
+            <span>{t.variant === 'pr' ? `NEW PR — ${t.message}` : t.message}</span>
+            {t.action && (
+              <button
+                onClick={() => {
+                  t.action?.onClick();
+                  dismiss(t.id);
+                }}
+                className="text-[var(--fill-progress)] font-bold underline cursor-pointer bg-transparent border-none p-0 text-xs whitespace-nowrap"
+              >
+                {t.action.label}
+              </button>
+            )}
+          </div>
+        );
+      })}
     </div>,
     document.body
   );
