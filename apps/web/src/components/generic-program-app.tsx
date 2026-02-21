@@ -1,4 +1,5 @@
 import { useState, useMemo, useCallback, useEffect, useRef, type ReactNode } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
 import type { ResultValue } from '@gzclp/shared/types';
 import { useGenericProgram } from '@/hooks/use-generic-program';
@@ -50,6 +51,15 @@ export function GenericProgramApp({
   onBackToDashboard,
   onGoToProfile,
 }: GenericProgramAppProps): React.ReactNode {
+  const { user, loading: authLoading, signOut } = useAuth();
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    if (!authLoading && user === null) {
+      navigate('/login', { replace: true });
+    }
+  }, [authLoading, user, navigate]);
+
   const {
     definition,
     config,
@@ -65,7 +75,6 @@ export function GenericProgramApp({
     resetAll,
   } = useGenericProgram(programId, instanceId);
 
-  const { signOut } = useAuth();
   const queryClient = useQueryClient();
   const { toast } = useToast();
 
@@ -181,6 +190,8 @@ export function GenericProgramApp({
     await signOut();
     queryClient.clear();
   }, [signOut, queryClient]);
+
+  if (authLoading || user === null) return null;
 
   if (!definition) {
     return (

@@ -1,4 +1,5 @@
 import { useState, useMemo, useCallback, useEffect, useRef, type ReactNode } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
 import type { Tier, ResultValue } from '@gzclp/shared/types';
 import { useProgram } from '@/hooks/use-program';
@@ -130,6 +131,15 @@ export function GZCLPApp({
   onBackToDashboard,
   onGoToProfile,
 }: GZCLPAppProps): React.ReactNode {
+  const { user, loading: authLoading, signOut } = useAuth();
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    if (!authLoading && user === null) {
+      navigate('/login', { replace: true });
+    }
+  }, [authLoading, user, navigate]);
+
   const {
     startWeights,
     results,
@@ -143,8 +153,6 @@ export function GZCLPApp({
     undoLast,
     resetAll,
   } = useProgram(instanceId);
-
-  const { signOut } = useAuth();
   const queryClient = useQueryClient();
   const { toast } = useToast();
 
@@ -265,6 +273,8 @@ export function GZCLPApp({
     await signOut();
     queryClient.clear();
   }, [signOut, queryClient]);
+
+  if (authLoading || user === null) return null;
 
   return (
     <>
