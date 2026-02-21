@@ -11,6 +11,7 @@ type ProgressionRule = ExerciseSlot['onSuccess'];
 
 const NO_CHANGE: ProgressionRule = { type: 'no_change' };
 const ADD_WEIGHT: ProgressionRule = { type: 'add_weight' };
+const ADVANCE_STAGE: ProgressionRule = { type: 'advance_stage' };
 
 /**
  * Cycle-aware wave periodization.
@@ -62,13 +63,26 @@ function mainLift({
   };
 }
 
-function acc(exerciseId: string, tier: Tier, sets: number, reps: number): ExerciseSlot {
+/**
+ * Double progression accessory: 3 sets × 8-12 reps.
+ * On success: advance reps (8→9→…→12). At 12 reps: +2.5kg, reset to 8.
+ * State (weight + stage) persists across all appearances via shared slot ID.
+ */
+function dpAcc(exerciseId: string, tier: Tier): ExerciseSlot {
   return {
     id: exerciseId,
     exerciseId,
     tier,
-    stages: [{ sets, reps }],
-    onSuccess: NO_CHANGE,
+    stages: [
+      { sets: 3, reps: 8 },
+      { sets: 3, reps: 9 },
+      { sets: 3, reps: 10 },
+      { sets: 3, reps: 11 },
+      { sets: 3, reps: 12 },
+    ],
+    onSuccess: ADVANCE_STAGE,
+    onFinalStageSuccess: { type: 'add_weight_reset_stage', amount: 2.5 },
+    onUndefined: ADVANCE_STAGE,
     onMidStageFail: NO_CHANGE,
     onFinalStageFail: NO_CHANGE,
     startWeightKey: exerciseId,
@@ -92,41 +106,41 @@ function cycleDays(cycle: Cycle): ProgramDay[] {
       name: 'Lun — Hombros/Tríceps',
       slots: [
         ml({ exerciseId: 'press_mil', phase: 'b1', sets: 5, reps: 5 }),
-        acc('press_franc', 't2', 4, 8),
-        acc('ext_polea', 't3', 3, 12),
-        acc('elev_lat', 't3', 4, 12),
-        acc('elev_post', 't3', 3, 15),
+        dpAcc('press_franc', 't2'),
+        dpAcc('ext_polea', 't3'),
+        dpAcc('elev_lat', 't3'),
+        dpAcc('elev_post', 't3'),
       ],
     },
     {
       name: 'Mar — Espalda/Gemelo',
       slots: [
         ml({ exerciseId: 'deadlift', phase: 'b1', sets: 1, reps: 5, isDeadlift: true }),
-        acc('remo_bar', 't2', 4, 8),
-        acc('jalon', 't2', 4, 10),
-        acc('face_pull', 't3', 3, 15),
-        acc('gemelo_pie', 't3', 4, 12),
-        acc('gemelo_sent', 't3', 3, 15),
+        dpAcc('remo_bar', 't2'),
+        dpAcc('jalon', 't2'),
+        dpAcc('face_pull', 't3'),
+        dpAcc('gemelo_pie', 't3'),
+        dpAcc('gemelo_sent', 't3'),
       ],
     },
     {
       name: 'Jue — Pecho/Bíceps',
       slots: [
         ml({ exerciseId: 'bench', phase: 'b1', sets: 5, reps: 5 }),
-        acc('apert', 't2', 3, 12),
-        acc('cruces', 't3', 3, 12),
-        acc('curl_bar', 't2', 3, 10),
-        acc('curl_alt', 't3', 3, 12),
+        dpAcc('apert', 't2'),
+        dpAcc('cruces', 't3'),
+        dpAcc('curl_bar', 't2'),
+        dpAcc('curl_alt', 't3'),
       ],
     },
     {
       name: 'Vie — Pierna',
       slots: [
         ml({ exerciseId: 'squat', phase: 'b1', sets: 5, reps: 5 }),
-        acc('prensa', 't2', 4, 10),
-        acc('ext_quad', 't3', 3, 12),
-        acc('curl_fem', 't3', 3, 12),
-        acc('hip_thrust', 't2', 3, 10),
+        dpAcc('prensa', 't2'),
+        dpAcc('ext_quad', 't3'),
+        dpAcc('curl_fem', 't3'),
+        dpAcc('hip_thrust', 't2'),
       ],
     },
 
@@ -135,41 +149,41 @@ function cycleDays(cycle: Cycle): ProgramDay[] {
       name: 'Lun — Hombros/Tríceps',
       slots: [
         ml({ exerciseId: 'press_mil', phase: 'b1', sets: 5, reps: 5 }),
-        acc('press_franc', 't2', 4, 6),
-        acc('ext_polea', 't3', 3, 10),
-        acc('elev_lat', 't3', 4, 10),
-        acc('elev_front', 't3', 3, 12),
+        dpAcc('press_franc', 't2'),
+        dpAcc('ext_polea', 't3'),
+        dpAcc('elev_lat', 't3'),
+        dpAcc('elev_front', 't3'),
       ],
     },
     {
       name: 'Mar — Espalda/Gemelo',
       slots: [
         ml({ exerciseId: 'deadlift', phase: 'b1', sets: 1, reps: 5, isDeadlift: true }),
-        acc('remo_bar', 't2', 4, 6),
-        acc('jalon', 't2', 4, 8),
-        acc('face_pull', 't3', 3, 12),
-        acc('gemelo_pie', 't3', 4, 10),
-        acc('gemelo_sent', 't3', 3, 12),
+        dpAcc('remo_bar', 't2'),
+        dpAcc('jalon', 't2'),
+        dpAcc('face_pull', 't3'),
+        dpAcc('gemelo_pie', 't3'),
+        dpAcc('gemelo_sent', 't3'),
       ],
     },
     {
       name: 'Jue — Pecho/Bíceps',
       slots: [
         ml({ exerciseId: 'bench', phase: 'b1', sets: 5, reps: 5 }),
-        acc('apert', 't2', 3, 10),
-        acc('cruces', 't3', 3, 10),
-        acc('curl_bar', 't2', 3, 8),
-        acc('curl_mart', 't3', 3, 10),
+        dpAcc('apert', 't2'),
+        dpAcc('cruces', 't3'),
+        dpAcc('curl_bar', 't2'),
+        dpAcc('curl_mart', 't3'),
       ],
     },
     {
       name: 'Vie — Pierna',
       slots: [
         ml({ exerciseId: 'squat', phase: 'b1', sets: 5, reps: 5 }),
-        acc('prensa', 't2', 4, 8),
-        acc('ext_quad', 't3', 3, 10),
-        acc('curl_fem', 't3', 3, 10),
-        acc('zancadas', 't2', 3, 10),
+        dpAcc('prensa', 't2'),
+        dpAcc('ext_quad', 't3'),
+        dpAcc('curl_fem', 't3'),
+        dpAcc('zancadas', 't2'),
       ],
     },
 
@@ -178,41 +192,41 @@ function cycleDays(cycle: Cycle): ProgramDay[] {
       name: 'Lun — Hombros/Tríceps',
       slots: [
         ml({ exerciseId: 'press_mil', phase: 'b1d', sets: 5, reps: 5 }),
-        acc('press_franc', 't2', 5, 5),
-        acc('ext_polea', 't3', 3, 8),
-        acc('elev_lat', 't3', 3, 8),
-        acc('elev_post', 't3', 3, 12),
+        dpAcc('press_franc', 't2'),
+        dpAcc('ext_polea', 't3'),
+        dpAcc('elev_lat', 't3'),
+        dpAcc('elev_post', 't3'),
       ],
     },
     {
       name: 'Mar — Espalda/Gemelo',
       slots: [
         ml({ exerciseId: 'deadlift', phase: 'b1d', sets: 1, reps: 5, isDeadlift: true }),
-        acc('remo_bar', 't2', 5, 5),
-        acc('jalon', 't2', 4, 6),
-        acc('face_pull', 't3', 3, 10),
-        acc('gemelo_pie', 't3', 5, 8),
-        acc('gemelo_sent', 't3', 3, 10),
+        dpAcc('remo_bar', 't2'),
+        dpAcc('jalon', 't2'),
+        dpAcc('face_pull', 't3'),
+        dpAcc('gemelo_pie', 't3'),
+        dpAcc('gemelo_sent', 't3'),
       ],
     },
     {
       name: 'Jue — Pecho/Bíceps',
       slots: [
         ml({ exerciseId: 'bench', phase: 'b1d', sets: 5, reps: 5 }),
-        acc('apert', 't2', 4, 8),
-        acc('cruces', 't3', 3, 8),
-        acc('curl_bar', 't2', 4, 6),
-        acc('curl_alt', 't3', 3, 8),
+        dpAcc('apert', 't2'),
+        dpAcc('cruces', 't3'),
+        dpAcc('curl_bar', 't2'),
+        dpAcc('curl_alt', 't3'),
       ],
     },
     {
       name: 'Vie — Pierna',
       slots: [
         ml({ exerciseId: 'squat', phase: 'b1d', sets: 5, reps: 5 }),
-        acc('prensa', 't2', 5, 6),
-        acc('ext_quad', 't3', 4, 8),
-        acc('curl_fem', 't3', 4, 8),
-        acc('leg_press_gem', 't3', 4, 10),
+        dpAcc('prensa', 't2'),
+        dpAcc('ext_quad', 't3'),
+        dpAcc('curl_fem', 't3'),
+        dpAcc('leg_press_gem', 't3'),
       ],
     },
 
@@ -225,41 +239,41 @@ function cycleDays(cycle: Cycle): ProgramDay[] {
       name: 'Lun — Hombros/Tríceps',
       slots: [
         ml({ exerciseId: 'press_mil', phase: 'b2', sets: 3, reps: 3 }),
-        acc('press_franc', 't2', 4, 8),
-        acc('ext_polea', 't3', 3, 12),
-        acc('elev_lat', 't3', 4, 12),
-        acc('elev_post', 't3', 3, 15),
+        dpAcc('press_franc', 't2'),
+        dpAcc('ext_polea', 't3'),
+        dpAcc('elev_lat', 't3'),
+        dpAcc('elev_post', 't3'),
       ],
     },
     {
       name: 'Mar — Espalda/Gemelo',
       slots: [
         ml({ exerciseId: 'deadlift', phase: 'b2', sets: 1, reps: 3, isDeadlift: true }),
-        acc('remo_bar', 't2', 4, 8),
-        acc('jalon', 't2', 4, 10),
-        acc('face_pull', 't3', 3, 15),
-        acc('gemelo_pie', 't3', 4, 12),
-        acc('gemelo_sent', 't3', 3, 15),
+        dpAcc('remo_bar', 't2'),
+        dpAcc('jalon', 't2'),
+        dpAcc('face_pull', 't3'),
+        dpAcc('gemelo_pie', 't3'),
+        dpAcc('gemelo_sent', 't3'),
       ],
     },
     {
       name: 'Jue — Pecho/Bíceps',
       slots: [
         ml({ exerciseId: 'bench', phase: 'b2', sets: 3, reps: 3 }),
-        acc('apert', 't2', 3, 12),
-        acc('cruces', 't3', 3, 12),
-        acc('curl_bar', 't2', 3, 10),
-        acc('curl_alt', 't3', 3, 12),
+        dpAcc('apert', 't2'),
+        dpAcc('cruces', 't3'),
+        dpAcc('curl_bar', 't2'),
+        dpAcc('curl_alt', 't3'),
       ],
     },
     {
       name: 'Vie — Pierna',
       slots: [
         ml({ exerciseId: 'squat', phase: 'b2', sets: 3, reps: 3 }),
-        acc('prensa', 't2', 4, 10),
-        acc('ext_quad', 't3', 3, 12),
-        acc('curl_fem', 't3', 3, 12),
-        acc('hip_thrust', 't2', 3, 10),
+        dpAcc('prensa', 't2'),
+        dpAcc('ext_quad', 't3'),
+        dpAcc('curl_fem', 't3'),
+        dpAcc('hip_thrust', 't2'),
       ],
     },
 
@@ -268,41 +282,41 @@ function cycleDays(cycle: Cycle): ProgramDay[] {
       name: 'Lun — Hombros/Tríceps',
       slots: [
         ml({ exerciseId: 'press_mil', phase: 'b2', sets: 3, reps: 3 }),
-        acc('press_franc', 't2', 4, 6),
-        acc('ext_polea', 't3', 3, 10),
-        acc('elev_lat', 't3', 4, 10),
-        acc('elev_front', 't3', 3, 12),
+        dpAcc('press_franc', 't2'),
+        dpAcc('ext_polea', 't3'),
+        dpAcc('elev_lat', 't3'),
+        dpAcc('elev_front', 't3'),
       ],
     },
     {
       name: 'Mar — Espalda/Gemelo',
       slots: [
         ml({ exerciseId: 'deadlift', phase: 'b2', sets: 1, reps: 3, isDeadlift: true }),
-        acc('remo_bar', 't2', 4, 6),
-        acc('jalon', 't2', 4, 8),
-        acc('face_pull', 't3', 3, 12),
-        acc('gemelo_pie', 't3', 4, 10),
-        acc('gemelo_sent', 't3', 3, 12),
+        dpAcc('remo_bar', 't2'),
+        dpAcc('jalon', 't2'),
+        dpAcc('face_pull', 't3'),
+        dpAcc('gemelo_pie', 't3'),
+        dpAcc('gemelo_sent', 't3'),
       ],
     },
     {
       name: 'Jue — Pecho/Bíceps',
       slots: [
         ml({ exerciseId: 'bench', phase: 'b2', sets: 3, reps: 3 }),
-        acc('apert', 't2', 3, 10),
-        acc('cruces', 't3', 3, 10),
-        acc('curl_bar', 't2', 3, 8),
-        acc('curl_mart', 't3', 3, 10),
+        dpAcc('apert', 't2'),
+        dpAcc('cruces', 't3'),
+        dpAcc('curl_bar', 't2'),
+        dpAcc('curl_mart', 't3'),
       ],
     },
     {
       name: 'Vie — Pierna',
       slots: [
         ml({ exerciseId: 'squat', phase: 'b2', sets: 3, reps: 3 }),
-        acc('prensa', 't2', 4, 8),
-        acc('ext_quad', 't3', 3, 10),
-        acc('curl_fem', 't3', 3, 10),
-        acc('zancadas', 't2', 3, 10),
+        dpAcc('prensa', 't2'),
+        dpAcc('ext_quad', 't3'),
+        dpAcc('curl_fem', 't3'),
+        dpAcc('zancadas', 't2'),
       ],
     },
 
@@ -311,41 +325,41 @@ function cycleDays(cycle: Cycle): ProgramDay[] {
       name: 'Lun — Hombros/Tríceps',
       slots: [
         ml({ exerciseId: 'press_mil', phase: 'b2', sets: 3, reps: 3 }),
-        acc('press_franc', 't2', 5, 5),
-        acc('ext_polea', 't3', 3, 8),
-        acc('elev_lat', 't3', 3, 8),
-        acc('elev_post', 't3', 3, 12),
+        dpAcc('press_franc', 't2'),
+        dpAcc('ext_polea', 't3'),
+        dpAcc('elev_lat', 't3'),
+        dpAcc('elev_post', 't3'),
       ],
     },
     {
       name: 'Mar — Espalda/Gemelo',
       slots: [
         ml({ exerciseId: 'deadlift', phase: 'b2', sets: 1, reps: 3, isDeadlift: true }),
-        acc('remo_bar', 't2', 5, 5),
-        acc('jalon', 't2', 4, 6),
-        acc('face_pull', 't3', 3, 10),
-        acc('gemelo_pie', 't3', 5, 8),
-        acc('gemelo_sent', 't3', 3, 10),
+        dpAcc('remo_bar', 't2'),
+        dpAcc('jalon', 't2'),
+        dpAcc('face_pull', 't3'),
+        dpAcc('gemelo_pie', 't3'),
+        dpAcc('gemelo_sent', 't3'),
       ],
     },
     {
       name: 'Jue — Pecho/Bíceps',
       slots: [
         ml({ exerciseId: 'bench', phase: 'b2', sets: 3, reps: 3 }),
-        acc('apert', 't2', 4, 8),
-        acc('cruces', 't3', 3, 8),
-        acc('curl_bar', 't2', 4, 6),
-        acc('curl_alt', 't3', 3, 8),
+        dpAcc('apert', 't2'),
+        dpAcc('cruces', 't3'),
+        dpAcc('curl_bar', 't2'),
+        dpAcc('curl_alt', 't3'),
       ],
     },
     {
       name: 'Vie — Pierna',
       slots: [
         ml({ exerciseId: 'squat', phase: 'b2', sets: 3, reps: 3 }),
-        acc('prensa', 't2', 5, 6),
-        acc('ext_quad', 't3', 4, 8),
-        acc('curl_fem', 't3', 4, 8),
-        acc('leg_press_gem', 't3', 4, 10),
+        dpAcc('prensa', 't2'),
+        dpAcc('ext_quad', 't3'),
+        dpAcc('curl_fem', 't3'),
+        dpAcc('leg_press_gem', 't3'),
       ],
     },
   ];
@@ -362,10 +376,9 @@ function cycleDays(cycle: Cycle): ProgramDay[] {
  * 4 days/week: Lunes (Hombros/Tríceps), Martes (Espalda/Gemelo),
  *              Jueves (Pecho/Bíceps), Viernes (Pierna).
  *
- * Target-based periodization: user inputs the week-6 record weight.
- * Each cycle's wave: S1=build, S2=build, S3=deload, S4=peak, S5=peak, S6=record.
- * Cycle 2 repeats the pattern with the target shifted +2.5kg.
- * Accessories have no auto-progression (user adjusts manually).
+ * Main lifts: target-based wave periodization (user inputs week-6 record).
+ * Accessories: double progression 3×8-12 (+2.5kg when 3×12 completed, reset to 3×8).
+ * Cycle 2 repeats the main lift pattern with the target shifted +2.5kg.
  */
 export const NIVEL7_DEFINITION: ProgramDefinition = {
   id: 'nivel7',
@@ -374,7 +387,7 @@ export const NIVEL7_DEFINITION: ProgramDefinition = {
     'Programa de fuerza de 12 semanas con periodización inversa. ' +
     'Configuras el récord objetivo (semana 6) y los pesos se calculan hacia atrás. ' +
     'Bloque 1 (5×5) con descarga en semana 3, Bloque 2 (3×3) culminando en récord. ' +
-    'Ciclo 2 repite la onda con +2.5kg. ' +
+    'Ciclo 2 repite la onda con +2.5kg. Accesorios con doble progresión 3×8-12. ' +
     '4 días/semana: hombros/tríceps, espalda/gemelo, pecho/bíceps, pierna.',
   author: 'nivel7 (musclecoop)',
   version: 1,

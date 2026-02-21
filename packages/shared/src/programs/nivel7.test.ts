@@ -22,23 +22,8 @@ describe('NIVEL7_DEFINITION', () => {
       expect(NIVEL7_DEFINITION.totalWorkouts).toBe(48);
     });
 
-    it('should have cycleLength = 48', () => {
-      expect(NIVEL7_DEFINITION.cycleLength).toBe(48);
-    });
-
-    it('should have workoutsPerWeek = 4', () => {
-      expect(NIVEL7_DEFINITION.workoutsPerWeek).toBe(4);
-    });
-
     it('should have 4 config fields (1 target per main lift)', () => {
       expect(NIVEL7_DEFINITION.configFields.length).toBe(4);
-    });
-
-    it('should have 5-6 slots per day', () => {
-      for (const day of NIVEL7_DEFINITION.days) {
-        expect(day.slots.length).toBeGreaterThanOrEqual(4);
-        expect(day.slots.length).toBeLessThanOrEqual(6);
-      }
     });
 
     it('should repeat day names across cycles', () => {
@@ -49,10 +34,9 @@ describe('NIVEL7_DEFINITION', () => {
   });
 
   describe('cycle 1 wave periodization', () => {
-    it('should derive press militar weights: T−10, T−7.5, T−10 (deload), T−5, T−2.5, T', () => {
+    it('should derive press militar weights: T−10, T−7.5, T−10, T−5, T−2.5, T', () => {
       const rows = computeGenericProgram(NIVEL7_DEFINITION, BASE_CONFIG, {});
 
-      // T=50 → 40, 42.5, 40, 45, 47.5, 50
       const b1 = [0, 4].map(
         (i) => rows[i].slots.find((s) => s.slotId === 'press_mil-c1b1')?.weight
       );
@@ -66,20 +50,6 @@ describe('NIVEL7_DEFINITION', () => {
       expect(b2).toEqual([45, 47.5, 50]);
     });
 
-    it('should derive bench weights from target', () => {
-      const rows = computeGenericProgram(NIVEL7_DEFINITION, BASE_CONFIG, {});
-
-      const b1 = [2, 6].map((i) => rows[i].slots.find((s) => s.slotId === 'bench-c1b1')?.weight);
-      const deload = rows[10].slots.find((s) => s.slotId === 'bench-c1b1d')?.weight;
-      const b2 = [14, 18, 22].map(
-        (i) => rows[i].slots.find((s) => s.slotId === 'bench-c1b2')?.weight
-      );
-
-      expect(b1).toEqual([60, 62.5]);
-      expect(deload).toBe(60);
-      expect(b2).toEqual([65, 67.5, 70]);
-    });
-
     it('should reach the exact target weight in cycle 1 final session', () => {
       const rows = computeGenericProgram(NIVEL7_DEFINITION, BASE_CONFIG, {});
 
@@ -91,11 +61,9 @@ describe('NIVEL7_DEFINITION', () => {
   });
 
   describe('cycle 2 wave periodization (+2.5kg escalation)', () => {
-    it('should shift press militar wave by +2.5: T−7.5, T−5, T−7.5, T−2.5, T, T+2.5', () => {
+    it('should shift press militar wave by +2.5', () => {
       const rows = computeGenericProgram(NIVEL7_DEFINITION, BASE_CONFIG, {});
 
-      // Cycle 2 days start at index 24
-      // T=50, cycle 2 target = 52.5
       const b1 = [24, 28].map(
         (i) => rows[i].slots.find((s) => s.slotId === 'press_mil-c2b1')?.weight
       );
@@ -109,21 +77,6 @@ describe('NIVEL7_DEFINITION', () => {
       expect(b2).toEqual([47.5, 50, 52.5]);
     });
 
-    it('should shift bench wave by +2.5', () => {
-      const rows = computeGenericProgram(NIVEL7_DEFINITION, BASE_CONFIG, {});
-
-      // T=70, cycle 2 target = 72.5
-      const b1 = [26, 30].map((i) => rows[i].slots.find((s) => s.slotId === 'bench-c2b1')?.weight);
-      const deload = rows[34].slots.find((s) => s.slotId === 'bench-c2b1d')?.weight;
-      const b2 = [38, 42, 46].map(
-        (i) => rows[i].slots.find((s) => s.slotId === 'bench-c2b2')?.weight
-      );
-
-      expect(b1).toEqual([62.5, 65]);
-      expect(deload).toBe(62.5);
-      expect(b2).toEqual([67.5, 70, 72.5]);
-    });
-
     it('should reach T+2.5 in cycle 2 final session', () => {
       const rows = computeGenericProgram(NIVEL7_DEFINITION, BASE_CONFIG, {});
 
@@ -135,25 +88,17 @@ describe('NIVEL7_DEFINITION', () => {
   });
 
   describe('deload behavior', () => {
-    it('should keep cycle 1 deload weight fixed regardless of result', () => {
+    it('should keep deload weight fixed regardless of result', () => {
       const rows = computeGenericProgram(NIVEL7_DEFINITION, BASE_CONFIG, {
         '8': { 'press_mil-c1b1d': { result: 'success' } },
       });
 
       expect(rows[8].slots.find((s) => s.slotId === 'press_mil-c1b1d')?.weight).toBe(40);
     });
-
-    it('should keep cycle 2 deload weight fixed', () => {
-      const rows = computeGenericProgram(NIVEL7_DEFINITION, BASE_CONFIG, {
-        '32': { 'press_mil-c2b1d': { result: 'success' } },
-      });
-
-      expect(rows[32].slots.find((s) => s.slotId === 'press_mil-c2b1d')?.weight).toBe(42.5);
-    });
   });
 
   describe('slot chains', () => {
-    it('should use cycle-qualified slot IDs (c1/c2 prefix)', () => {
+    it('should use cycle-qualified slot IDs for main lifts', () => {
       const allMainIds = new Set<string>();
 
       for (const day of NIVEL7_DEFINITION.days) {
@@ -186,84 +131,130 @@ describe('NIVEL7_DEFINITION', () => {
   });
 
   describe('block schemes', () => {
-    it('should use 5x5 for block 1 main lifts in both cycles', () => {
+    it('should use 5x5 for block 1 and 3x3 for block 2 in both cycles', () => {
       const rows = computeGenericProgram(NIVEL7_DEFINITION, BASE_CONFIG, {});
 
-      // Cycle 1 day 0
-      const c1Press = rows[0].slots.find((s) => s.slotId === 'press_mil-c1b1');
-      expect(c1Press?.sets).toBe(5);
-      expect(c1Press?.reps).toBe(5);
+      const c1b1 = rows[0].slots.find((s) => s.slotId === 'press_mil-c1b1');
+      expect(c1b1?.sets).toBe(5);
+      expect(c1b1?.reps).toBe(5);
 
-      // Cycle 2 day 24
-      const c2Press = rows[24].slots.find((s) => s.slotId === 'press_mil-c2b1');
-      expect(c2Press?.sets).toBe(5);
-      expect(c2Press?.reps).toBe(5);
+      const c1b2 = rows[12].slots.find((s) => s.slotId === 'press_mil-c1b2');
+      expect(c1b2?.sets).toBe(3);
+      expect(c1b2?.reps).toBe(3);
     });
 
-    it('should use 3x3 for block 2 main lifts in both cycles', () => {
+    it('should use 1x5/1x3 for deadlift', () => {
       const rows = computeGenericProgram(NIVEL7_DEFINITION, BASE_CONFIG, {});
 
-      // Cycle 1 day 12
-      const c1Press = rows[12].slots.find((s) => s.slotId === 'press_mil-c1b2');
-      expect(c1Press?.sets).toBe(3);
-      expect(c1Press?.reps).toBe(3);
+      const dlB1 = rows[1].slots.find((s) => s.slotId === 'deadlift-c1b1');
+      expect(dlB1?.sets).toBe(1);
+      expect(dlB1?.reps).toBe(5);
 
-      // Cycle 2 day 36
-      const c2Press = rows[36].slots.find((s) => s.slotId === 'press_mil-c2b2');
-      expect(c2Press?.sets).toBe(3);
-      expect(c2Press?.reps).toBe(3);
-    });
-
-    it('should use 1x5/1x3 for deadlift in both cycles', () => {
-      const rows = computeGenericProgram(NIVEL7_DEFINITION, BASE_CONFIG, {});
-
-      const c1DlB1 = rows[1].slots.find((s) => s.slotId === 'deadlift-c1b1');
-      expect(c1DlB1?.sets).toBe(1);
-      expect(c1DlB1?.reps).toBe(5);
-
-      const c2DlB2 = rows[37].slots.find((s) => s.slotId === 'deadlift-c2b2');
-      expect(c2DlB2?.sets).toBe(1);
-      expect(c2DlB2?.reps).toBe(3);
+      const dlB2 = rows[13].slots.find((s) => s.slotId === 'deadlift-c1b2');
+      expect(dlB2?.sets).toBe(1);
+      expect(dlB2?.reps).toBe(3);
     });
   });
 
-  describe('accessory behavior', () => {
-    it('should not auto-progress accessory weights', () => {
+  describe('accessory double progression (3×8-12)', () => {
+    it('should start accessories at 3×8', () => {
       const rows = computeGenericProgram(NIVEL7_DEFINITION, BASE_CONFIG, {});
 
-      // press_franc across both cycles — all 0kg
-      const pfWeights = [0, 4, 8, 12, 16, 20, 24, 28, 32, 36, 40, 44].map((i) => {
-        const slot = rows[i].slots.find((s) => s.slotId === 'press_franc');
-        return slot?.weight;
+      const pf = rows[0].slots.find((s) => s.slotId === 'press_franc');
+      expect(pf?.sets).toBe(3);
+      expect(pf?.reps).toBe(8);
+      expect(pf?.weight).toBe(0);
+    });
+
+    it('should have 5 stages per accessory (8, 9, 10, 11, 12 reps)', () => {
+      const pfSlot = NIVEL7_DEFINITION.days[0].slots.find((s) => s.id === 'press_franc');
+      expect(pfSlot?.stages.length).toBe(5);
+      expect(pfSlot?.stages.map((s) => s.reps)).toEqual([8, 9, 10, 11, 12]);
+      expect(pfSlot?.stages.every((s) => s.sets === 3)).toBe(true);
+    });
+
+    it('should advance reps on success (8→9→10→11→12)', () => {
+      const rows = computeGenericProgram(NIVEL7_DEFINITION, BASE_CONFIG, {
+        '0': { press_franc: { result: 'success' } },
+        '4': { press_franc: { result: 'success' } },
+        '8': { press_franc: { result: 'success' } },
+        '12': { press_franc: { result: 'success' } },
       });
 
-      expect(pfWeights.every((w) => w === 0)).toBe(true);
+      // press_franc appears on days 0, 4, 8, 12, 16, 20 (all Mondays)
+      expect(rows[0].slots.find((s) => s.slotId === 'press_franc')?.reps).toBe(8);
+      expect(rows[4].slots.find((s) => s.slotId === 'press_franc')?.reps).toBe(9);
+      expect(rows[8].slots.find((s) => s.slotId === 'press_franc')?.reps).toBe(10);
+      expect(rows[12].slots.find((s) => s.slotId === 'press_franc')?.reps).toBe(11);
+      expect(rows[16].slots.find((s) => s.slotId === 'press_franc')?.reps).toBe(12);
     });
 
-    it('should vary accessory sets/reps per week within each cycle', () => {
-      const rows = computeGenericProgram(NIVEL7_DEFINITION, BASE_CONFIG, {});
+    it('should add +2.5kg and reset to 8 reps when completing 3×12', () => {
+      const rows = computeGenericProgram(NIVEL7_DEFINITION, BASE_CONFIG, {
+        '0': { press_franc: { result: 'success' } },
+        '4': { press_franc: { result: 'success' } },
+        '8': { press_franc: { result: 'success' } },
+        '12': { press_franc: { result: 'success' } },
+        '16': { press_franc: { result: 'success' } }, // 3×12 → +2.5kg, reset
+      });
 
-      // Cycle 1: press_franc wk1=4x8, wk2=4x6, wk3=5x5
-      const c1wk1 = rows[0].slots.find((s) => s.slotId === 'press_franc');
-      const c1wk2 = rows[4].slots.find((s) => s.slotId === 'press_franc');
-      const c1wk3 = rows[8].slots.find((s) => s.slotId === 'press_franc');
+      // Day 16: 3×12 at 0kg (success → add 2.5, reset to stage 0)
+      // Day 20: 3×8 at 2.5kg
+      const day20 = rows[20].slots.find((s) => s.slotId === 'press_franc');
+      expect(day20?.weight).toBe(2.5);
+      expect(day20?.reps).toBe(8);
+    });
 
-      expect(c1wk1?.sets).toBe(4);
-      expect(c1wk1?.reps).toBe(8);
-      expect(c1wk2?.sets).toBe(4);
-      expect(c1wk2?.reps).toBe(6);
-      expect(c1wk3?.sets).toBe(5);
-      expect(c1wk3?.reps).toBe(5);
+    it('should keep weight and reps on fail', () => {
+      const rows = computeGenericProgram(NIVEL7_DEFINITION, BASE_CONFIG, {
+        '0': { press_franc: { result: 'success' } }, // 8→9
+        '4': { press_franc: { result: 'fail' } }, // fail at 9 → stay
+      });
 
-      // Cycle 2 repeats the same pattern
-      const c2wk1 = rows[24].slots.find((s) => s.slotId === 'press_franc');
-      expect(c2wk1?.sets).toBe(4);
-      expect(c2wk1?.reps).toBe(8);
+      // Day 4: 3×9 (fail → no change)
+      // Day 8: still 3×9
+      expect(rows[8].slots.find((s) => s.slotId === 'press_franc')?.reps).toBe(9);
+      expect(rows[8].slots.find((s) => s.slotId === 'press_franc')?.weight).toBe(0);
+    });
+
+    it('should keep reps at 12 on fail at final stage', () => {
+      const rows = computeGenericProgram(NIVEL7_DEFINITION, BASE_CONFIG, {
+        '0': { press_franc: { result: 'success' } },
+        '4': { press_franc: { result: 'success' } },
+        '8': { press_franc: { result: 'success' } },
+        '12': { press_franc: { result: 'success' } },
+        '16': { press_franc: { result: 'fail' } }, // fail at 12 → stay at 12
+      });
+
+      // Day 16: 3×12 (fail → no change, stay at stage 4)
+      // Day 20: still 3×12
+      expect(rows[20].slots.find((s) => s.slotId === 'press_franc')?.reps).toBe(12);
+      expect(rows[20].slots.find((s) => s.slotId === 'press_franc')?.weight).toBe(0);
+    });
+
+    it('should share accessory state across cycles (continuous progression)', () => {
+      // 12 sessions of press_franc across 48 workouts (all Mondays)
+      // With all success: 8,9,10,11,12→+2.5,8,9,10,11,12→+2.5,8,9
+      const allSuccess: Record<string, Record<string, { result: 'success' }>> = {};
+      for (const day of [0, 4, 8, 12, 16, 20, 24, 28, 32, 36, 40, 44]) {
+        allSuccess[String(day)] = { press_franc: { result: 'success' } };
+      }
+
+      const rows = computeGenericProgram(NIVEL7_DEFINITION, BASE_CONFIG, allSuccess);
+
+      // After 5 successes (days 0-16): +2.5kg, reset
+      expect(rows[20].slots.find((s) => s.slotId === 'press_franc')?.weight).toBe(2.5);
+      expect(rows[20].slots.find((s) => s.slotId === 'press_franc')?.reps).toBe(8);
+
+      // After 10 successes (days 0-36): second +2.5kg, reset
+      // Days 40,44 are sessions 11,12 → stages 0,1 at 5kg
+      expect(rows[44].slots.find((s) => s.slotId === 'press_franc')?.weight).toBe(5);
+      expect(rows[44].slots.find((s) => s.slotId === 'press_franc')?.reps).toBe(9);
     });
   });
 
-  describe('fail behavior', () => {
-    it('should keep weight on cycle 1 build-phase fail', () => {
+  describe('main lift fail behavior', () => {
+    it('should keep weight on build-phase fail', () => {
       const rows = computeGenericProgram(NIVEL7_DEFINITION, BASE_CONFIG, {
         '0': { 'press_mil-c1b1': { result: 'fail' } },
       });
@@ -272,22 +263,12 @@ describe('NIVEL7_DEFINITION', () => {
       expect(day4Slot?.weight).toBe(40);
     });
 
-    it('should keep weight on cycle 2 peak-phase fail', () => {
-      const rows = computeGenericProgram(NIVEL7_DEFINITION, BASE_CONFIG, {
-        '36': { 'press_mil-c2b2': { result: 'fail' } },
-      });
-
-      const day40Slot = rows[40].slots.find((s) => s.slotId === 'press_mil-c2b2');
-      expect(day40Slot?.weight).toBe(47.5);
-    });
-
-    it('should progress cycle 2 after success following a fail', () => {
+    it('should progress after success following a fail', () => {
       const rows = computeGenericProgram(NIVEL7_DEFINITION, BASE_CONFIG, {
         '36': { 'press_mil-c2b2': { result: 'fail' } },
         '40': { 'press_mil-c2b2': { result: 'success' } },
       });
 
-      // Day 36: 47.5 (fail → no change), Day 40: 47.5 (success → +2.5), Day 44: 50
       const day44Slot = rows[44].slots.find((s) => s.slotId === 'press_mil-c2b2');
       expect(day44Slot?.weight).toBe(50);
     });

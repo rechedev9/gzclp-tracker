@@ -57,6 +57,7 @@ export const ExerciseSlotSchema = z.strictObject({
   tier: TierSchema,
   stages: z.array(StageDefinitionSchema).min(1),
   onSuccess: ProgressionRuleSchema,
+  onFinalStageSuccess: ProgressionRuleSchema.optional(),
   onUndefined: ProgressionRuleSchema.optional(),
   onMidStageFail: ProgressionRuleSchema,
   onFinalStageFail: ProgressionRuleSchema,
