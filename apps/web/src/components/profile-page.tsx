@@ -85,6 +85,27 @@ export function ProfilePage({ onBack }: ProfilePageProps): React.ReactNode {
               </div>
             </section>
 
+            {/* Streak */}
+            {(profileData.streak.current > 0 || profileData.streak.longest > 0) && (
+              <section className="mb-10">
+                <h2 className="text-xs font-bold uppercase tracking-[0.15em] text-[var(--text-muted)] mb-3">
+                  Streak
+                </h2>
+                <div className="grid grid-cols-2 gap-3">
+                  <ProfileStatCard
+                    value={String(profileData.streak.current)}
+                    label="Current Streak"
+                    sublabel="consecutive workouts"
+                  />
+                  <ProfileStatCard
+                    value={String(profileData.streak.longest)}
+                    label="Longest Streak"
+                    sublabel="consecutive workouts"
+                  />
+                </div>
+              </section>
+            )}
+
             {/* Personal Records */}
             <section className="mb-10">
               <h2 className="text-xs font-bold uppercase tracking-[0.15em] text-[var(--text-muted)] mb-3">
