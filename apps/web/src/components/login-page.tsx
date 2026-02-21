@@ -24,119 +24,207 @@ export function LoginPage(): React.ReactNode {
   };
 
   return (
-    <div className="grain-overlay min-h-dvh flex flex-col bg-[var(--bg-body)]">
-      {/* Header */}
-      <header className="text-center pt-10 pb-8 px-5 bg-[var(--bg-header)] border-b border-[var(--border-color)]">
+    <div className="grain-overlay min-h-dvh flex flex-col items-center justify-center bg-[var(--bg-body)] px-5 py-12 relative overflow-hidden">
+      {/* Keyframe definitions */}
+      <style>{`
+        @keyframes riseIn {
+          from { opacity: 0; transform: translateY(14px); }
+          to   { opacity: 1; transform: translateY(0); }
+        }
+        @keyframes glowBreath {
+          0%, 100% { opacity: 0.13; }
+          50%       { opacity: 0.22; }
+        }
+        @keyframes haloBreath {
+          0%, 100% { opacity: 0.22; transform: scale(1); }
+          50%       { opacity: 0.34; transform: scale(1.08); }
+        }
+      `}</style>
+
+      {/* Ambient top glow — breathes slowly */}
+      <div
+        aria-hidden="true"
+        className="pointer-events-none absolute inset-x-0 top-0 h-[520px]"
+        style={{
+          background:
+            'radial-gradient(ellipse 75% 60% at 50% -5%, rgba(200,168,78,1) 0%, transparent 100%)',
+          animation: 'glowBreath 5s ease-in-out infinite',
+        }}
+      />
+
+      {/* Bottom darkness vignette */}
+      <div
+        aria-hidden="true"
+        className="pointer-events-none absolute inset-x-0 bottom-0 h-48"
+        style={{ background: 'linear-gradient(to top, rgba(0,0,0,0.5), transparent)' }}
+      />
+
+      {/* Logo with pulsing halo */}
+      <div
+        className="relative mb-7"
+        style={{ animation: 'riseIn 0.55s ease both', animationDelay: '0s' }}
+      >
+        <div
+          aria-hidden="true"
+          className="absolute rounded-full blur-2xl pointer-events-none"
+          style={{
+            inset: '-20px',
+            background: 'rgba(200,168,78,0.22)',
+            animation: 'haloBreath 3.5s ease-in-out infinite',
+          }}
+        />
         <img
           src="/logo.webp"
           alt="RSN logo"
-          width={64}
-          height={64}
-          className="mx-auto mb-4 rounded-full"
+          width={68}
+          height={68}
+          className="relative block rounded-full"
+          style={{ border: '1.5px solid rgba(200,168,78,0.5)' }}
         />
-        <h1
-          className="font-display mb-1 leading-none"
+      </div>
+
+      {/* Hero title */}
+      <h1
+        className="font-display text-center leading-[0.88] mb-1"
+        style={{
+          fontSize: 'clamp(50px, 12vw, 88px)',
+          color: 'var(--text-header)',
+          letterSpacing: '0.03em',
+          textShadow: '0 0 48px rgba(200,168,78,0.18)',
+          animation: 'riseIn 0.55s ease both',
+          animationDelay: '0.08s',
+        }}
+      >
+        The Real
+        <br />
+        Hyperbolic
+        <br />
+        Time Chamber
+      </h1>
+
+      {/* "Enter the Chamber" separator */}
+      <div
+        className="flex items-center gap-3 w-full max-w-[310px] my-7"
+        style={{ animation: 'riseIn 0.55s ease both', animationDelay: '0.16s' }}
+      >
+        <div
+          className="flex-1 h-px"
+          style={{ background: 'linear-gradient(to right, transparent, rgba(200,168,78,0.6))' }}
+        />
+        <span
+          className="font-mono text-[9px] tracking-[0.35em] uppercase flex-shrink-0"
+          style={{ color: 'var(--text-header)', textShadow: '0 0 10px rgba(200,168,78,0.5)' }}
+        >
+          Enter the Chamber
+        </span>
+        <div
+          className="flex-1 h-px"
+          style={{ background: 'linear-gradient(to left, transparent, rgba(200,168,78,0.6))' }}
+        />
+      </div>
+
+      {/* Auth card */}
+      <div
+        className="w-full max-w-[300px] relative"
+        style={{ animation: 'riseIn 0.55s ease both', animationDelay: '0.24s' }}
+      >
+        {/* Decorative corner mark */}
+        <span
+          aria-hidden="true"
+          className="absolute top-2.5 right-3 font-mono text-[11px] pointer-events-none select-none"
+          style={{ color: 'rgba(200,168,78,0.3)' }}
+        >
+          ✦
+        </span>
+
+        <div
           style={{
-            fontSize: 'clamp(28px, 4vw, 42px)',
-            color: 'var(--text-header)',
+            background: 'var(--bg-card)',
+            borderTop: '1px solid rgba(200,168,78,0.2)',
+            borderRight: '1px solid rgba(200,168,78,0.08)',
+            borderBottom: '1px solid rgba(200,168,78,0.08)',
+            borderLeft: '3px solid var(--text-header)',
+            boxShadow: '-8px 0 40px rgba(200,168,78,0.07), 0 24px 64px rgba(0,0,0,0.7)',
+            padding: '22px 22px 20px',
           }}
         >
-          The Real Hyperbolic Time Chamber
-        </h1>
-        <p
-          className="font-mono text-[11px] tracking-[0.25em] uppercase"
-          style={{ color: 'var(--text-muted)' }}
-        >
-          Train smarter. Progress faster.
-        </p>
-      </header>
-
-      {/* Main content */}
-      <main className="flex-1 flex items-center justify-center px-5 py-10 sm:py-14">
-        <div className="w-full max-w-[420px]">
-          {/* Auth card */}
-          <div
-            className="bg-[var(--bg-card)] border border-[var(--border-color)] p-6 sm:p-8"
-            style={{ boxShadow: '0 8px 40px rgba(0,0,0,0.5)' }}
+          <p
+            className="font-mono text-[9px] tracking-[0.35em] uppercase mb-5"
+            style={{ color: 'var(--text-header)' }}
           >
-            {/* Card heading */}
-            <h2
-              className="font-display leading-none mb-1"
+            Authenticate
+          </p>
+
+          {/* Google button — dark inset slot */}
+          <div
+            className="flex justify-center py-3"
+            style={{
+              background: 'rgba(0,0,0,0.3)',
+              border: '1px solid rgba(255,255,255,0.06)',
+            }}
+          >
+            <GoogleLogin
+              onSuccess={({ credential }) => {
+                if (credential) void handleGoogleSuccess(credential);
+              }}
+              onError={() => {
+                setError('Google sign-in failed. Please try again.');
+              }}
+              theme="filled_black"
+              size="large"
+              width="240"
+            />
+          </div>
+
+          {/* Error */}
+          {error && (
+            <div
+              className="flex items-start gap-2 text-xs mt-3 px-3 py-2"
               style={{
-                fontSize: '32px',
-                color: 'var(--text-header)',
+                background: 'var(--bg-error)',
+                border: '1px solid var(--border-error)',
+                color: 'var(--text-error)',
               }}
             >
-              Welcome
-            </h2>
-            <p className="mb-6 text-xs" style={{ color: 'var(--text-muted)' }}>
-              Sign in to sync your progress across devices
-            </p>
-
-            {/* Google OAuth */}
-            <div className="flex justify-center">
-              <GoogleLogin
-                onSuccess={({ credential }) => {
-                  if (credential) void handleGoogleSuccess(credential);
-                }}
-                onError={() => {
-                  setError('Google sign-in failed. Please try again.');
-                }}
-                theme="filled_black"
-                size="large"
-              />
+              <span className="shrink-0 leading-none mt-px">⚠</span>
+              <span>{error}</span>
             </div>
+          )}
 
-            {/* Error display */}
-            {error && (
-              <div
-                className="flex items-start gap-2 text-xs bg-[var(--bg-error)] border border-[var(--border-error)] px-3 py-2.5 mt-4"
-                style={{ color: 'var(--text-error)' }}
-              >
-                <span className="shrink-0 text-sm leading-none" aria-hidden="true">
-                  &#9888;
-                </span>
-                <span>{error}</span>
-              </div>
-            )}
+          {/* Divider */}
+          <div className="flex items-center gap-2 my-4">
+            <div className="flex-1 h-px bg-[var(--border-color)]" />
+            <span
+              className="font-mono text-[9px] tracking-widest uppercase"
+              style={{ color: 'var(--text-muted)' }}
+            >
+              or
+            </span>
+            <div className="flex-1 h-px bg-[var(--border-color)]" />
           </div>
 
           {/* Continue without account */}
-          <div className="text-center mt-5">
-            <Link
-              to="/app?view=programs"
-              className="text-[11px] underline underline-offset-2 hover:opacity-80 transition-opacity"
-              style={{ color: 'var(--text-muted)' }}
-            >
-              Continue without an account
-            </Link>
-          </div>
-
-          {/* Feature highlights */}
-          <div className="mt-8 grid grid-cols-3 gap-px bg-[var(--border-color)]">
-            {[
-              { icon: '☁', label: 'Cloud Sync', desc: 'Access from any device' },
-              { icon: '⚡', label: 'Auto-Save', desc: 'Every result saved instantly' },
-              { icon: '🔒', label: 'Secure', desc: 'Private and encrypted' },
-            ].map((f) => (
-              <div key={f.label} className="bg-[var(--bg-card)] text-center py-4 px-3">
-                <div className="text-base mb-1.5" style={{ color: 'var(--text-header)' }}>
-                  {f.icon}
-                </div>
-                <p
-                  className="font-mono text-[10px] font-bold uppercase tracking-wider mb-0.5"
-                  style={{ color: 'var(--text-main)' }}
-                >
-                  {f.label}
-                </p>
-                <p className="text-[10px] leading-snug" style={{ color: 'var(--text-muted)' }}>
-                  {f.desc}
-                </p>
-              </div>
-            ))}
-          </div>
+          <Link
+            to="/app?view=programs"
+            className="block w-full text-center py-2.5 font-mono text-[10px] tracking-[0.2em] uppercase transition-colors border border-[var(--border-color)] text-[var(--text-muted)] hover:border-[var(--text-header)] hover:text-[var(--text-header)]"
+          >
+            Continue without account
+          </Link>
         </div>
-      </main>
+      </div>
+
+      {/* Tagline */}
+      <p
+        className="font-mono text-[9px] tracking-[0.4em] uppercase mt-8"
+        style={{
+          color: 'var(--text-muted)',
+          opacity: 0.45,
+          animation: 'riseIn 0.55s ease both',
+          animationDelay: '0.32s',
+        }}
+      >
+        Train smarter · Progress faster
+      </p>
     </div>
   );
 }
