@@ -5,15 +5,24 @@ interface ToastAction {
   readonly onClick: () => void;
 }
 
+type ToastVariant = 'default' | 'pr';
+
 interface Toast {
   readonly id: number;
   readonly message: string;
   readonly action?: ToastAction;
+  readonly variant: ToastVariant;
+}
+
+interface ToastOpts {
+  readonly message: string;
+  readonly action?: ToastAction;
+  readonly variant?: ToastVariant;
 }
 
 interface ToastContextValue {
   readonly toasts: readonly Toast[];
-  readonly toast: (opts: { message: string; action?: ToastAction }) => void;
+  readonly toast: (opts: ToastOpts) => void;
   readonly dismiss: (id: number) => void;
 }
 
@@ -21,6 +30,7 @@ const ToastContext = createContext<ToastContextValue | null>(null);
 
 const MAX_TOASTS = 3;
 const AUTO_DISMISS_MS = 3000;
+const PR_DISMISS_MS = 5000;
 
 export function ToastProvider({
   children,
@@ -35,10 +45,14 @@ export function ToastProvider({
   }, []);
 
   const toast = useCallback(
-    (opts: { message: string; action?: ToastAction }): void => {
+    (opts: ToastOpts): void => {
       const id = nextId.current++;
-      setToasts((prev) => [...prev.slice(-(MAX_TOASTS - 1)), { id, ...opts }]);
-      setTimeout(() => dismiss(id), AUTO_DISMISS_MS);
+      const variant = opts.variant ?? 'default';
+      setToasts((prev) => [
+        ...prev.slice(-(MAX_TOASTS - 1)),
+        { id, message: opts.message, action: opts.action, variant },
+      ]);
+      setTimeout(() => dismiss(id), variant === 'pr' ? PR_DISMISS_MS : AUTO_DISMISS_MS);
     },
     [dismiss]
   );

@@ -6,6 +6,7 @@ import { useAuth } from '@/contexts/auth-context';
 import { computeProgram } from '@gzclp/shared/engine';
 import { TOTAL_WORKOUTS, NAMES } from '@gzclp/shared/program';
 import { useToast } from '@/contexts/toast-context';
+import { detectT1PersonalRecord } from '@/lib/pr-detection';
 import { AppHeader } from './app-header';
 import { ToastContainer } from './toast';
 import { SetupForm } from './setup-form';
@@ -208,15 +209,23 @@ export function GZCLPApp({
       if (!row) return;
       const exerciseKey =
         tier === 't1' ? row.t1Exercise : tier === 't2' ? row.t2Exercise : row.t3Exercise;
-      const tierLabel = tier.toUpperCase();
-      const resultLabel = value === 'success' ? 'Success' : 'Fail';
-      toast({
-        message: `#${index + 1}: ${NAMES[exerciseKey]} ${tierLabel} — ${resultLabel}`,
-        action: {
-          label: 'Undo',
-          onClick: () => undoSpecific(index, tier),
-        },
-      });
+      const isPr = detectT1PersonalRecord(rows, index, tier, value);
+      if (isPr) {
+        toast({
+          message: `${NAMES[exerciseKey]} ${row.t1Weight} kg`,
+          variant: 'pr',
+        });
+      } else {
+        const tierLabel = tier.toUpperCase();
+        const resultLabel = value === 'success' ? 'Success' : 'Fail';
+        toast({
+          message: `#${index + 1}: ${NAMES[exerciseKey]} ${tierLabel} — ${resultLabel}`,
+          action: {
+            label: 'Undo',
+            onClick: () => undoSpecific(index, tier),
+          },
+        });
+      }
     },
     [markResult, rows, toast, undoSpecific]
   );
