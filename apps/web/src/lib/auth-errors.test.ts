@@ -10,10 +10,10 @@ describe('sanitizeAuthError', () => {
     // This is a snapshot of the entire error mapping contract.
     // If a mapping changes, this test MUST break — that's CI.
     const mappings: Array<[string, string]> = [
-      ['Invalid Google credential', 'Google sign-in failed. Please try again.'],
-      ['No refresh token', 'Your session has expired. Please sign in again.'],
-      ['Invalid refresh token', 'Your session has expired. Please sign in again.'],
-      ['Refresh token expired', 'Your session has expired. Please sign in again.'],
+      ['Invalid Google credential', 'Error al iniciar sesión con Google. Inténtalo de nuevo.'],
+      ['No refresh token', 'Tu sesión ha expirado. Por favor, inicia sesión de nuevo.'],
+      ['Invalid refresh token', 'Tu sesión ha expirado. Por favor, inicia sesión de nuevo.'],
+      ['Refresh token expired', 'Tu sesión ha expirado. Por favor, inicia sesión de nuevo.'],
     ];
 
     for (const [raw, expected] of mappings) {
@@ -23,15 +23,15 @@ describe('sanitizeAuthError', () => {
 
   it('should match partial messages containing known error strings', () => {
     const result = sanitizeAuthError('Error: Invalid Google credential from provider');
-    expect(result).toBe('Google sign-in failed. Please try again.');
+    expect(result).toBe('Error al iniciar sesión con Google. Inténtalo de nuevo.');
   });
 
   it('should return generic message for unknown errors', () => {
     const result = sanitizeAuthError('Database connection timeout');
-    expect(result).toBe('Something went wrong. Please try again.');
+    expect(result).toBe('Algo salió mal. Por favor, inténtalo de nuevo.');
   });
 
   it('should return generic message for empty string', () => {
-    expect(sanitizeAuthError('')).toBe('Something went wrong. Please try again.');
+    expect(sanitizeAuthError('')).toBe('Algo salió mal. Por favor, inténtalo de nuevo.');
   });
 });
