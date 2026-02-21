@@ -31,9 +31,9 @@
     "@types/node": "^22",
     "@types/react": "^19",
     "@types/react-dom": "^19",
-    "@vitejs/plugin-react": "^4.5.0",
+    "@vitejs/plugin-react": "^5.1.4",
     "eslint": "^9",
     "tailwindcss": "^4",
-    "vite": "^6.3.0"
+    "vite": "^7.3.1"
   }
 }
