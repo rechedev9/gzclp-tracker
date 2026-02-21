@@ -1,4 +1,14 @@
-import { useState, useMemo, useCallback, useEffect, useRef, type ReactNode } from 'react';
+import {
+  lazy,
+  Suspense,
+  useState,
+  useTransition,
+  useMemo,
+  useCallback,
+  useEffect,
+  useRef,
+  type ReactNode,
+} from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
 import type { Tier, ResultValue } from '@gzclp/shared/types';
@@ -13,8 +23,10 @@ import { ToastContainer } from './toast';
 import { SetupForm } from './setup-form';
 import { Toolbar } from './toolbar';
 import { WeekSection } from './week-section';
-import { StatsPanel } from './stats-panel';
+import { StatsSkeleton } from './stats-skeleton';
 import { StageTag } from './stage-tag';
+
+const StatsPanel = lazy(() => import('./stats-panel'));
 import { ErrorBoundary } from './error-boundary';
 import { useWebMcp } from '@/hooks/use-webmcp';
 
@@ -158,6 +170,7 @@ export function GZCLPApp({
   const { toast } = useToast();
 
   const [activeTab, setActiveTab] = useState<'program' | 'stats'>('program');
+  const [isPending, startTransition] = useTransition();
 
   const rows = useMemo(
     () => (startWeights ? computeProgram(startWeights, results) : []),
@@ -311,10 +324,16 @@ export function GZCLPApp({
           <>
             {/* Tabs */}
             <div className="flex gap-0 mb-6 border-b-2 border-[var(--border-color)]">
-              <TabButton active={activeTab === 'program'} onClick={() => setActiveTab('program')}>
+              <TabButton
+                active={activeTab === 'program'}
+                onClick={() => startTransition(() => setActiveTab('program'))}
+              >
                 Programa
               </TabButton>
-              <TabButton active={activeTab === 'stats'} onClick={() => setActiveTab('stats')}>
+              <TabButton
+                active={activeTab === 'stats'}
+                onClick={() => startTransition(() => setActiveTab('stats'))}
+              >
                 Estadísticas
               </TabButton>
             </div>
@@ -408,23 +427,30 @@ export function GZCLPApp({
             )}
 
             {activeTab === 'stats' && (
-              <ErrorBoundary
-                fallback={({ reset }) => (
-                  <div className="text-center py-16">
-                    <p className="text-[var(--text-muted)] mb-4">
-                      No se pudieron cargar las estadísticas.
-                    </p>
-                    <button
-                      onClick={reset}
-                      className="px-5 py-2 bg-[var(--fill-progress)] text-white font-bold cursor-pointer"
-                    >
-                      Reintentar
-                    </button>
-                  </div>
-                )}
+              <div
+                className="transition-opacity duration-150"
+                style={{ opacity: isPending ? 0.6 : 1 }}
               >
-                <StatsPanel startWeights={startWeights} results={results} />
-              </ErrorBoundary>
+                <ErrorBoundary
+                  fallback={({ reset }) => (
+                    <div className="text-center py-16">
+                      <p className="text-[var(--text-muted)] mb-4">
+                        No se pudieron cargar las estadísticas.
+                      </p>
+                      <button
+                        onClick={reset}
+                        className="px-5 py-2 bg-[var(--fill-progress)] text-white font-bold cursor-pointer"
+                      >
+                        Reintentar
+                      </button>
+                    </div>
+                  )}
+                >
+                  <Suspense fallback={<StatsSkeleton />}>
+                    <StatsPanel startWeights={startWeights} results={results} />
+                  </Suspense>
+                </ErrorBoundary>
+              </div>
             )}
           </>
         )}

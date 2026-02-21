@@ -1,4 +1,14 @@
-import { useState, useMemo, useCallback, useEffect, useRef, type ReactNode } from 'react';
+import {
+  lazy,
+  Suspense,
+  useState,
+  useTransition,
+  useMemo,
+  useCallback,
+  useEffect,
+  useRef,
+  type ReactNode,
+} from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
 import type { ResultValue } from '@gzclp/shared/types';
@@ -9,8 +19,10 @@ import { detectGenericPersonalRecord } from '@/lib/pr-detection';
 import { AppHeader } from './app-header';
 import { ToastContainer } from './toast';
 import { GenericSetupForm } from './generic-setup-form';
-import { GenericStatsPanel } from './generic-stats-panel';
+import { StatsSkeleton } from './stats-skeleton';
 import { ErrorBoundary } from './error-boundary';
+
+const GenericStatsPanel = lazy(() => import('./generic-stats-panel'));
 import { Toolbar } from './toolbar';
 import { WeekNavigator } from './week-navigator';
 import { GenericWeekSection } from './generic-week-section';
@@ -80,6 +92,7 @@ export function GenericProgramApp({
   const { toast } = useToast();
 
   const [activeTab, setActiveTab] = useState<'program' | 'stats'>('program');
+  const [isPending, startTransition] = useTransition();
 
   const workoutsPerWeek = definition?.workoutsPerWeek ?? 4;
   const totalWorkouts = definition?.totalWorkouts ?? 0;
@@ -237,10 +250,16 @@ export function GenericProgramApp({
           <>
             {/* Tabs */}
             <div className="flex gap-0 mb-6 border-b-2 border-[var(--border-color)]">
-              <TabButton active={activeTab === 'program'} onClick={() => setActiveTab('program')}>
+              <TabButton
+                active={activeTab === 'program'}
+                onClick={() => startTransition(() => setActiveTab('program'))}
+              >
                 Programa
               </TabButton>
-              <TabButton active={activeTab === 'stats'} onClick={() => setActiveTab('stats')}>
+              <TabButton
+                active={activeTab === 'stats'}
+                onClick={() => startTransition(() => setActiveTab('stats'))}
+              >
                 Estadísticas
               </TabButton>
             </div>
@@ -299,23 +318,30 @@ export function GenericProgramApp({
             )}
 
             {activeTab === 'stats' && (
-              <ErrorBoundary
-                fallback={({ reset }) => (
-                  <div className="text-center py-16">
-                    <p className="text-[var(--text-muted)] mb-4">
-                      No se pudieron cargar las estadísticas.
-                    </p>
-                    <button
-                      onClick={reset}
-                      className="px-5 py-2 bg-[var(--fill-progress)] text-white font-bold cursor-pointer"
-                    >
-                      Reintentar
-                    </button>
-                  </div>
-                )}
+              <div
+                className="transition-opacity duration-150"
+                style={{ opacity: isPending ? 0.6 : 1 }}
               >
-                <GenericStatsPanel definition={definition} rows={rows} />
-              </ErrorBoundary>
+                <ErrorBoundary
+                  fallback={({ reset }) => (
+                    <div className="text-center py-16">
+                      <p className="text-[var(--text-muted)] mb-4">
+                        No se pudieron cargar las estadísticas.
+                      </p>
+                      <button
+                        onClick={reset}
+                        className="px-5 py-2 bg-[var(--fill-progress)] text-white font-bold cursor-pointer"
+                      >
+                        Reintentar
+                      </button>
+                    </div>
+                  )}
+                >
+                  <Suspense fallback={<StatsSkeleton />}>
+                    <GenericStatsPanel definition={definition} rows={rows} />
+                  </Suspense>
+                </ErrorBoundary>
+              </div>
             )}
           </>
         )}

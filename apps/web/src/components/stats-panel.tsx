@@ -9,7 +9,7 @@ interface StatsPanelProps {
   results: Results;
 }
 
-export const StatsPanel = memo(function StatsPanel({ startWeights, results }: StatsPanelProps) {
+const StatsPanel = memo(function StatsPanel({ startWeights, results }: StatsPanelProps) {
   const chartData = useMemo(() => extractChartData(startWeights, results), [startWeights, results]);
   const hasAnyResults = T1_EXERCISES.some((ex) => chartData[ex].some((d) => d.result !== null));
 
@@ -59,3 +59,6 @@ export const StatsPanel = memo(function StatsPanel({ startWeights, results }: St
     </div>
   );
 });
+
+export { StatsPanel };
+export default StatsPanel;
