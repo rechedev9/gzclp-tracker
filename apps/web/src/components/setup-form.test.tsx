@@ -13,24 +13,24 @@ describe('SetupForm', () => {
       const onGenerate = mock();
       render(<SetupForm onGenerate={onGenerate} />);
 
-      expect(screen.getByLabelText('Squat (T1)')).toHaveValue(60);
-      expect(screen.getByLabelText('Bench Press (T1)')).toHaveValue(40);
-      expect(screen.getByLabelText('Deadlift (T1)')).toHaveValue(60);
-      expect(screen.getByLabelText('OHP (T1)')).toHaveValue(30);
-      expect(screen.getByLabelText('Lat Pulldown (T3)')).toHaveValue(30);
-      expect(screen.getByLabelText('DB Bent Over Row (T3)')).toHaveValue(12.5);
+      expect(screen.getByLabelText('Sentadilla (T1)')).toHaveValue(60);
+      expect(screen.getByLabelText('Press Banca (T1)')).toHaveValue(40);
+      expect(screen.getByLabelText('Peso Muerto (T1)')).toHaveValue(60);
+      expect(screen.getByLabelText('Press Militar (T1)')).toHaveValue(30);
+      expect(screen.getByLabelText('Jalón al Pecho (T3)')).toHaveValue(30);
+      expect(screen.getByLabelText('Remo con Mancuernas (T3)')).toHaveValue(12.5);
     });
 
-    it('should show "Generate Program" button', () => {
+    it('should show "Generar Programa" button', () => {
       render(<SetupForm onGenerate={mock()} />);
 
-      expect(screen.getByText('Generate Program')).toBeInTheDocument();
+      expect(screen.getByText('Generar Programa')).toBeInTheDocument();
     });
 
-    it('should not show Cancel button in new program mode', () => {
+    it('should not show Cancelar button in new program mode', () => {
       render(<SetupForm onGenerate={mock()} />);
 
-      expect(screen.queryByText('Cancel')).not.toBeInTheDocument();
+      expect(screen.queryByText('Cancelar')).not.toBeInTheDocument();
     });
   });
 
@@ -39,7 +39,7 @@ describe('SetupForm', () => {
       const onGenerate = mock();
       render(<SetupForm onGenerate={onGenerate} />);
 
-      fireEvent.click(screen.getByText('Generate Program'));
+      fireEvent.click(screen.getByText('Generar Programa'));
 
       expect(onGenerate).toHaveBeenCalledTimes(1);
       const weights = onGenerate.mock.calls[0][0] as StartWeights;
@@ -54,43 +54,43 @@ describe('SetupForm', () => {
     it('should show error when a field is empty', () => {
       render(<SetupForm onGenerate={mock()} />);
 
-      const squatInput = screen.getByLabelText('Squat (T1)');
+      const squatInput = screen.getByLabelText('Sentadilla (T1)');
       fireEvent.change(squatInput, { target: { value: '' } });
       fireEvent.blur(squatInput);
 
-      expect(screen.getByText('Required')).toBeInTheDocument();
+      expect(screen.getByText('Requerido')).toBeInTheDocument();
     });
 
     it('should show error when weight is below minimum', () => {
       render(<SetupForm onGenerate={mock()} />);
 
-      const squatInput = screen.getByLabelText('Squat (T1)');
+      const squatInput = screen.getByLabelText('Sentadilla (T1)');
       fireEvent.change(squatInput, { target: { value: '1' } });
       fireEvent.blur(squatInput);
 
       // The error is shown in a role="alert" element with id="squat-error"
       const errorEl = document.getElementById('squat-error');
       expect(errorEl).not.toBeNull();
-      expect(errorEl!.textContent).toContain('Min 2.5 kg');
+      expect(errorEl!.textContent).toContain('Mín 2.5 kg');
     });
 
     it('should show error when weight exceeds maximum', () => {
       render(<SetupForm onGenerate={mock()} />);
 
-      const squatInput = screen.getByLabelText('Squat (T1)');
+      const squatInput = screen.getByLabelText('Sentadilla (T1)');
       fireEvent.change(squatInput, { target: { value: '501' } });
       fireEvent.blur(squatInput);
 
-      expect(screen.getByText('Max 500 kg')).toBeInTheDocument();
+      expect(screen.getByText('Máx 500 kg')).toBeInTheDocument();
     });
 
     it('should not call onGenerate when validation fails', () => {
       const onGenerate = mock();
       render(<SetupForm onGenerate={onGenerate} />);
 
-      const squatInput = screen.getByLabelText('Squat (T1)');
+      const squatInput = screen.getByLabelText('Sentadilla (T1)');
       fireEvent.change(squatInput, { target: { value: '' } });
-      fireEvent.click(screen.getByText('Generate Program'));
+      fireEvent.click(screen.getByText('Generar Programa'));
 
       expect(onGenerate).not.toHaveBeenCalled();
     });
@@ -98,11 +98,11 @@ describe('SetupForm', () => {
     it('should show summary error message when submit fails validation', () => {
       render(<SetupForm onGenerate={mock()} />);
 
-      const squatInput = screen.getByLabelText('Squat (T1)');
+      const squatInput = screen.getByLabelText('Sentadilla (T1)');
       fireEvent.change(squatInput, { target: { value: '' } });
-      fireEvent.click(screen.getByText('Generate Program'));
+      fireEvent.click(screen.getByText('Generar Programa'));
 
-      expect(screen.getByText('Please fix the following:')).toBeInTheDocument();
+      expect(screen.getByText('Por favor corrige lo siguiente:')).toBeInTheDocument();
     });
   });
 
@@ -110,19 +110,19 @@ describe('SetupForm', () => {
     it('should increase weight when + button is clicked', () => {
       render(<SetupForm onGenerate={mock()} />);
 
-      const increaseBtn = screen.getByLabelText('Increase Squat (T1)');
+      const increaseBtn = screen.getByLabelText('Aumentar Sentadilla (T1)');
       fireEvent.click(increaseBtn);
 
-      expect(screen.getByLabelText('Squat (T1)')).toHaveValue(60.5);
+      expect(screen.getByLabelText('Sentadilla (T1)')).toHaveValue(60.5);
     });
 
     it('should decrease weight when - button is clicked', () => {
       render(<SetupForm onGenerate={mock()} />);
 
-      const decreaseBtn = screen.getByLabelText('Decrease Squat (T1)');
+      const decreaseBtn = screen.getByLabelText('Disminuir Sentadilla (T1)');
       fireEvent.click(decreaseBtn);
 
-      expect(screen.getByLabelText('Squat (T1)')).toHaveValue(59.5);
+      expect(screen.getByLabelText('Sentadilla (T1)')).toHaveValue(59.5);
     });
   });
 
@@ -132,20 +132,20 @@ describe('SetupForm', () => {
         <SetupForm initialWeights={DEFAULT_WEIGHTS} onGenerate={mock()} onUpdateWeights={mock()} />
       );
 
-      expect(screen.getByText('Starting Weights')).toBeInTheDocument();
-      expect(screen.getByText('Edit Weights')).toBeInTheDocument();
+      expect(screen.getByText('Pesos Iniciales')).toBeInTheDocument();
+      expect(screen.getByText('Editar Pesos')).toBeInTheDocument();
     });
 
-    it('should expand form when Edit Weights is clicked', () => {
+    it('should expand form when Editar Pesos is clicked', () => {
       render(
         <SetupForm initialWeights={DEFAULT_WEIGHTS} onGenerate={mock()} onUpdateWeights={mock()} />
       );
 
-      fireEvent.click(screen.getByText('Edit Weights'));
+      fireEvent.click(screen.getByText('Editar Pesos'));
 
-      expect(screen.getByText('Edit Starting Weights (kg)')).toBeInTheDocument();
-      expect(screen.getByText('Update Weights')).toBeInTheDocument();
-      expect(screen.getByText('Cancel')).toBeInTheDocument();
+      expect(screen.getByText('Editar Pesos Iniciales (kg)')).toBeInTheDocument();
+      expect(screen.getByText('Actualizar Pesos')).toBeInTheDocument();
+      expect(screen.getByText('Cancelar')).toBeInTheDocument();
     });
 
     it('should show confirmation dialog before updating weights', () => {
@@ -153,22 +153,22 @@ describe('SetupForm', () => {
         <SetupForm initialWeights={DEFAULT_WEIGHTS} onGenerate={mock()} onUpdateWeights={mock()} />
       );
 
-      fireEvent.click(screen.getByText('Edit Weights'));
-      fireEvent.click(screen.getByText('Update Weights'));
+      fireEvent.click(screen.getByText('Editar Pesos'));
+      fireEvent.click(screen.getByText('Actualizar Pesos'));
 
-      expect(screen.getByText('Update Starting Weights')).toBeInTheDocument();
+      expect(screen.getByText('Actualizar Pesos Iniciales')).toBeInTheDocument();
     });
 
-    it('should collapse back when Cancel is clicked', () => {
+    it('should collapse back when Cancelar is clicked', () => {
       render(
         <SetupForm initialWeights={DEFAULT_WEIGHTS} onGenerate={mock()} onUpdateWeights={mock()} />
       );
 
-      fireEvent.click(screen.getByText('Edit Weights'));
-      fireEvent.click(screen.getByText('Cancel'));
+      fireEvent.click(screen.getByText('Editar Pesos'));
+      fireEvent.click(screen.getByText('Cancelar'));
 
-      expect(screen.getByText('Edit Weights')).toBeInTheDocument();
-      expect(screen.queryByText('Update Weights')).not.toBeInTheDocument();
+      expect(screen.getByText('Editar Pesos')).toBeInTheDocument();
+      expect(screen.queryByText('Actualizar Pesos')).not.toBeInTheDocument();
     });
   });
 });

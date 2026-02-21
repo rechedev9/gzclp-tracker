@@ -70,17 +70,17 @@ describe('WorkoutRow', () => {
     });
 
     it('should display day name', () => {
-      renderRow({ dayName: 'Day 1' });
+      renderRow({ dayName: 'Día 1' });
 
-      expect(screen.getByText('Day 1')).toBeInTheDocument();
+      expect(screen.getByText('Día 1')).toBeInTheDocument();
     });
 
     it('should display exercise names', () => {
       renderRow();
 
-      expect(screen.getByText('Squat')).toBeInTheDocument();
-      expect(screen.getByText('Bench Press')).toBeInTheDocument();
-      expect(screen.getByText('Lat Pulldown')).toBeInTheDocument();
+      expect(screen.getByText('Sentadilla')).toBeInTheDocument();
+      expect(screen.getByText('Press Banca')).toBeInTheDocument();
+      expect(screen.getByText('Jalón al Pecho')).toBeInTheDocument();
     });
 
     it('should display weights', () => {
@@ -189,7 +189,7 @@ describe('WorkoutRow', () => {
       const onSetAmrapReps = mock();
       renderRow({ index: 0, result: { t1: 'success' } }, { onSetAmrapReps });
 
-      const amrapInputs = screen.getAllByTitle('AMRAP reps');
+      const amrapInputs = screen.getAllByTitle('Reps AMRAP');
       fireEvent.change(amrapInputs[0], { target: { value: '8' } });
 
       expect(onSetAmrapReps).toHaveBeenCalledWith(0, 't1Reps', 8);
