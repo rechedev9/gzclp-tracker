@@ -59,6 +59,11 @@ async function runMigrations(): Promise<void> {
   const migrationDb = drizzle(migrationClient);
   const migrationsFolder = join(import.meta.dir, '..', 'drizzle');
 
+  // Hotfix: add columns that were skipped due to a poisoned migration timestamp.
+  // Safe to keep permanently — IF NOT EXISTS is a no-op once columns exist.
+  await migrationClient`ALTER TABLE "workout_results" ADD COLUMN IF NOT EXISTS "rpe" smallint`;
+  await migrationClient`ALTER TABLE "undo_entries" ADD COLUMN IF NOT EXISTS "prev_rpe" smallint`;
+
   logger.info({ migrationsFolder }, 'running database migrations');
   await migrate(migrationDb, { migrationsFolder });
   await migrationClient.end();
