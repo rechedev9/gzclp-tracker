@@ -34,6 +34,7 @@ export interface ProgramDetail extends ProgramSummary {
   readonly startWeights: StartWeights;
   readonly results: Results;
   readonly undoHistory: UndoHistory;
+  readonly resultTimestamps: Readonly<Record<string, string>>;
 }
 
 export interface GenericProgramDetail {
@@ -43,6 +44,7 @@ export interface GenericProgramDetail {
   readonly config: Record<string, number>;
   readonly results: GenericResults;
   readonly undoHistory: GenericUndoHistory;
+  readonly resultTimestamps: Readonly<Record<string, string>>;
   readonly status: string;
 }
 
@@ -164,6 +166,15 @@ function parseNumericRecord(value: unknown): Record<string, number> {
   return out;
 }
 
+function parseStringRecord(value: unknown): Record<string, string> {
+  if (!isRecord(value)) return {};
+  const out: Record<string, string> = {};
+  for (const [k, v] of Object.entries(value)) {
+    if (typeof v === 'string') out[k] = v;
+  }
+  return out;
+}
+
 function parseSummary(rec: unknown): ProgramSummary {
   if (!isRecord(rec)) throw new Error('Invalid program response');
   return {
@@ -236,6 +247,7 @@ export async function fetchProgram(id: string): Promise<ProgramDetail> {
     startWeights: parseConfig(data.config),
     results: convertResultsToLegacy(genericResults),
     undoHistory: convertUndoToLegacy(genericUndo),
+    resultTimestamps: parseStringRecord(data.resultTimestamps),
   };
 }
 
@@ -346,6 +358,7 @@ export async function fetchGenericProgramDetail(id: string): Promise<GenericProg
     config: parseNumericRecord(data.config),
     results: parseGenericResults(data.results),
     undoHistory: parseGenericUndoHistory(data.undoHistory),
+    resultTimestamps: parseStringRecord(data.resultTimestamps),
     status: String(data.status ?? 'active'),
   };
 }

@@ -38,11 +38,22 @@ export interface CompletionStats {
   readonly totalWeightGained: number;
 }
 
+export interface MonthlyReport {
+  readonly monthLabel: string;
+  readonly workoutsCompleted: number;
+  readonly personalRecords: number;
+  readonly totalVolume: number;
+  readonly successRate: number;
+  readonly totalSets: number;
+  readonly totalReps: number;
+}
+
 export interface ProfileData {
   readonly personalRecords: readonly PersonalRecord[];
   readonly streak: StreakInfo;
   readonly volume: VolumeStats;
   readonly completion: CompletionStats;
+  readonly monthlyReport: MonthlyReport | null;
 }
 
 // ─── Sub-computations ───────────────────────────────────────────────
@@ -209,16 +220,122 @@ function computeCompletion(
   };
 }
 
+function computeMonthlyReport(
+  rows: readonly WorkoutRow[],
+  startWeights: StartWeights,
+  resultTimestamps: Readonly<Record<string, string>>
+): MonthlyReport | null {
+  const now = new Date();
+  const currentMonth = now.getMonth();
+  const currentYear = now.getFullYear();
+  const monthLabel = now.toLocaleString('en-US', { month: 'long', year: 'numeric' });
+
+  // Find workout indices that fall in the current month
+  const monthIndices = new Set<number>();
+  for (const [indexStr, ts] of Object.entries(resultTimestamps)) {
+    const date = new Date(ts);
+    if (date.getMonth() === currentMonth && date.getFullYear() === currentYear) {
+      monthIndices.add(Number(indexStr));
+    }
+  }
+
+  if (monthIndices.size === 0) return null;
+
+  // Filter rows to this month's workouts
+  const monthRows = rows.filter((r) => monthIndices.has(r.index));
+
+  // Count completed workouts (all 3 tiers marked)
+  let completed = 0;
+  let successes = 0;
+  let totalMarks = 0;
+  let volume = 0;
+  let sets = 0;
+  let reps = 0;
+
+  for (const row of monthRows) {
+    const isComplete = !!(row.result.t1 && row.result.t2 && row.result.t3);
+    if (isComplete) completed += 1;
+
+    if (row.result.t1) {
+      totalMarks += 1;
+      if (row.result.t1 === 'success') successes += 1;
+      const t1Stage = T1_STAGES[row.t1Stage];
+      const regularSets = t1Stage.sets - 1;
+      const regularReps = regularSets * t1Stage.reps;
+      const amrapReps = row.result.t1Reps ?? t1Stage.reps;
+      const t1Reps = regularReps + amrapReps;
+      volume += t1Reps * row.t1Weight;
+      sets += t1Stage.sets;
+      reps += t1Reps;
+    }
+    if (row.result.t2) {
+      totalMarks += 1;
+      if (row.result.t2 === 'success') successes += 1;
+      const t2Reps = row.t2Sets * row.t2Reps;
+      volume += t2Reps * row.t2Weight;
+      sets += row.t2Sets;
+      reps += t2Reps;
+    }
+    if (row.result.t3) {
+      totalMarks += 1;
+      if (row.result.t3 === 'success') successes += 1;
+      const t3RegularSets = T3_SETS - 1;
+      const t3RegularReps = t3RegularSets * T3_PRESCRIBED_REPS;
+      const t3AmrapReps = row.result.t3Reps ?? T3_PRESCRIBED_REPS;
+      const t3Reps = t3RegularReps + t3AmrapReps;
+      volume += t3Reps * row.t3Weight;
+      sets += T3_SETS;
+      reps += t3Reps;
+    }
+  }
+
+  // Count PRs: T1 successes this month that exceed pre-month best
+  let prCount = 0;
+  const startWeightLookup: Record<string, number> = { ...startWeights };
+  for (const row of monthRows) {
+    if (row.result.t1 !== 'success') continue;
+    const exercise = row.t1Exercise;
+    let priorBest = startWeightLookup[exercise] ?? 0;
+    for (const prior of rows) {
+      if (prior.index >= row.index) break;
+      const isMatch =
+        !monthIndices.has(prior.index) &&
+        prior.t1Exercise === exercise &&
+        prior.result.t1 === 'success' &&
+        prior.t1Weight > priorBest;
+      if (isMatch) priorBest = prior.t1Weight;
+    }
+    if (row.t1Weight > priorBest) prCount += 1;
+  }
+
+  return {
+    monthLabel,
+    workoutsCompleted: completed,
+    personalRecords: prCount,
+    totalVolume: Math.round(volume),
+    successRate: totalMarks > 0 ? Math.round((successes / totalMarks) * 100) : 0,
+    totalSets: sets,
+    totalReps: reps,
+  };
+}
+
 // ─── Main orchestrator ──────────────────────────────────────────────
 
-export function computeProfileData(startWeights: StartWeights, results: Results): ProfileData {
+export function computeProfileData(
+  startWeights: StartWeights,
+  results: Results,
+  resultTimestamps?: Readonly<Record<string, string>>
+): ProfileData {
   const rows = computeProgram(startWeights, results);
   const personalRecords = computePersonalRecords(rows, startWeights);
   const streak = computeStreak(results);
   const volume = computeVolume(rows);
   const completion = computeCompletion(rows, startWeights);
+  const monthlyReport = resultTimestamps
+    ? computeMonthlyReport(rows, startWeights, resultTimestamps)
+    : null;
 
-  return { personalRecords, streak, volume, completion };
+  return { personalRecords, streak, volume, completion, monthlyReport };
 }
 
 const volumeFormatter = new Intl.NumberFormat('en-US', { maximumFractionDigits: 0 });

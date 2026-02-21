@@ -20,6 +20,7 @@ const PROGRAM_DETAIL: ProgramDetail = {
   startWeights: DEFAULT_WEIGHTS,
   results: {},
   undoHistory: [],
+  resultTimestamps: {},
 };
 
 const PROGRAM_SUMMARY: ProgramSummary = {

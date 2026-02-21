@@ -26,6 +26,7 @@ export interface ProgramInstanceResponse {
   readonly status: string;
   readonly results: GenericResults;
   readonly undoHistory: GenericUndoHistory;
+  readonly resultTimestamps: Readonly<Record<string, string>>;
   readonly createdAt: string;
   readonly updatedAt: string;
 }
@@ -33,6 +34,19 @@ export interface ProgramInstanceResponse {
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
+
+/** Maps each workoutIndex to the earliest createdAt timestamp for that workout. */
+function buildResultTimestamps(rows: readonly WorkoutResultRow[]): Record<string, string> {
+  const timestamps: Record<string, string> = {};
+  for (const row of rows) {
+    const key = String(row.workoutIndex);
+    const ts = row.createdAt.toISOString();
+    if (!timestamps[key] || ts < timestamps[key]) {
+      timestamps[key] = ts;
+    }
+  }
+  return timestamps;
+}
 
 /** Reconstructs GenericResults from normalized workout_results rows. */
 function buildGenericResults(rows: readonly WorkoutResultRow[]): GenericResults {
@@ -74,6 +88,7 @@ function toResponse(
     status: instance.status,
     results: buildGenericResults(resultRows),
     undoHistory: buildUndoHistory(undoRows),
+    resultTimestamps: buildResultTimestamps(resultRows),
     createdAt: instance.createdAt.toISOString(),
     updatedAt: instance.updatedAt.toISOString(),
   };
