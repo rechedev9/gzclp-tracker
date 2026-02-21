@@ -113,6 +113,7 @@ export const workoutResults = pgTable(
     slotId: varchar('slot_id', { length: 20 }).notNull(),
     result: resultTypeEnum().notNull(),
     amrapReps: smallint('amrap_reps'),
+    rpe: smallint('rpe'),
     createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
   },
   (table) => [
@@ -147,6 +148,7 @@ export const undoEntries = pgTable(
     slotId: varchar('slot_id', { length: 20 }).notNull(),
     prevResult: resultTypeEnum('prev_result'),
     prevAmrapReps: smallint('prev_amrap_reps'),
+    prevRpe: smallint('prev_rpe'),
     createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
   },
   (table) => [index('undo_entries_instance_id_idx').on(table.instanceId)]

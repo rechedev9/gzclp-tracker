@@ -10,6 +10,7 @@ interface WeekSectionProps {
   forceExpanded?: boolean;
   onMark: (index: number, tier: Tier, value: ResultValue) => void;
   onSetAmrapReps: (index: number, field: 't1Reps' | 't3Reps', reps: number | undefined) => void;
+  onSetRpe?: (index: number, rpe: number | undefined) => void;
   onUndo: (index: number, tier: Tier) => void;
 }
 
@@ -56,6 +57,7 @@ export function WeekSection({
   forceExpanded,
   onMark,
   onSetAmrapReps,
+  onSetRpe,
   onUndo,
 }: WeekSectionProps) {
   const isDeload = week % 4 === 0;
@@ -174,6 +176,7 @@ export function WeekSection({
                     isCurrent={row.index === firstPendingIdx}
                     onMark={onMark}
                     onSetAmrapReps={onSetAmrapReps}
+                    onSetRpe={onSetRpe}
                     onUndo={onUndo}
                   />
                 ))}
@@ -190,6 +193,7 @@ export function WeekSection({
                 isCurrent={row.index === firstPendingIdx}
                 onMark={onMark}
                 onSetAmrapReps={onSetAmrapReps}
+                onSetRpe={onSetRpe}
                 onUndo={onUndo}
               />
             ))}

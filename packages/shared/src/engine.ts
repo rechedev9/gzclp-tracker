@@ -17,10 +17,13 @@ function convertLegacyResultsForGzclp(results: Results): GenericResults {
   const generic: GenericResults = {};
   for (const [indexStr, res] of Object.entries(results)) {
     const dayMap = GZCLP_DAY_SLOT_MAP[Number(indexStr) % GZCLP_DEFINITION.cycleLength];
-    const workoutResult: Record<string, { result?: 'success' | 'fail'; amrapReps?: number }> = {};
+    const workoutResult: Record<
+      string,
+      { result?: 'success' | 'fail'; amrapReps?: number; rpe?: number }
+    > = {};
 
-    if (res.t1 !== undefined || res.t1Reps !== undefined) {
-      workoutResult[dayMap.t1] = { result: res.t1, amrapReps: res.t1Reps };
+    if (res.t1 !== undefined || res.t1Reps !== undefined || res.rpe !== undefined) {
+      workoutResult[dayMap.t1] = { result: res.t1, amrapReps: res.t1Reps, rpe: res.rpe };
     }
     if (res.t2 !== undefined) {
       workoutResult[dayMap.t2] = { result: res.t2 };
@@ -67,6 +70,7 @@ function mapGenericToWorkoutRow(row: GenericWorkoutRow): WorkoutRow {
       t3: t3Slot.result,
       t1Reps: t1Slot.amrapReps,
       t3Reps: t3Slot.amrapReps,
+      rpe: t1Slot.rpe,
     },
   };
 }

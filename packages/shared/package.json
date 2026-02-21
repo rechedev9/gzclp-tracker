@@ -8,6 +8,7 @@
     "./generic-engine": "./src/generic-engine.ts",
     "./program": "./src/program.ts",
     "./stats": "./src/stats.ts",
+    "./generic-stats": "./src/generic-stats.ts",
     "./type-guards": "./src/type-guards.ts",
     "./types": "./src/types/index.ts",
     "./types/program": "./src/types/program.ts",

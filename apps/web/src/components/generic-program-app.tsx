@@ -1,4 +1,4 @@
-import { useState, useMemo, useCallback, useEffect, useRef } from 'react';
+import { useState, useMemo, useCallback, useEffect, useRef, type ReactNode } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import type { ResultValue } from '@gzclp/shared/types';
 import { useGenericProgram } from '@/hooks/use-generic-program';
@@ -8,9 +8,34 @@ import { detectGenericPersonalRecord } from '@/lib/pr-detection';
 import { AppHeader } from './app-header';
 import { ToastContainer } from './toast';
 import { GenericSetupForm } from './generic-setup-form';
+import { GenericStatsPanel } from './generic-stats-panel';
+import { ErrorBoundary } from './error-boundary';
 import { Toolbar } from './toolbar';
 import { WeekNavigator } from './week-navigator';
 import { GenericWeekSection } from './generic-week-section';
+
+function TabButton({
+  active,
+  onClick,
+  children,
+}: {
+  readonly active: boolean;
+  readonly onClick: () => void;
+  readonly children: ReactNode;
+}): ReactNode {
+  return (
+    <button
+      onClick={onClick}
+      className={`font-mono px-4 sm:px-6 py-3 text-[10px] sm:text-[11px] font-bold cursor-pointer tracking-widest uppercase transition-colors -mb-[2px] ${
+        active
+          ? 'border-b-2 border-[var(--fill-progress)] text-[var(--text-main)]'
+          : 'text-[var(--text-muted)] hover:text-[var(--text-main)]'
+      }`}
+    >
+      {children}
+    </button>
+  );
+}
 
 interface GenericProgramAppProps {
   readonly programId: string;
@@ -34,6 +59,7 @@ export function GenericProgramApp({
     updateConfig,
     markResult,
     setAmrapReps,
+    setRpe,
     undoSpecific,
     undoLast,
     resetAll,
@@ -42,6 +68,8 @@ export function GenericProgramApp({
   const { signOut } = useAuth();
   const queryClient = useQueryClient();
   const { toast } = useToast();
+
+  const [activeTab, setActiveTab] = useState<'program' | 'stats'>('program');
 
   const workoutsPerWeek = definition?.workoutsPerWeek ?? 4;
   const totalWorkouts = definition?.totalWorkouts ?? 0;
@@ -139,7 +167,7 @@ export function GenericProgramApp({
   }, [currentWeekNumber]);
 
   useEffect(() => {
-    if (!config) return;
+    if (activeTab !== 'program' || !config) return;
     const handleKeyDown = (e: KeyboardEvent): void => {
       if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return;
       if (e.key === 'ArrowLeft') setSelectedWeek((w) => Math.max(1, w - 1));
@@ -147,7 +175,7 @@ export function GenericProgramApp({
     };
     document.addEventListener('keydown', handleKeyDown);
     return () => document.removeEventListener('keydown', handleKeyDown);
-  }, [config, weeks.length]);
+  }, [activeTab, config, weeks.length]);
 
   const handleSignOut = useCallback(async (): Promise<void> => {
     await signOut();
@@ -194,52 +222,85 @@ export function GenericProgramApp({
 
         {config && rows.length > 0 && (
           <>
-            {/* Program info */}
-            <details className="bg-[var(--bg-card)] border border-[var(--border-color)] mb-6 overflow-hidden">
-              <summary className="font-mono px-5 py-3.5 font-bold cursor-pointer select-none flex justify-between items-center [&::marker]:hidden list-none text-[11px] tracking-widest uppercase">
-                About {definition.name}
-                <span className="transition-transform duration-200 [[open]>&]:rotate-90">
-                  &#9656;
-                </span>
-              </summary>
-              <div className="px-5 pb-5 border-t border-[var(--border-light)]">
-                <p className="mt-3 text-[13px] leading-7 text-[var(--text-info)]">
-                  {definition.description}
-                </p>
-                {definition.author && (
-                  <p className="mt-2 text-[11px] text-[var(--text-muted)]">
-                    By {definition.author}
-                  </p>
-                )}
-                <div className="flex flex-wrap gap-x-4 gap-y-1 mt-2 text-[11px] text-[var(--text-muted)]">
-                  <span>{totalWorkouts} total workouts</span>
-                  <span>{workoutsPerWeek} per week</span>
-                  <span>{definition.days.length}-day rotation</span>
-                </div>
-              </div>
-            </details>
+            {/* Tabs */}
+            <div className="flex gap-0 mb-6 border-b-2 border-[var(--border-color)]">
+              <TabButton active={activeTab === 'program'} onClick={() => setActiveTab('program')}>
+                Program
+              </TabButton>
+              <TabButton active={activeTab === 'stats'} onClick={() => setActiveTab('stats')}>
+                Stats &amp; Charts
+              </TabButton>
+            </div>
 
-            <WeekNavigator
-              selectedWeek={selectedWeek}
-              totalWeeks={weeks.length}
-              currentWeekNumber={currentWeekNumber}
-              weekDoneCount={weekDoneCount}
-              weekTotalCount={weekTotalCount}
-              onPrev={() => setSelectedWeek((w) => Math.max(1, w - 1))}
-              onNext={() => setSelectedWeek((w) => Math.min(weeks.length, w + 1))}
-              onGoToCurrent={jumpToCurrent}
-            />
-            {weeks[selectedWeek - 1] && (
-              <GenericWeekSection
-                key={selectedWeek}
-                week={selectedWeek}
-                rows={weeks[selectedWeek - 1].rows}
-                firstPendingIdx={firstPendingIdx}
-                forceExpanded
-                onMark={handleMarkResult}
-                onSetAmrapReps={setAmrapReps}
-                onUndo={undoSpecific}
-              />
+            {activeTab === 'program' && (
+              <>
+                {/* Program info */}
+                <details className="bg-[var(--bg-card)] border border-[var(--border-color)] mb-6 overflow-hidden">
+                  <summary className="font-mono px-5 py-3.5 font-bold cursor-pointer select-none flex justify-between items-center [&::marker]:hidden list-none text-[11px] tracking-widest uppercase">
+                    About {definition.name}
+                    <span className="transition-transform duration-200 [[open]>&]:rotate-90">
+                      &#9656;
+                    </span>
+                  </summary>
+                  <div className="px-5 pb-5 border-t border-[var(--border-light)]">
+                    <p className="mt-3 text-[13px] leading-7 text-[var(--text-info)]">
+                      {definition.description}
+                    </p>
+                    {definition.author && (
+                      <p className="mt-2 text-[11px] text-[var(--text-muted)]">
+                        By {definition.author}
+                      </p>
+                    )}
+                    <div className="flex flex-wrap gap-x-4 gap-y-1 mt-2 text-[11px] text-[var(--text-muted)]">
+                      <span>{totalWorkouts} total workouts</span>
+                      <span>{workoutsPerWeek} per week</span>
+                      <span>{definition.days.length}-day rotation</span>
+                    </div>
+                  </div>
+                </details>
+
+                <WeekNavigator
+                  selectedWeek={selectedWeek}
+                  totalWeeks={weeks.length}
+                  currentWeekNumber={currentWeekNumber}
+                  weekDoneCount={weekDoneCount}
+                  weekTotalCount={weekTotalCount}
+                  onPrev={() => setSelectedWeek((w) => Math.max(1, w - 1))}
+                  onNext={() => setSelectedWeek((w) => Math.min(weeks.length, w + 1))}
+                  onGoToCurrent={jumpToCurrent}
+                />
+                {weeks[selectedWeek - 1] && (
+                  <GenericWeekSection
+                    key={selectedWeek}
+                    week={selectedWeek}
+                    rows={weeks[selectedWeek - 1].rows}
+                    firstPendingIdx={firstPendingIdx}
+                    forceExpanded
+                    onMark={handleMarkResult}
+                    onSetAmrapReps={setAmrapReps}
+                    onSetRpe={setRpe}
+                    onUndo={undoSpecific}
+                  />
+                )}
+              </>
+            )}
+
+            {activeTab === 'stats' && (
+              <ErrorBoundary
+                fallback={({ reset }) => (
+                  <div className="text-center py-16">
+                    <p className="text-[var(--text-muted)] mb-4">Stats could not be loaded.</p>
+                    <button
+                      onClick={reset}
+                      className="px-5 py-2 bg-[var(--fill-progress)] text-white font-bold cursor-pointer"
+                    >
+                      Retry
+                    </button>
+                  </div>
+                )}
+              >
+                <GenericStatsPanel definition={definition} rows={rows} />
+              </ErrorBoundary>
             )}
           </>
         )}

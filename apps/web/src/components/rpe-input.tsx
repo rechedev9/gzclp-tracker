@@ -1,0 +1,31 @@
+const RPE_VALUES = [6, 7, 8, 9, 10] as const;
+
+interface RpeInputProps {
+  readonly value: number | undefined;
+  readonly onChange: (rpe: number | undefined) => void;
+}
+
+export function RpeInput({ value, onChange }: RpeInputProps): React.ReactNode {
+  return (
+    <div className="flex items-center gap-1.5">
+      <span className="text-[10px] text-[var(--text-muted)] mr-0.5">RPE</span>
+      {RPE_VALUES.map((rpe) => {
+        const isActive = value === rpe;
+        return (
+          <button
+            key={rpe}
+            type="button"
+            onClick={() => onChange(isActive ? undefined : rpe)}
+            className={`w-7 h-7 text-[11px] font-bold border cursor-pointer transition-colors ${
+              isActive
+                ? 'bg-[var(--fill-progress)] text-white border-[var(--fill-progress)]'
+                : 'bg-transparent text-[var(--text-muted)] border-[var(--border-color)] hover:border-[var(--text-main)]'
+            }`}
+          >
+            {rpe}
+          </button>
+        );
+      })}
+    </div>
+  );
+}

@@ -138,6 +138,7 @@ export function GZCLPApp({
     updateWeights,
     markResult,
     setAmrapReps,
+    setRpe,
     undoSpecific,
     undoLast,
     resetAll,
@@ -387,6 +388,7 @@ export function GZCLPApp({
                     forceExpanded
                     onMark={handleMarkResult}
                     onSetAmrapReps={setAmrapReps}
+                    onSetRpe={setRpe}
                     onUndo={undoSpecific}
                   />
                 )}

@@ -44,6 +44,7 @@ function makeGenericRow(index: number, slots: Partial<GenericSlotRow>[]): Generi
       isAmrap: s.isAmrap ?? false,
       result: s.result,
       amrapReps: s.amrapReps,
+      rpe: s.rpe,
       isChanged: s.isChanged ?? false,
     })),
   };

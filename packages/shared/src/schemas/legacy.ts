@@ -17,6 +17,7 @@ const WorkoutResultSchema = z.strictObject({
   t3: ResultValue.optional(),
   t1Reps: z.number().int().min(0).max(999).optional(),
   t3Reps: z.number().int().min(0).max(999).optional(),
+  rpe: z.number().int().min(1).max(10).optional(),
 });
 
 export const ResultsSchema = z.record(z.string().regex(/^\d{1,2}$/), WorkoutResultSchema);
