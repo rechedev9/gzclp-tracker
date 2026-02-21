@@ -157,7 +157,7 @@ export function LandingPage(): React.ReactNode {
 
         {/* ── Metrics Banner ─────────────────────────────── */}
         <section
-          aria-label="Program metrics"
+          aria-label="Métricas del programa"
           ref={observe}
           className="landing-fade-in px-6 sm:px-10 py-16 sm:py-20 bg-[var(--bg-header)]"
         >
