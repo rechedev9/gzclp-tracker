@@ -60,6 +60,7 @@ function buildGenericResults(rows: readonly WorkoutResultRow[]): GenericResults 
     results[indexStr][row.slotId] = {
       result: row.result,
       ...(row.amrapReps !== null ? { amrapReps: row.amrapReps } : {}),
+      ...(row.rpe !== null ? { rpe: row.rpe } : {}),
     };
   }
 
@@ -349,6 +350,7 @@ export async function importInstance(
       slotId: string;
       result: 'success' | 'fail';
       amrapReps: number | null;
+      rpe: number | null;
     }[] = [];
 
     for (const [indexStr, slots] of Object.entries(data.results)) {
@@ -360,6 +362,7 @@ export async function importInstance(
             slotId,
             result: slotResult.result,
             amrapReps: slotResult.amrapReps ?? null,
+            rpe: slotResult.rpe ?? null,
           });
         }
       }

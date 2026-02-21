@@ -34,6 +34,7 @@ export function GenericProgramApp({
     updateConfig,
     markResult,
     setAmrapReps,
+    setRpe,
     undoSpecific,
     undoLast,
     resetAll,
@@ -238,6 +239,7 @@ export function GenericProgramApp({
                 forceExpanded
                 onMark={handleMarkResult}
                 onSetAmrapReps={setAmrapReps}
+                onSetRpe={setRpe}
                 onUndo={undoSpecific}
               />
             )}

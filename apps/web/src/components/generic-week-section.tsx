@@ -9,6 +9,7 @@ interface GenericWeekSectionProps {
   readonly forceExpanded?: boolean;
   readonly onMark: (workoutIndex: number, slotId: string, value: ResultValue) => void;
   readonly onSetAmrapReps: (workoutIndex: number, slotId: string, reps: number | undefined) => void;
+  readonly onSetRpe?: (workoutIndex: number, slotId: string, rpe: number | undefined) => void;
   readonly onUndo: (workoutIndex: number, slotId: string) => void;
 }
 
@@ -55,6 +56,7 @@ export function GenericWeekSection({
   forceExpanded,
   onMark,
   onSetAmrapReps,
+  onSetRpe,
   onUndo,
 }: GenericWeekSectionProps): React.ReactNode {
   const weekDone = rows.every((r) => r.slots.every((s) => s.result !== undefined));
@@ -105,6 +107,7 @@ export function GenericWeekSection({
                 isCurrent={row.index === firstPendingIdx}
                 onMark={onMark}
                 onSetAmrapReps={onSetAmrapReps}
+                onSetRpe={onSetRpe}
                 onUndo={onUndo}
               />
             ))}

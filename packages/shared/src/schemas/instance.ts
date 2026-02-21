@@ -5,6 +5,7 @@ const ResultValueSchema = z.enum(['success', 'fail']);
 const SlotResultSchema = z.strictObject({
   result: ResultValueSchema.optional(),
   amrapReps: z.number().int().min(0).max(999).optional(),
+  rpe: z.number().int().min(1).max(10).optional(),
 });
 
 const GenericWorkoutResultSchema = z.record(z.string(), SlotResultSchema);

@@ -35,6 +35,7 @@ export interface WorkoutRow {
     t3?: ResultValue;
     t1Reps?: number;
     t3Reps?: number;
+    rpe?: number;
   };
 }
 
@@ -50,6 +51,7 @@ export interface GenericSlotRow {
   readonly isAmrap: boolean;
   readonly result: ResultValue | undefined;
   readonly amrapReps: number | undefined;
+  readonly rpe: number | undefined;
   readonly isChanged: boolean;
 }
 

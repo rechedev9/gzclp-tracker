@@ -107,6 +107,7 @@ interface UseProgramReturn {
     field: 't1Reps' | 't3Reps',
     reps: number | undefined
   ) => void;
+  readonly setRpe: (index: number, rpe: number | undefined) => void;
   readonly undoSpecific: (index: number, tier: Tier) => void;
   readonly undoLast: () => void;
   readonly resetAll: () => void;
@@ -214,6 +215,30 @@ export function useProgram(instanceId?: string): UseProgramReturn {
     onSettled: detailOnSettled,
   });
 
+  const setRpeMutation = useMutation({
+    mutationFn: async ({ index, rpe }: { index: number; rpe: number | undefined }) => {
+      if (!activeInstanceId) throw new Error('No active program');
+      const currentResult = results[index]?.t1;
+      if (!currentResult) return;
+      const amrapReps = results[index]?.t1Reps;
+      await recordResult(activeInstanceId, index, 't1', currentResult, amrapReps, rpe);
+    },
+    onMutate: ({ index, rpe }) =>
+      snapshotAndUpdate((prev) => {
+        const updatedResults = { ...prev.results };
+        const entry = { ...updatedResults[index] };
+        if (rpe === undefined) {
+          delete entry.rpe;
+        } else {
+          entry.rpe = rpe;
+        }
+        updatedResults[index] = entry;
+        return { ...prev, results: updatedResults };
+      }),
+    onError: detailOnError,
+    onSettled: detailOnSettled,
+  });
+
   const undoSpecificMutation = useMutation({
     mutationFn: async ({ index, tier }: { index: number; tier: Tier }) => {
       if (!activeInstanceId) throw new Error('No active program');
@@ -279,6 +304,13 @@ export function useProgram(instanceId?: string): UseProgramReturn {
       setAmrapMutation.mutate({ index, field, reps });
     },
     [setAmrapMutation]
+  );
+
+  const setRpeCb = useCallback(
+    (index: number, rpe: number | undefined): void => {
+      setRpeMutation.mutate({ index, rpe });
+    },
+    [setRpeMutation]
   );
 
   const undoSpecificCb = useCallback(
@@ -353,6 +385,7 @@ export function useProgram(instanceId?: string): UseProgramReturn {
     updateWeights: updateWeightsCb,
     markResult: markResultCb,
     setAmrapReps: setAmrapRepsCb,
+    setRpe: setRpeCb,
     undoSpecific: undoSpecificCb,
     undoLast: undoLastCb,
     resetAll: resetAllCb,

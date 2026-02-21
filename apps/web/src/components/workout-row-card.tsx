@@ -5,12 +5,14 @@ import { buildGoogleCalendarUrl } from '@/lib/calendar';
 import { StageTag } from './stage-tag';
 import { ResultCell } from './result-cell';
 import { AmrapInput } from './amrap-input';
+import { RpeInput } from './rpe-input';
 
 interface WorkoutRowCardProps {
   row: WorkoutRowType;
   isCurrent: boolean;
   onMark: (index: number, tier: Tier, value: ResultValue) => void;
   onSetAmrapReps: (index: number, field: 't1Reps' | 't3Reps', reps: number | undefined) => void;
+  onSetRpe?: (index: number, rpe: number | undefined) => void;
   onUndo: (index: number, tier: Tier) => void;
 }
 
@@ -108,7 +110,8 @@ function areRowCardsEqual(prev: WorkoutRowCardProps, next: WorkoutRowCardProps):
     p.result.t2 === n.result.t2 &&
     p.result.t3 === n.result.t3 &&
     p.result.t1Reps === n.result.t1Reps &&
-    p.result.t3Reps === n.result.t3Reps
+    p.result.t3Reps === n.result.t3Reps &&
+    p.result.rpe === n.result.rpe
   );
 }
 
@@ -117,6 +120,7 @@ export const WorkoutRowCard = memo(function WorkoutRowCard({
   isCurrent,
   onMark,
   onSetAmrapReps,
+  onSetRpe,
   onUndo,
 }: WorkoutRowCardProps) {
   const allDone = row.result.t1 && row.result.t2 && row.result.t3;
@@ -129,6 +133,11 @@ export const WorkoutRowCard = memo(function WorkoutRowCard({
   const handleT3AmrapChange = useCallback(
     (reps: number | undefined) => onSetAmrapReps(row.index, 't3Reps', reps),
     [onSetAmrapReps, row.index]
+  );
+
+  const handleRpeChange = useCallback(
+    (rpe: number | undefined) => onSetRpe?.(row.index, rpe),
+    [onSetRpe, row.index]
   );
 
   return (
@@ -172,6 +181,11 @@ export const WorkoutRowCard = memo(function WorkoutRowCard({
           onMark={onMark}
           onUndo={onUndo}
         />
+        {row.result.t1 && onSetRpe && (
+          <div className="mt-1 pl-1">
+            <RpeInput value={row.result.rpe} onChange={handleRpeChange} />
+          </div>
+        )}
       </div>
       <div data-testid={`t2-result-${row.index}`}>
         <TierSection

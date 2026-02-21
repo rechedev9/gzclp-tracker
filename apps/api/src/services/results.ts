@@ -19,6 +19,7 @@ export interface RecordResultInput {
   readonly slotId: string;
   readonly result: 'success' | 'fail';
   readonly amrapReps?: number;
+  readonly rpe?: number;
 }
 
 // ---------------------------------------------------------------------------
@@ -71,6 +72,9 @@ export async function recordResult(
   if (input.amrapReps !== undefined && input.amrapReps > MAX_AMRAP_REPS) {
     throw new ApiError(400, `amrapReps cannot exceed ${MAX_AMRAP_REPS}`, 'INVALID_DATA');
   }
+  if (input.rpe !== undefined && (input.rpe < 1 || input.rpe > 10)) {
+    throw new ApiError(400, 'rpe must be between 1 and 10', 'INVALID_DATA');
+  }
   await verifyInstanceOwnership(userId, instanceId);
 
   return await getDb().transaction(async (tx) => {
@@ -96,10 +100,11 @@ export async function recordResult(
         slotId: input.slotId,
         result: input.result,
         amrapReps: input.amrapReps ?? null,
+        rpe: input.rpe ?? null,
       })
       .onConflictDoUpdate({
         target: [workoutResults.instanceId, workoutResults.workoutIndex, workoutResults.slotId],
-        set: { result: input.result, amrapReps: input.amrapReps ?? null },
+        set: { result: input.result, amrapReps: input.amrapReps ?? null, rpe: input.rpe ?? null },
       })
       .returning();
 
@@ -107,13 +112,14 @@ export async function recordResult(
       throw new ApiError(500, 'Failed to record result', 'INSERT_FAILED');
     }
 
-    // Push undo entry — captures both prevResult and prevAmrapReps
+    // Push undo entry — captures prevResult, prevAmrapReps, and prevRpe
     await tx.insert(undoEntries).values({
       instanceId,
       workoutIndex: input.workoutIndex,
       slotId: input.slotId,
       prevResult: existing?.result ?? null,
       prevAmrapReps: existing?.amrapReps ?? null,
+      prevRpe: existing?.rpe ?? null,
     });
 
     // Update instance timestamp
@@ -157,13 +163,14 @@ export async function deleteResult(
       throw new ApiError(404, 'Result not found', 'RESULT_NOT_FOUND');
     }
 
-    // Push undo entry before deleting (captures amrapReps too)
+    // Push undo entry before deleting (captures amrapReps and rpe too)
     await tx.insert(undoEntries).values({
       instanceId,
       workoutIndex,
       slotId,
       prevResult: existing.result,
       prevAmrapReps: existing.amrapReps ?? null,
+      prevRpe: existing.rpe ?? null,
     });
 
     await tx.delete(workoutResults).where(eq(workoutResults.id, existing.id));
@@ -212,7 +219,7 @@ export async function undoLast(userId: string, instanceId: string): Promise<Undo
           )
         );
     } else {
-      // Previous state was a result — restore it with amrapReps via upsert
+      // Previous state was a result — restore it with amrapReps and rpe via upsert
       await tx
         .insert(workoutResults)
         .values({
@@ -221,10 +228,15 @@ export async function undoLast(userId: string, instanceId: string): Promise<Undo
           slotId: entry.slotId,
           result: entry.prevResult,
           amrapReps: entry.prevAmrapReps ?? null,
+          rpe: entry.prevRpe ?? null,
         })
         .onConflictDoUpdate({
           target: [workoutResults.instanceId, workoutResults.workoutIndex, workoutResults.slotId],
-          set: { result: entry.prevResult, amrapReps: entry.prevAmrapReps ?? null },
+          set: {
+            result: entry.prevResult,
+            amrapReps: entry.prevAmrapReps ?? null,
+            rpe: entry.prevRpe ?? null,
+          },
         });
     }
 

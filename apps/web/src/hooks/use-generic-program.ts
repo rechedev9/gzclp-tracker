@@ -124,6 +124,7 @@ export interface UseGenericProgramReturn {
   readonly updateConfig: (config: Record<string, number>) => void;
   readonly markResult: (index: number, slotId: string, value: ResultValue) => void;
   readonly setAmrapReps: (index: number, slotId: string, reps: number | undefined) => void;
+  readonly setRpe: (index: number, slotId: string, rpe: number | undefined) => void;
   readonly undoSpecific: (index: number, slotId: string) => void;
   readonly undoLast: () => void;
   readonly resetAll: () => void;
@@ -242,6 +243,41 @@ export function useGenericProgram(programId: string, instanceId?: string): UseGe
     onSettled: detailOnSettled,
   });
 
+  const setRpeMutation = useMutation({
+    mutationFn: async ({
+      index,
+      slotId,
+      rpe,
+    }: {
+      index: number;
+      slotId: string;
+      rpe: number | undefined;
+    }) => {
+      if (!activeInstanceId) throw new Error('No active program');
+      const currentResult = results[String(index)]?.[slotId]?.result;
+      if (!currentResult) return;
+      const amrapReps = results[String(index)]?.[slotId]?.amrapReps;
+      await recordGenericResult(activeInstanceId, index, slotId, currentResult, amrapReps, rpe);
+    },
+    onMutate: ({ index, slotId, rpe }) =>
+      snapshotAndUpdate((prev) => {
+        const key = String(index);
+        const updatedResults = { ...prev.results };
+        const workoutEntry = { ...updatedResults[key] };
+        const slotEntry = { ...workoutEntry[slotId] };
+        if (rpe === undefined) {
+          delete slotEntry.rpe;
+        } else {
+          slotEntry.rpe = rpe;
+        }
+        workoutEntry[slotId] = slotEntry;
+        updatedResults[key] = workoutEntry;
+        return { ...prev, results: updatedResults };
+      }),
+    onError: detailOnError,
+    onSettled: detailOnSettled,
+  });
+
   const undoSpecificMutation = useMutation({
     mutationFn: async ({ index, slotId }: { index: number; slotId: string }) => {
       if (!activeInstanceId) throw new Error('No active program');
@@ -308,6 +344,13 @@ export function useGenericProgram(programId: string, instanceId?: string): UseGe
       setAmrapMutation.mutate({ index, slotId, reps });
     },
     [setAmrapMutation]
+  );
+
+  const setRpeCb = useCallback(
+    (index: number, slotId: string, rpe: number | undefined): void => {
+      setRpeMutation.mutate({ index, slotId, rpe });
+    },
+    [setRpeMutation]
   );
 
   const undoSpecificCb = useCallback(
@@ -380,6 +423,7 @@ export function useGenericProgram(programId: string, instanceId?: string): UseGe
     updateConfig: updateConfigCb,
     markResult: markResultCb,
     setAmrapReps: setAmrapRepsCb,
+    setRpe: setRpeCb,
     undoSpecific: undoSpecificCb,
     undoLast: undoLastCb,
     resetAll: resetAllCb,

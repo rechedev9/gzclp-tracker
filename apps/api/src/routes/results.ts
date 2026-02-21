@@ -25,6 +25,7 @@ export const resultRoutes = new Elysia({ prefix: '/programs/:id' })
         slotId: result.slotId,
         result: result.result,
         ...(result.amrapReps !== null ? { amrapReps: result.amrapReps } : {}),
+        ...(result.rpe !== null ? { rpe: result.rpe } : {}),
       };
     },
     {
@@ -34,6 +35,7 @@ export const resultRoutes = new Elysia({ prefix: '/programs/:id' })
         slotId: t.String({ minLength: 1 }),
         result: t.Union([t.Literal('success'), t.Literal('fail')]),
         amrapReps: t.Optional(t.Integer({ minimum: 0 })),
+        rpe: t.Optional(t.Integer({ minimum: 1, maximum: 10 })),
       }),
       detail: {
         tags: ['Results'],

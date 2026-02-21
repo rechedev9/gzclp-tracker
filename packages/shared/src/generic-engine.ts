@@ -107,6 +107,7 @@ export function computeGenericProgram(
         isAmrap: stageConfig.amrap === true,
         result: slotResult.result,
         amrapReps: slotResult.amrapReps,
+        rpe: slotResult.rpe,
         isChanged: state.everChanged,
       };
     });

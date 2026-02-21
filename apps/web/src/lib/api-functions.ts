@@ -210,7 +210,10 @@ function parseGenericResults(raw: unknown): GenericResults {
   const results: GenericResults = {};
   for (const [indexStr, slots] of Object.entries(raw)) {
     if (!isRecord(slots)) continue;
-    const slotMap: Record<string, { result?: 'success' | 'fail'; amrapReps?: number }> = {};
+    const slotMap: Record<
+      string,
+      { result?: 'success' | 'fail'; amrapReps?: number; rpe?: number }
+    > = {};
     for (const [slotId, slotData] of Object.entries(slots)) {
       if (!isRecord(slotData)) continue;
       slotMap[slotId] = {
@@ -218,6 +221,7 @@ function parseGenericResults(raw: unknown): GenericResults {
           ? { result: slotData.result }
           : {}),
         ...(typeof slotData.amrapReps === 'number' ? { amrapReps: slotData.amrapReps } : {}),
+        ...(typeof slotData.rpe === 'number' ? { rpe: slotData.rpe } : {}),
       };
     }
     results[indexStr] = slotMap;
@@ -286,7 +290,8 @@ export async function recordResult(
   workoutIndex: number,
   tier: Tier,
   result: ResultValue,
-  amrapReps?: number
+  amrapReps?: number,
+  rpe?: number
 ): Promise<void> {
   const slotId = tierToSlotId(workoutIndex, tier);
   if (!slotId) {
@@ -300,6 +305,7 @@ export async function recordResult(
       slotId,
       result,
       ...(amrapReps !== undefined ? { amrapReps } : {}),
+      ...(rpe !== undefined ? { rpe } : {}),
     }),
   });
 }
@@ -369,7 +375,8 @@ export async function recordGenericResult(
   workoutIndex: number,
   slotId: string,
   result: ResultValue,
-  amrapReps?: number
+  amrapReps?: number,
+  rpe?: number
 ): Promise<void> {
   await apiFetch(`/programs/${encodeURIComponent(instanceId)}/results`, {
     method: 'POST',
@@ -378,6 +385,7 @@ export async function recordGenericResult(
       slotId,
       result,
       ...(amrapReps !== undefined ? { amrapReps } : {}),
+      ...(rpe !== undefined ? { rpe } : {}),
     }),
   });
 }

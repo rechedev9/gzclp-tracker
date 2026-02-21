@@ -3,12 +3,14 @@ import type { GenericWorkoutRow, GenericSlotRow, ResultValue, Tier } from '@gzcl
 import { StageTag } from './stage-tag';
 import { ResultCell } from './result-cell';
 import { AmrapInput } from './amrap-input';
+import { RpeInput } from './rpe-input';
 
 interface GenericWorkoutCardProps {
   readonly row: GenericWorkoutRow;
   readonly isCurrent: boolean;
   readonly onMark: (workoutIndex: number, slotId: string, value: ResultValue) => void;
   readonly onSetAmrapReps: (workoutIndex: number, slotId: string, reps: number | undefined) => void;
+  readonly onSetRpe?: (workoutIndex: number, slotId: string, rpe: number | undefined) => void;
   readonly onUndo: (workoutIndex: number, slotId: string) => void;
 }
 
@@ -36,12 +38,14 @@ function SlotSection({
   workoutIndex,
   onSlotMark,
   onSetAmrapReps,
+  onSetRpe,
   onSlotUndo,
 }: {
   readonly slot: GenericSlotRow;
   readonly workoutIndex: number;
   readonly onSlotMark: (index: number, tier: Tier, value: ResultValue) => void;
   readonly onSetAmrapReps?: (reps: number | undefined) => void;
+  readonly onSetRpe?: (rpe: number | undefined) => void;
   readonly onSlotUndo: (index: number, tier: Tier) => void;
 }): React.ReactNode {
   const tierLabel = TIER_LABELS[slot.tier] ?? slot.tier.toUpperCase();
@@ -88,6 +92,11 @@ function SlotSection({
           <AmrapInput value={slot.amrapReps} onChange={onSetAmrapReps} variant="card" />
         </div>
       )}
+      {slot.result && slot.tier === 't1' && onSetRpe && (
+        <div className="mt-1 pl-1">
+          <RpeInput value={slot.rpe} onChange={onSetRpe} />
+        </div>
+      )}
     </div>
   );
 }
@@ -108,6 +117,7 @@ function areCardsEqual(prev: GenericWorkoutCardProps, next: GenericWorkoutCardPr
       ps.reps !== ns.reps ||
       ps.result !== ns.result ||
       ps.amrapReps !== ns.amrapReps ||
+      ps.rpe !== ns.rpe ||
       ps.isChanged !== ns.isChanged
     ) {
       return false;
@@ -121,6 +131,7 @@ export const GenericWorkoutCard = memo(function GenericWorkoutCard({
   isCurrent,
   onMark,
   onSetAmrapReps,
+  onSetRpe,
   onUndo,
 }: GenericWorkoutCardProps) {
   const allDone = row.slots.every((s) => s.result !== undefined);
@@ -147,6 +158,13 @@ export const GenericWorkoutCard = memo(function GenericWorkoutCard({
     [onSetAmrapReps, row.index]
   );
 
+  const handleRpe = useCallback(
+    (slotId: string, rpe: number | undefined): void => {
+      onSetRpe?.(row.index, slotId, rpe);
+    },
+    [onSetRpe, row.index]
+  );
+
   return (
     <div
       {...(isCurrent ? { 'data-current-row': true } : {})}
@@ -171,6 +189,11 @@ export const GenericWorkoutCard = memo(function GenericWorkoutCard({
           onSetAmrapReps={
             slot.isAmrap
               ? (reps: number | undefined) => handleAmrapReps(slot.slotId, reps)
+              : undefined
+          }
+          onSetRpe={
+            slot.tier === 't1' && onSetRpe
+              ? (rpe: number | undefined) => handleRpe(slot.slotId, rpe)
               : undefined
           }
         />

@@ -1,0 +1,181 @@
+import { memo, useMemo, useState, type ReactNode } from 'react';
+import { extractGenericChartData } from '@gzclp/shared/generic-stats';
+import { calculateStats } from '@gzclp/shared/stats';
+import type { ProgramDefinition } from '@gzclp/shared/types/program';
+import type { GenericWorkoutRow } from '@gzclp/shared/types';
+import { LineChart } from './line-chart';
+
+interface GenericStatsPanelProps {
+  readonly definition: ProgramDefinition;
+  readonly rows: readonly GenericWorkoutRow[];
+}
+
+interface ExerciseGroup {
+  readonly label: string | null;
+  readonly exerciseIds: string[];
+}
+
+function groupExercises(definition: ProgramDefinition): ExerciseGroup[] {
+  const groups: ExerciseGroup[] = [];
+  let current: ExerciseGroup | null = null;
+
+  for (const field of definition.configFields) {
+    const label = field.group ?? null;
+    if (!current || current.label !== label) {
+      current = { label, exerciseIds: [field.key] };
+      groups.push(current);
+    } else {
+      current.exerciseIds.push(field.key);
+    }
+  }
+
+  // Include any exercises not in configFields (fallback)
+  const covered = new Set(definition.configFields.map((f) => f.key));
+  const uncovered = Object.keys(definition.exercises).filter((id) => !covered.has(id));
+  if (uncovered.length > 0) {
+    groups.push({ label: 'Other', exerciseIds: uncovered });
+  }
+
+  return groups;
+}
+
+function StatCard({
+  name,
+  currentWeight,
+  startWeight,
+  gained,
+  currentStage,
+  rate,
+  successes,
+  total,
+}: {
+  readonly name: string;
+  readonly currentWeight: number;
+  readonly startWeight: number;
+  readonly gained: number;
+  readonly currentStage: number;
+  readonly rate: number;
+  readonly successes: number;
+  readonly total: number;
+}): ReactNode {
+  return (
+    <div className="bg-[var(--bg-th)] border border-[var(--border-color)] p-4">
+      <h4 className="text-[13px] font-bold uppercase tracking-wide text-[var(--text-muted)] mb-2">
+        {name}
+      </h4>
+      <div className="text-2xl font-extrabold mb-1">{currentWeight} kg</div>
+      <div className="text-xs text-[var(--text-muted)]">
+        Started: {startWeight} kg | {gained >= 0 ? '+' : ''}
+        {gained} kg gained
+        <br />
+        Stage {currentStage} | {rate}% success ({successes}/{total})
+      </div>
+    </div>
+  );
+}
+
+export const GenericStatsPanel = memo(function GenericStatsPanel({
+  definition,
+  rows,
+}: GenericStatsPanelProps): ReactNode {
+  const chartData = useMemo(() => extractGenericChartData(definition, rows), [definition, rows]);
+
+  const groups = useMemo(() => groupExercises(definition), [definition]);
+
+  const hasAnyResults = useMemo(
+    () => Object.values(chartData).some((series) => series.some((d) => d.result !== null)),
+    [chartData]
+  );
+
+  const [openSections, setOpenSections] = useState<Record<string, boolean>>({});
+
+  const toggleSection = (key: string): void => {
+    setOpenSections((prev) => ({ ...prev, [key]: !prev[key] }));
+  };
+
+  if (!hasAnyResults) {
+    return (
+      <div className="text-center py-16">
+        <p className="text-sm font-bold text-[var(--text-muted)] mb-2">No data yet</p>
+        <p className="text-xs text-[var(--text-muted)]">
+          Complete your first workout to see stats and charts.
+        </p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-4">
+      {groups.map((group) => {
+        const sectionKey = group.label ?? '_ungrouped';
+        const isOpen = openSections[sectionKey] ?? false;
+        const exercisesWithData = group.exerciseIds.filter(
+          (id) => chartData[id] && chartData[id].some((d) => d.result !== null)
+        );
+
+        if (exercisesWithData.length === 0) return null;
+
+        return (
+          <details
+            key={sectionKey}
+            open={isOpen}
+            onToggle={() => toggleSection(sectionKey)}
+            className="bg-[var(--bg-card)] border border-[var(--border-color)] overflow-hidden"
+          >
+            <summary className="font-mono px-5 py-3.5 font-bold cursor-pointer select-none flex justify-between items-center [&::marker]:hidden list-none text-[11px] tracking-widest uppercase">
+              {group.label ?? 'Exercises'}
+              <span className="flex items-center gap-3">
+                <span className="text-[var(--text-muted)] font-normal normal-case tracking-normal">
+                  {exercisesWithData.length} exercise{exercisesWithData.length !== 1 ? 's' : ''}
+                </span>
+                <span className="transition-transform duration-200 [[open]>&]:rotate-90">
+                  &#9656;
+                </span>
+              </span>
+            </summary>
+            <div className="px-5 pb-5 border-t border-[var(--border-light)]">
+              {/* Summary cards */}
+              <div className="grid grid-cols-[repeat(auto-fit,minmax(200px,1fr))] gap-4 mt-4 mb-4">
+                {exercisesWithData.map((id) => {
+                  const s = calculateStats(chartData[id]);
+                  const name = definition.exercises[id].name;
+                  return (
+                    <StatCard
+                      key={id}
+                      name={name}
+                      currentWeight={s.currentWeight}
+                      startWeight={s.startWeight}
+                      gained={s.gained}
+                      currentStage={s.currentStage}
+                      rate={s.rate}
+                      successes={s.successes}
+                      total={s.total}
+                    />
+                  );
+                })}
+              </div>
+
+              {/* Charts — only render when section is open */}
+              {isOpen && (
+                <div className="grid grid-cols-2 gap-5 max-[900px]:grid-cols-1">
+                  {exercisesWithData.map((id) => {
+                    const name = definition.exercises[id].name;
+                    return (
+                      <div
+                        key={id}
+                        className="bg-[var(--bg-th)] border border-[var(--border-color)] p-4"
+                      >
+                        <h4 className="text-sm font-bold mb-3">{name} — Weight Progression</h4>
+                        <LineChart data={chartData[id]} label={name} />
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          </details>
+        );
+      })}
+    </div>
+  );
+});
