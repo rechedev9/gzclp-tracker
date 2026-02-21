@@ -28,21 +28,21 @@ describe('StageTag', () => {
     render(<StageTag stage={0} />);
 
     const tag = screen.getByText('S1');
-    expect(tag).toHaveAttribute('title', 'Stage 1: Normal');
+    expect(tag).toHaveAttribute('title', 'Etapa 1: Normal');
   });
 
-  it('should show "Caution" label for stage 1', () => {
+  it('should show "Precaución" label for stage 1', () => {
     render(<StageTag stage={1} />);
 
     const tag = screen.getByText('S2');
-    expect(tag).toHaveAttribute('title', 'Stage 2: Caution');
+    expect(tag).toHaveAttribute('title', 'Etapa 2: Precaución');
   });
 
-  it('should show "Reset next fail" label for stage 2', () => {
+  it('should show "Reinicio próximo fallo" label for stage 2', () => {
     render(<StageTag stage={2} />);
 
     const tag = screen.getByText('S3');
-    expect(tag).toHaveAttribute('title', 'Stage 3: Reset next fail');
+    expect(tag).toHaveAttribute('title', 'Etapa 3: Reinicio próximo fallo');
   });
 
   it('should clamp stages above 2 to stage 2', () => {
@@ -50,6 +50,6 @@ describe('StageTag', () => {
 
     // Displays S6 (stage + 1) but uses styles/label for stage 2
     const tag = screen.getByText('S6');
-    expect(tag).toHaveAttribute('title', 'Stage 6: Reset next fail');
+    expect(tag).toHaveAttribute('title', 'Etapa 6: Reinicio próximo fallo');
   });
 });

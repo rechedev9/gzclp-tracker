@@ -85,15 +85,15 @@ export function WeekSection({
           className="font-display flex items-center gap-2.5"
           style={{ fontSize: '20px', letterSpacing: '0.05em' }}
         >
-          Week {week}
+          Semana {week}
           {isDeload && (
             <span className="inline-block week-badge bg-[var(--text-header)] text-[var(--bg-header)] px-2.5 py-0.5">
-              DELOAD IF NEEDED
+              DESCARGA SI ES NECESARIO
             </span>
           )}
           {weekDone && (
             <span className="inline-block week-badge bg-[var(--text-header)] text-[var(--bg-header)] px-2.5 py-0.5">
-              DONE ✓
+              LISTO ✓
             </span>
           )}
         </span>
@@ -122,42 +122,42 @@ export function WeekSection({
                     rowSpan={2}
                     className="bg-[var(--bg-th)] border border-[var(--border-color)] px-2 py-2.5 text-center font-bold text-[11px] uppercase tracking-wide text-[var(--text-label)] w-[5%]"
                   >
-                    Day
+                    Día
                   </th>
                   <th
                     colSpan={4}
                     className="bg-[var(--bg-th)] border border-[var(--border-color)] px-2 py-2.5 text-center font-bold text-[11px] uppercase tracking-wide text-[var(--text-label)] w-[33%]"
                   >
-                    T1 — Main Lift{' '}
-                    <span className="font-normal normal-case">(last set = AMRAP)</span>
+                    T1 — Levantamiento Principal{' '}
+                    <span className="font-normal normal-case">(último set = AMRAP)</span>
                   </th>
                   <th
                     colSpan={4}
                     className="bg-[var(--bg-th)] border border-[var(--border-color)] px-2 py-2.5 text-center font-bold text-[11px] uppercase tracking-wide text-[var(--text-label)] w-[33%]"
                   >
-                    T2 — Secondary
+                    T2 — Secundario
                   </th>
                   <th
                     colSpan={3}
                     className="bg-[var(--bg-th)] border border-[var(--border-color)] px-2 py-2.5 text-center font-bold text-[11px] uppercase tracking-wide text-[var(--text-label)] w-[25%]"
                   >
-                    T3 — Accessory{' '}
-                    <span className="font-normal normal-case">(last set = AMRAP)</span>
+                    T3 — Accesorio{' '}
+                    <span className="font-normal normal-case">(último set = AMRAP)</span>
                   </th>
                 </tr>
                 <tr>
                   {[
-                    'Exercise',
+                    'Ejercicio',
                     'kg',
-                    'Scheme',
-                    'Result',
-                    'Exercise',
+                    'Esquema',
+                    'Resultado',
+                    'Ejercicio',
                     'kg',
-                    'Scheme',
-                    'Result',
-                    'Exercise',
+                    'Esquema',
+                    'Resultado',
+                    'Ejercicio',
                     'kg',
-                    'Result',
+                    'Resultado',
                   ].map((h, i) => (
                     <th
                       key={i}

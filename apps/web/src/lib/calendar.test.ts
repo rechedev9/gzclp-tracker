@@ -28,13 +28,13 @@ describe('buildGoogleCalendarUrl', () => {
     it('contains the day name and all three exercise names', () => {
       const result = buildGoogleCalendarUrl(rows[0], { date: '2026-03-01' });
 
-      expect(result.title).toBe('GZCLP Day 1 — Squat / Bench Press / Lat Pulldown');
+      expect(result.title).toBe('GZCLP Día 1 — Sentadilla / Press Banca / Jalón al Pecho');
     });
 
     it('reflects the correct exercises for day 2', () => {
       const result = buildGoogleCalendarUrl(rows[1], { date: '2026-03-01' });
 
-      expect(result.title).toBe('GZCLP Day 2 — OHP / Deadlift / DB Row');
+      expect(result.title).toBe('GZCLP Día 2 — Press Militar / Peso Muerto / Remo con Mancuernas');
     });
   });
 
@@ -43,12 +43,12 @@ describe('buildGoogleCalendarUrl', () => {
       const { calendarUrl } = buildGoogleCalendarUrl(rows[0], { date: '2026-03-01' });
       const detailsParam = new URL(calendarUrl).searchParams.get('details') ?? '';
 
-      expect(detailsParam).toContain('T1: Squat');
+      expect(detailsParam).toContain('T1: Sentadilla');
       expect(detailsParam).toContain('60kg');
       expect(detailsParam).toContain('5×3');
-      expect(detailsParam).toContain('Stage 1');
-      expect(detailsParam).toContain('T2: Bench Press');
-      expect(detailsParam).toContain('T3: Lat Pulldown');
+      expect(detailsParam).toContain('Etapa 1');
+      expect(detailsParam).toContain('T2: Press Banca');
+      expect(detailsParam).toContain('T3: Jalón al Pecho');
       expect(detailsParam).toContain('3×15');
     });
   });
@@ -92,7 +92,7 @@ describe('buildGoogleCalendarUrl', () => {
       const details = new URL(calendarUrl).searchParams.get('details') ?? '';
 
       expect(details).toContain('6×2');
-      expect(details).toContain('Stage 2');
+      expect(details).toContain('Etapa 2');
     });
 
     it('handles T1 stage 3 correctly', () => {
@@ -101,7 +101,7 @@ describe('buildGoogleCalendarUrl', () => {
       const details = new URL(calendarUrl).searchParams.get('details') ?? '';
 
       expect(details).toContain('10×1');
-      expect(details).toContain('Stage 3');
+      expect(details).toContain('Etapa 3');
     });
   });
 });

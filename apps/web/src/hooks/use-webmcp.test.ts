@@ -225,7 +225,7 @@ describe('useWebMcp', () => {
       const data = parsed as Record<string, unknown>;
 
       expect(data.index).toBe(0);
-      expect(data.dayName).toBe('Day 1');
+      expect(data.dayName).toBe('Día 1');
     });
 
     it('should return completed message when all workouts are done', async () => {
@@ -595,7 +595,7 @@ describe('useWebMcp', () => {
       const data = parsed as Record<string, unknown>;
 
       // Day 1: Squat (T1) / Bench Press (T2) / Lat Pulldown (T3)
-      expect(data.title).toBe('GZCLP Day 1 — Squat / Bench Press / Lat Pulldown');
+      expect(data.title).toBe('GZCLP Día 1 — Sentadilla / Press Banca / Jalón al Pecho');
     });
 
     it('should format date range correctly in the URL', async () => {
@@ -631,7 +631,7 @@ describe('useWebMcp', () => {
 
       expect(data.workoutIndex).toBe(1);
       // Day 2: OHP (T1) / Deadlift (T2) / DB Row (T3)
-      expect(data.title).toBe('GZCLP Day 2 — OHP / Deadlift / DB Row');
+      expect(data.title).toBe('GZCLP Día 2 — Press Militar / Peso Muerto / Remo con Mancuernas');
     });
 
     it('should use defaults when no input is provided', async () => {
@@ -716,9 +716,9 @@ describe('useWebMcp', () => {
       // The URL should contain encoded workout details
       expect(url).toContain('details=');
       const detailsParam = decodeURIComponent(url.split('details=')[1] as string);
-      expect(detailsParam).toContain('T1: Squat');
-      expect(detailsParam).toContain('T2: Bench Press');
-      expect(detailsParam).toContain('T3: Lat Pulldown');
+      expect(detailsParam).toContain('T1: Sentadilla');
+      expect(detailsParam).toContain('T2: Press Banca');
+      expect(detailsParam).toContain('T3: Jalón al Pecho');
       expect(detailsParam).toContain('60kg');
     });
 

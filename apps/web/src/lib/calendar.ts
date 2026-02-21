@@ -61,10 +61,10 @@ export function buildGoogleCalendarUrl(
   const t1Stage = T1_STAGES[row.t1Stage] ?? T1_STAGES[0];
   const t2Stage = T2_STAGES[row.t2Stage] ?? T2_STAGES[0];
   const description = [
-    `Workout #${row.index + 1} — ${row.dayName}`,
+    `Entrenamiento #${row.index + 1} — ${row.dayName}`,
     '',
-    `T1: ${NAMES[row.t1Exercise]} — ${row.t1Weight}kg (${t1Stage.sets}×${t1Stage.reps}, Stage ${row.t1Stage + 1})`,
-    `T2: ${NAMES[row.t2Exercise]} — ${row.t2Weight}kg (${t2Stage.sets}×${t2Stage.reps}, Stage ${row.t2Stage + 1})`,
+    `T1: ${NAMES[row.t1Exercise]} — ${row.t1Weight}kg (${t1Stage.sets}×${t1Stage.reps}, Etapa ${row.t1Stage + 1})`,
+    `T2: ${NAMES[row.t2Exercise]} — ${row.t2Weight}kg (${t2Stage.sets}×${t2Stage.reps}, Etapa ${row.t2Stage + 1})`,
     `T3: ${NAMES[row.t3Exercise]} — ${row.t3Weight}kg (${T3_SETS}×${T3_PRESCRIBED_REPS})`,
   ].join('\n');
 

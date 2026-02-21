@@ -40,7 +40,7 @@ export function LandingPage(): React.ReactNode {
 
       {/* ── Nav ─────────────────────────────────────────── */}
       <nav
-        aria-label="Main navigation"
+        aria-label="Navegación principal"
         className="sticky top-0 z-50 flex items-center justify-between px-6 sm:px-10 py-4 bg-[var(--bg-header)]/95 backdrop-blur-md border-b border-[var(--border-color)]"
       >
         <div className="flex items-center gap-3">
@@ -157,7 +157,7 @@ export function LandingPage(): React.ReactNode {
 
         {/* ── Metrics Banner ─────────────────────────────── */}
         <section
-          aria-label="Program metrics"
+          aria-label="Métricas del programa"
           ref={observe}
           className="landing-fade-in px-6 sm:px-10 py-16 sm:py-20 bg-[var(--bg-header)]"
         >

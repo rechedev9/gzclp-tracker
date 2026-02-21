@@ -48,7 +48,7 @@ export const LineChart = memo(function LineChart({ data, label }: LineChartProps
       ctx.fillStyle = textColor;
       ctx.font = '13px sans-serif';
       ctx.textAlign = 'center';
-      ctx.fillText('Complete workouts to see chart', W / 2, H / 2);
+      ctx.fillText('Completa entrenamientos para ver el gráfico', W / 2, H / 2);
       return;
     }
 
@@ -56,7 +56,7 @@ export const LineChart = memo(function LineChart({ data, label }: LineChartProps
       ctx.fillStyle = textColor;
       ctx.font = '13px sans-serif';
       ctx.textAlign = 'center';
-      ctx.fillText('Not enough data yet', W / 2, H / 2);
+      ctx.fillText('Datos insuficientes aún', W / 2, H / 2);
       return;
     }
 

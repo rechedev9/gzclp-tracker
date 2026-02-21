@@ -37,14 +37,14 @@ describe('Toolbar', () => {
     it('should be disabled when undoCount is 0', () => {
       render(<Toolbar {...buildToolbarProps({ undoCount: 0 })} />);
 
-      const undoBtn = screen.getByText('Undo');
+      const undoBtn = screen.getByText('Deshacer');
       expect(undoBtn).toBeDisabled();
     });
 
     it('should be enabled when undoCount is positive', () => {
       render(<Toolbar {...buildToolbarProps({ undoCount: 3 })} />);
 
-      const undoBtn = screen.getByText('Undo');
+      const undoBtn = screen.getByText('Deshacer');
       expect(undoBtn).not.toBeDisabled();
     });
 
@@ -58,33 +58,35 @@ describe('Toolbar', () => {
       const onUndo = mock();
       render(<Toolbar {...buildToolbarProps({ undoCount: 1, onUndo })} />);
 
-      fireEvent.click(screen.getByText('Undo'));
+      fireEvent.click(screen.getByText('Deshacer'));
 
       expect(onUndo).toHaveBeenCalledTimes(1);
     });
   });
 
   describe('action buttons', () => {
-    it('should call onJumpToCurrent when Go to current is clicked', () => {
+    it('should call onJumpToCurrent when Ir al actual is clicked', () => {
       const onJumpToCurrent = mock();
       render(<Toolbar {...buildToolbarProps({ onJumpToCurrent })} />);
 
-      fireEvent.click(screen.getByText('Go to current'));
+      fireEvent.click(screen.getByText('Ir al actual'));
 
       expect(onJumpToCurrent).toHaveBeenCalledTimes(1);
     });
   });
 
   describe('reset flow', () => {
-    it('should show confirmation dialog when Reset All is clicked', () => {
+    it('should show confirmation dialog when Reiniciar Todo is clicked', () => {
       render(<Toolbar {...buildToolbarProps()} />);
 
       openOverflowMenu();
-      fireEvent.click(screen.getByText('Reset All'));
+      fireEvent.click(screen.getByText('Reiniciar Todo'));
 
-      expect(screen.getByText('Reset All Progress')).toBeInTheDocument();
+      expect(screen.getByText('Reiniciar Todo el Progreso')).toBeInTheDocument();
       expect(
-        screen.getByText('Are you sure you want to reset ALL progress? This cannot be undone.')
+        screen.getByText(
+          '¿Estás seguro de que quieres reiniciar TODO el progreso? Esto no se puede deshacer.'
+        )
       ).toBeInTheDocument();
     });
 
@@ -93,9 +95,8 @@ describe('Toolbar', () => {
       render(<Toolbar {...buildToolbarProps({ onReset })} />);
 
       openOverflowMenu();
-      fireEvent.click(screen.getByText('Reset All'));
-      // The confirm dialog has a "Reset All" confirm button
-      const confirmBtns = screen.getAllByText('Reset All');
+      fireEvent.click(screen.getByText('Reiniciar Todo'));
+      const confirmBtns = screen.getAllByText('Reiniciar Todo');
       fireEvent.click(confirmBtns[confirmBtns.length - 1]);
 
       expect(onReset).toHaveBeenCalledTimes(1);
@@ -105,10 +106,10 @@ describe('Toolbar', () => {
       render(<Toolbar {...buildToolbarProps()} />);
 
       openOverflowMenu();
-      fireEvent.click(screen.getByText('Reset All'));
+      fireEvent.click(screen.getByText('Reiniciar Todo'));
       fireEvent.click(screen.getByText('Cancel'));
 
-      expect(screen.queryByText('Reset All Progress')).not.toBeInTheDocument();
+      expect(screen.queryByText('Reiniciar Todo el Progreso')).not.toBeInTheDocument();
     });
   });
 });

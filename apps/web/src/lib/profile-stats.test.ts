@@ -56,7 +56,7 @@ describe('computeProfileData', () => {
     it('should include display names', () => {
       const profile = computeProfileData(DEFAULT_WEIGHTS, buildSuccessfulResults(4));
       const squatPR = profile.personalRecords.find((pr) => pr.exercise === 'squat');
-      expect(squatPR?.displayName).toBe('Squat');
+      expect(squatPR?.displayName).toBe('Sentadilla');
     });
   });
 
