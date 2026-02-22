@@ -1,9 +1,9 @@
 import { useState, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import type { UserInfo } from '@/contexts/auth-context';
+import type { SyncStatus } from '@/types/sync-status';
+import { SYNC_LABELS, SYNC_COLORS } from '@/types/sync-status';
 import { DropdownMenu, DropdownItem, DropdownDivider } from './dropdown-menu';
-
-type SyncStatus = 'idle' | 'syncing' | 'synced' | 'offline' | 'error';
 
 interface AvatarDropdownProps {
   readonly user: UserInfo | null;
@@ -12,22 +12,6 @@ interface AvatarDropdownProps {
   readonly onSignOut: () => void;
   readonly onGoToProfile?: () => void;
 }
-
-const SYNC_LABELS: Readonly<Record<SyncStatus, string>> = {
-  idle: '',
-  syncing: 'Sincronizando...',
-  synced: 'Sincronizado',
-  offline: 'Sin conexión',
-  error: 'Error de sincronización',
-};
-
-const SYNC_COLORS: Readonly<Record<SyncStatus, string>> = {
-  idle: '',
-  syncing: 'text-[var(--btn-text)]',
-  synced: 'text-[var(--text-badge-ok)]',
-  offline: 'text-[var(--text-muted)]',
-  error: 'text-[var(--text-error)]',
-};
 
 export function AvatarDropdown({
   user,

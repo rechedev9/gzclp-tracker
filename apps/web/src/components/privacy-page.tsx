@@ -41,9 +41,9 @@ export function PrivacyPage(): React.ReactNode {
             </h2>
             <p>
               Si creas una cuenta, almacenamos tu dirección de correo electrónico y datos de
-              entrenamiento cifrados en servidores de Supabase. Esto permite sincronización entre
-              dispositivos. La sincronización en la nube es completamente opcional &mdash; la app
-              funciona totalmente sin conexión sin una cuenta.
+              entrenamiento en una base de datos segura (Railway PostgreSQL). Esto permite
+              sincronización entre dispositivos. La sincronización en la nube es completamente
+              opcional &mdash; la app funciona totalmente sin conexión sin una cuenta.
             </p>
           </section>
 
@@ -76,7 +76,8 @@ export function PrivacyPage(): React.ReactNode {
             </p>
             <p className="mt-2">
               <strong>Datos en la nube:</strong> Si tienes una cuenta y deseas eliminar tus datos en
-              la nube, contáctanos y eliminaremos tu cuenta y todos los datos asociados de Supabase.
+              la nube, contáctanos y eliminaremos tu cuenta y todos los datos asociados de nuestra
+              base de datos.
             </p>
           </section>
 

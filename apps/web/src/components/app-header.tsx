@@ -1,7 +1,6 @@
 import { useAuth } from '@/contexts/auth-context';
+import type { SyncStatus } from '@/types/sync-status';
 import { AvatarDropdown } from './avatar-dropdown';
-
-type SyncStatus = 'idle' | 'syncing' | 'synced' | 'offline' | 'error';
 
 interface AppHeaderProps {
   readonly backLabel?: string;

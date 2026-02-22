@@ -17,6 +17,7 @@ import { programRoutes } from './routes/programs';
 import { catalogRoutes } from './routes/catalog';
 import { resultRoutes } from './routes/results';
 import { getDb } from './db';
+import { getRedis } from './lib/redis';
 import { logger } from './lib/logger';
 
 function parseCorsOrigins(raw: string | undefined): string | string[] {
@@ -151,6 +152,27 @@ export const app = new Elysia()
         logger.error({ err: e }, 'Database health check failed');
         dbStatus = { status: 'error', error: 'Unavailable' };
       }
+
+      type RedisStatus =
+        | { status: 'ok'; latencyMs: number }
+        | { status: 'disabled' }
+        | { status: 'error'; error: string };
+
+      let redisStatus: RedisStatus;
+      const redis = getRedis();
+      if (!redis) {
+        redisStatus = { status: 'disabled' };
+      } else {
+        const redisStart = Date.now();
+        try {
+          await redis.ping();
+          redisStatus = { status: 'ok', latencyMs: Date.now() - redisStart };
+        } catch (e) {
+          logger.error({ err: e }, 'Redis health check failed');
+          redisStatus = { status: 'error', error: 'Unavailable' };
+        }
+      }
+
       const overall = dbStatus.status === 'ok' ? 'ok' : 'degraded';
       if (overall === 'degraded') set.status = 503;
       return {
@@ -158,6 +180,7 @@ export const app = new Elysia()
         timestamp: new Date().toISOString(),
         uptime: Math.floor(process.uptime()),
         db: dbStatus,
+        redis: redisStatus,
       };
     },
     {
@@ -198,6 +221,11 @@ export type App = typeof app;
 
 process.on('SIGTERM', () => {
   logger.info('SIGTERM received, shutting down gracefully');
+  process.exit(0);
+});
+
+process.on('SIGINT', () => {
+  logger.info('SIGINT received, shutting down gracefully');
   process.exit(0);
 });
 

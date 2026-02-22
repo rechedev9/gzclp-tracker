@@ -21,4 +21,25 @@ describe('program registry', () => {
     expect(all.length).toBeGreaterThanOrEqual(1);
     expect(all.some((p) => p.id === 'gzclp')).toBe(true);
   });
+
+  describe('nivel7 — after split into nivel7-days/', () => {
+    it('getProgramDefinition resolves nivel7 successfully after the split', () => {
+      const nivel7 = getProgramDefinition('nivel7');
+
+      expect(nivel7).toBeDefined();
+      expect(nivel7?.id).toBe('nivel7');
+    });
+
+    it('nivel7 definition contains all 48 expected days (24 per cycle × 2 cycles)', () => {
+      const nivel7 = getProgramDefinition('nivel7');
+
+      expect(nivel7?.days.length).toBe(48);
+    });
+
+    it('nivel7 is listed in getAllPresetPrograms', () => {
+      const all = getAllPresetPrograms();
+
+      expect(all.some((p) => p.id === 'nivel7')).toBe(true);
+    });
+  });
 });
