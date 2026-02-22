@@ -31,8 +31,8 @@ describe('ConfirmDialog', () => {
     it('should use default button labels', () => {
       render(<ConfirmDialog {...baseProps} />);
 
-      expect(screen.getByText('Confirm')).toBeInTheDocument();
-      expect(screen.getByText('Cancel')).toBeInTheDocument();
+      expect(screen.getByText('Confirmar')).toBeInTheDocument();
+      expect(screen.getByText('Cancelar')).toBeInTheDocument();
     });
 
     it('should use custom button labels', () => {
@@ -48,7 +48,7 @@ describe('ConfirmDialog', () => {
       const onConfirm = mock();
       render(<ConfirmDialog {...baseProps} onConfirm={onConfirm} />);
 
-      fireEvent.click(screen.getByText('Confirm'));
+      fireEvent.click(screen.getByText('Confirmar'));
 
       expect(onConfirm).toHaveBeenCalledTimes(1);
     });
@@ -57,7 +57,7 @@ describe('ConfirmDialog', () => {
       const onCancel = mock();
       render(<ConfirmDialog {...baseProps} onCancel={onCancel} />);
 
-      fireEvent.click(screen.getByText('Cancel'));
+      fireEvent.click(screen.getByText('Cancelar'));
 
       expect(onCancel).toHaveBeenCalledTimes(1);
     });

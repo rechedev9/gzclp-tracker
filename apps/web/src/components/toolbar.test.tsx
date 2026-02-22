@@ -19,7 +19,7 @@ function buildToolbarProps(overrides?: Partial<Parameters<typeof Toolbar>[0]>) {
 }
 
 function openOverflowMenu(): void {
-  fireEvent.click(screen.getByLabelText('More actions'));
+  fireEvent.click(screen.getByLabelText('Más acciones'));
 }
 
 describe('Toolbar', () => {
@@ -107,7 +107,7 @@ describe('Toolbar', () => {
 
       openOverflowMenu();
       fireEvent.click(screen.getByText('Reiniciar Todo'));
-      fireEvent.click(screen.getByText('Cancel'));
+      fireEvent.click(screen.getByText('Cancelar'));
 
       expect(screen.queryByText('Reiniciar Todo el Progreso')).not.toBeInTheDocument();
     });
