@@ -19,6 +19,7 @@ import { useToast } from '@/contexts/toast-context';
 import { useWebMcp } from '@/hooks/use-webmcp';
 import { detectT1PersonalRecord } from '@/lib/pr-detection';
 import { AppHeader } from './app-header';
+import { ConfirmDialog } from './confirm-dialog';
 import { ErrorBoundary } from './error-boundary';
 import { ToastContainer } from './toast';
 import { SetupForm } from './setup-form';
@@ -73,6 +74,11 @@ export function GZCLPApp({
 
   const [activeTab, setActiveTab] = useState<'program' | 'stats'>('program');
   const [isPending, startTransition] = useTransition();
+  const [rpeReminder, setRpeReminder] = useState<{
+    index: number;
+    tier: Tier;
+    value: ResultValue;
+  } | null>(null);
 
   const rows = useMemo(
     () => (startWeights ? computeProgram(startWeights, results) : []),
@@ -127,7 +133,7 @@ export function GZCLPApp({
   );
   const weekTotalCount = weeks[selectedWeek - 1]?.rows.length ?? 3;
 
-  const handleMarkResult = useCallback(
+  const recordAndToast = useCallback(
     (index: number, tier: Tier, value: ResultValue): void => {
       markResult(index, tier, value);
       const row = rows[index];
@@ -154,6 +160,56 @@ export function GZCLPApp({
     },
     [markResult, rows, toast, undoSpecific]
   );
+
+  const scrollToRpeInput = useCallback((index: number): void => {
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        const el = document.querySelector(`[data-rpe-input="${index}"]`);
+        if (el) {
+          el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+      });
+    });
+  }, []);
+
+  const handleMarkResult = useCallback(
+    (index: number, tier: Tier, value: ResultValue): void => {
+      const row = rows[index];
+      if (!row) {
+        recordAndToast(index, tier, value);
+        return;
+      }
+
+      const otherTiers = (['t1', 't2', 't3'] as const).filter((t) => t !== tier);
+      const wouldComplete = otherTiers.every((t) => row.result[t] !== undefined);
+
+      if (wouldComplete && row.result.rpe === undefined) {
+        // T1 already has a result → RPE input is visible but empty
+        // OR T1 is the tier being marked → RPE input will appear after recording
+        const t1HasOrWillHaveResult = row.result.t1 !== undefined || tier === 't1';
+        if (t1HasOrWillHaveResult) {
+          setRpeReminder({ index, tier, value });
+          return;
+        }
+      }
+
+      recordAndToast(index, tier, value);
+    },
+    [rows, recordAndToast]
+  );
+
+  const handleRpeReminderContinue = useCallback((): void => {
+    if (!rpeReminder) return;
+    recordAndToast(rpeReminder.index, rpeReminder.tier, rpeReminder.value);
+    setRpeReminder(null);
+  }, [rpeReminder, recordAndToast]);
+
+  const handleRpeReminderAdd = useCallback((): void => {
+    if (!rpeReminder) return;
+    recordAndToast(rpeReminder.index, rpeReminder.tier, rpeReminder.value);
+    scrollToRpeInput(rpeReminder.index);
+    setRpeReminder(null);
+  }, [rpeReminder, recordAndToast, scrollToRpeInput]);
 
   const jumpToCurrent = useCallback(() => {
     setSelectedWeek(currentWeekNumber);
@@ -359,6 +415,16 @@ export function GZCLPApp({
           </>
         )}
       </div>
+
+      <ConfirmDialog
+        open={rpeReminder !== null}
+        title="RPE no registrado"
+        message="No registraste el RPE del ejercicio T1. El RPE es opcional, pero útil para seguir tu esfuerzo percibido."
+        confirmLabel="Añadir RPE"
+        cancelLabel="Continuar sin RPE"
+        onConfirm={handleRpeReminderAdd}
+        onCancel={handleRpeReminderContinue}
+      />
 
       <ToastContainer />
     </>
