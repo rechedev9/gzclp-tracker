@@ -15,6 +15,8 @@ export function RpeInput({ value, onChange }: RpeInputProps): React.ReactNode {
           <button
             key={rpe}
             type="button"
+            aria-label={`RPE ${rpe}`}
+            aria-pressed={isActive}
             onClick={() => onChange(isActive ? undefined : rpe)}
             className={`w-7 h-7 text-[11px] font-bold border cursor-pointer transition-colors focus-visible:ring-2 focus-visible:ring-[var(--fill-progress)] focus-visible:outline-none ${
               isActive

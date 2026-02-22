@@ -2,8 +2,8 @@ import { memo, useRef, useEffect } from 'react';
 import type { ChartDataPoint } from '@gzclp/shared/types';
 
 interface LineChartProps {
-  data: ChartDataPoint[];
-  label: string;
+  readonly data: ChartDataPoint[];
+  readonly label: string;
 }
 
 export const LineChart = memo(function LineChart({ data, label }: LineChartProps) {
@@ -233,12 +233,44 @@ export const LineChart = memo(function LineChart({ data, label }: LineChartProps
     drawStageMarkers();
   }, [data, label]);
 
+  const hasData = data.some((d) => d.result !== null);
+
   return (
-    <canvas
-      ref={canvasRef}
-      role="img"
-      aria-label={`Gráfico de progresión de peso: ${label}`}
-      className="w-full h-[200px]"
-    />
+    <>
+      <figure>
+        <figcaption className="sr-only">{label}</figcaption>
+        <canvas
+          ref={canvasRef}
+          role="img"
+          aria-label={`Gráfico de progresión de peso: ${label}`}
+          className="w-full h-[200px]"
+        />
+      </figure>
+      <details className="sr-only">
+        <summary>Datos del gráfico: {label}</summary>
+        {!hasData ? (
+          <p>No hay datos disponibles</p>
+        ) : (
+          <table>
+            <thead>
+              <tr>
+                <th>Entrenamiento</th>
+                <th>Peso</th>
+                <th>Resultado</th>
+              </tr>
+            </thead>
+            <tbody>
+              {data.map((point) => (
+                <tr key={point.workout}>
+                  <td>{point.workout}</td>
+                  <td>{point.weight}</td>
+                  <td>{point.result ?? '—'}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
+      </details>
+    </>
   );
 });
