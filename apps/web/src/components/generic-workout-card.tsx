@@ -93,7 +93,7 @@ function SlotSection({
         </div>
       )}
       {slot.result && slot.tier === 't1' && onSetRpe && (
-        <div className="mt-1 pl-1">
+        <div className="mt-1 pl-1" data-rpe-input={`${workoutIndex}-${slot.slotId}`}>
           <RpeInput value={slot.rpe} onChange={onSetRpe} />
         </div>
       )}

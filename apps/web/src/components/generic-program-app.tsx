@@ -16,6 +16,7 @@ import { useAuth } from '@/contexts/auth-context';
 import { useToast } from '@/contexts/toast-context';
 import { detectGenericPersonalRecord } from '@/lib/pr-detection';
 import { AppHeader } from './app-header';
+import { ConfirmDialog } from './confirm-dialog';
 import { ErrorBoundary } from './error-boundary';
 import { GenericSetupForm } from './generic-setup-form';
 import { GenericWeekSection } from './generic-week-section';
@@ -73,6 +74,12 @@ export function GenericProgramApp({
 
   const [activeTab, setActiveTab] = useState<'program' | 'stats'>('program');
   const [isPending, startTransition] = useTransition();
+  const [rpeReminder, setRpeReminder] = useState<{
+    workoutIndex: number;
+    slotId: string;
+    value: ResultValue;
+    rpeTarget: string;
+  } | null>(null);
 
   const workoutsPerWeek = definition?.workoutsPerWeek ?? 4;
   const totalWorkouts = definition?.totalWorkouts ?? 0;
@@ -124,7 +131,7 @@ export function GenericProgramApp({
   );
   const weekTotalCount = weeks[selectedWeek - 1]?.rows.length ?? workoutsPerWeek;
 
-  const handleMarkResult = useCallback(
+  const recordAndToast = useCallback(
     (workoutIndex: number, slotId: string, value: ResultValue): void => {
       markResult(workoutIndex, slotId, value);
       const row = rows[workoutIndex];
@@ -150,6 +157,66 @@ export function GenericProgramApp({
     },
     [markResult, rows, toast, undoSpecific]
   );
+
+  const scrollToRpeInput = useCallback((selector: string): void => {
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        const el = document.querySelector(`[data-rpe-input="${selector}"]`);
+        if (el) {
+          el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+      });
+    });
+  }, []);
+
+  const handleMarkResult = useCallback(
+    (workoutIndex: number, slotId: string, value: ResultValue): void => {
+      const row = rows[workoutIndex];
+      if (!row) {
+        recordAndToast(workoutIndex, slotId, value);
+        return;
+      }
+
+      // Would marking this slot complete the workout?
+      const otherSlots = row.slots.filter((s) => s.slotId !== slotId);
+      const wouldComplete = otherSlots.every((s) => s.result !== undefined);
+
+      if (wouldComplete) {
+        // Find first T1 slot missing RPE (including the one being marked if it's T1)
+        const t1MissingRpe = row.slots.find((s) => {
+          if (s.tier !== 't1') return false;
+          const hasResult = s.slotId === slotId || s.result !== undefined;
+          return hasResult && s.rpe === undefined;
+        });
+
+        if (t1MissingRpe) {
+          setRpeReminder({
+            workoutIndex,
+            slotId,
+            value,
+            rpeTarget: `${workoutIndex}-${t1MissingRpe.slotId}`,
+          });
+          return;
+        }
+      }
+
+      recordAndToast(workoutIndex, slotId, value);
+    },
+    [rows, recordAndToast]
+  );
+
+  const handleRpeReminderContinue = useCallback((): void => {
+    if (!rpeReminder) return;
+    recordAndToast(rpeReminder.workoutIndex, rpeReminder.slotId, rpeReminder.value);
+    setRpeReminder(null);
+  }, [rpeReminder, recordAndToast]);
+
+  const handleRpeReminderAdd = useCallback((): void => {
+    if (!rpeReminder) return;
+    recordAndToast(rpeReminder.workoutIndex, rpeReminder.slotId, rpeReminder.value);
+    scrollToRpeInput(rpeReminder.rpeTarget);
+    setRpeReminder(null);
+  }, [rpeReminder, recordAndToast, scrollToRpeInput]);
 
   const jumpToCurrent = useCallback(() => {
     setSelectedWeek(currentWeekNumber);
@@ -328,6 +395,16 @@ export function GenericProgramApp({
           </>
         )}
       </div>
+
+      <ConfirmDialog
+        open={rpeReminder !== null}
+        title="RPE no registrado"
+        message="No registraste el RPE del ejercicio T1. El RPE es opcional, pero útil para seguir tu esfuerzo percibido."
+        confirmLabel="Añadir RPE"
+        cancelLabel="Continuar sin RPE"
+        onConfirm={handleRpeReminderAdd}
+        onCancel={handleRpeReminderContinue}
+      />
 
       <ToastContainer />
     </>

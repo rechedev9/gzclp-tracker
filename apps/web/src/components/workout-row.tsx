@@ -136,7 +136,7 @@ export const WorkoutRow = memo(function WorkoutRow({
           </div>
         )}
         {row.result.t1 && onSetRpe && (
-          <div className="mt-1.5 flex justify-center">
+          <div className="mt-1.5 flex justify-center" data-rpe-input={row.index}>
             <RpeInput value={row.result.rpe} onChange={handleRpeChange} />
           </div>
         )}

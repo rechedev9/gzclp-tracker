@@ -186,7 +186,7 @@ export const WorkoutRowCard = memo(function WorkoutRowCard({
           onUndo={onUndo}
         />
         {row.result.t1 && onSetRpe && (
-          <div className="mt-1 pl-1">
+          <div className="mt-1 pl-1" data-rpe-input={row.index}>
             <RpeInput value={row.result.rpe} onChange={handleRpeChange} />
           </div>
         )}
