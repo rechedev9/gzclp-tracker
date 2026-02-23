@@ -1,6 +1,6 @@
 import { StrictMode, Suspense, lazy } from 'react';
 import { createRoot } from 'react-dom/client';
-import { createBrowserRouter, Navigate, RouterProvider } from 'react-router-dom';
+import { createBrowserRouter, RouterProvider } from 'react-router-dom';
 import { Providers } from '@/components/providers';
 import { RootLayout } from '@/components/root-layout';
 import { AppShell } from '@/components/app-shell';
@@ -11,6 +11,9 @@ const LoginPage = lazy(() =>
 );
 const PrivacyPage = lazy(() =>
   import('@/components/privacy-page').then((m) => ({ default: m.PrivacyPage }))
+);
+const LandingPage = lazy(() =>
+  import('@/components/landing-page').then((m) => ({ default: m.LandingPage }))
 );
 const NotFound = lazy(() =>
   import('@/components/not-found').then((m) => ({ default: m.NotFound }))
@@ -26,7 +29,14 @@ const router = createBrowserRouter([
   {
     element: <RootLayout />,
     children: [
-      { path: '/', element: <Navigate to="/app" replace /> },
+      {
+        path: '/',
+        element: (
+          <Suspense fallback={null}>
+            <LandingPage />
+          </Suspense>
+        ),
+      },
       { path: '/app', element: <AppShell /> },
       {
         path: '/login',
