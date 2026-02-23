@@ -7,6 +7,13 @@ import { ResultCell } from './result-cell';
 import { AmrapInput } from './amrap-input';
 import { RpeInput } from './rpe-input';
 
+/**
+ * Total number of columns in the workout table.
+ * Must match the column structure in week-section.tsx:
+ * # + Day + T1(Exercise, kg, Scheme, Result) + T2(Exercise, kg, Scheme, Result) + T3(Exercise, kg, Result) = 13
+ */
+const TABLE_COLUMN_COUNT = 13;
+
 interface WorkoutRowProps {
   row: WorkoutRowType;
   isCurrent: boolean;
@@ -78,133 +85,159 @@ export const WorkoutRow = memo(function WorkoutRow({
     .join(' ');
 
   return (
-    <tr
-      {...(isCurrent ? { 'data-current-row': true } : {})}
-      className={`${rowClasses} hover:bg-[var(--bg-hover-row)]`}
-    >
-      <td className="font-mono border border-[var(--border-light)] px-2 py-3 text-center align-middle font-extrabold text-[15px] tabular-nums">
-        {row.index + 1}
-        {!allDone && (
-          <a
-            href={buildGoogleCalendarUrl(row).calendarUrl}
-            target="_blank"
-            rel="noopener noreferrer"
-            title="Agregar a Google Calendar"
-            aria-label="Agregar a Google Calendar"
-            className="font-mono inline-flex items-center justify-center min-w-[44px] min-h-[44px] text-xs text-[var(--text-muted)] hover:text-[var(--fill-progress)] transition-colors mt-0.5"
+    <>
+      <tr
+        {...(isCurrent ? { 'data-current-row': true } : {})}
+        className={`${rowClasses} hover:bg-[var(--bg-hover-row)]`}
+      >
+        <td className="font-mono border border-[var(--border-light)] px-2 py-3 text-center align-middle font-extrabold text-[15px] tabular-nums">
+          {row.index + 1}
+          {!allDone && (
+            <a
+              href={buildGoogleCalendarUrl(row).calendarUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              title="Agregar a Google Calendar"
+              aria-label="Agregar a Google Calendar"
+              className="font-mono inline-flex items-center justify-center min-w-[44px] min-h-[44px] text-xs text-[var(--text-muted)] hover:text-[var(--fill-progress)] transition-colors mt-0.5"
+            >
+              ↗ Cal
+            </a>
+          )}
+        </td>
+        <td className="border border-[var(--border-light)] px-2 py-3 text-center align-middle font-semibold text-xs text-[var(--text-muted)]">
+          {row.dayName}
+        </td>
+        {/* T1 */}
+        <td className="border border-[var(--border-light)] px-2 py-3 text-left align-middle font-bold text-[13px]">
+          {NAMES[row.t1Exercise]}
+        </td>
+        <td
+          data-testid={`t1-weight-${row.index}`}
+          className="font-mono border border-[var(--border-light)] px-2 py-3 text-center align-middle font-extrabold text-[15px] tabular-nums"
+        >
+          {row.t1Weight}
+        </td>
+        <td
+          data-testid={`t1-scheme-${row.index}`}
+          className="border border-[var(--border-light)] px-2 py-3 text-center align-middle font-semibold text-[13px]"
+        >
+          {row.t1Sets}&times;{row.t1Reps}
+          <br />
+          <StageTag stage={row.t1Stage} size="md" />
+        </td>
+        <td
+          data-testid={`t1-result-${row.index}`}
+          className="border border-[var(--border-light)] px-2 py-3 text-center align-middle"
+        >
+          <ResultCell
+            index={row.index}
+            tier="t1"
+            result={row.result.t1}
+            variant="table"
+            onMark={onMark}
+            onUndo={onUndo}
+          />
+        </td>
+        {/* T2 */}
+        <td className="border border-[var(--border-light)] px-2 py-3 text-left align-middle font-bold text-[13px]">
+          {NAMES[row.t2Exercise]}
+        </td>
+        <td
+          data-testid={`t2-weight-${row.index}`}
+          className="font-mono border border-[var(--border-light)] px-2 py-3 text-center align-middle font-extrabold text-[15px] tabular-nums"
+        >
+          {row.t2Weight}
+        </td>
+        <td
+          data-testid={`t2-scheme-${row.index}`}
+          className="border border-[var(--border-light)] px-2 py-3 text-center align-middle font-semibold text-[13px]"
+        >
+          {row.t2Sets}&times;{row.t2Reps}
+          <br />
+          <StageTag stage={row.t2Stage} size="md" />
+        </td>
+        <td
+          data-testid={`t2-result-${row.index}`}
+          className="border border-[var(--border-light)] px-2 py-3 text-center align-middle"
+        >
+          <ResultCell
+            index={row.index}
+            tier="t2"
+            result={row.result.t2}
+            variant="table"
+            onMark={onMark}
+            onUndo={onUndo}
+          />
+        </td>
+        {/* T3 */}
+        <td className="border border-[var(--border-light)] px-2 py-3 text-left align-middle font-bold text-[13px]">
+          {NAMES[row.t3Exercise]}
+        </td>
+        <td
+          data-testid={`t3-weight-${row.index}`}
+          className="font-mono border border-[var(--border-light)] px-2 py-3 text-center align-middle font-extrabold text-[15px] tabular-nums"
+          title="El peso T3 sube cuando el set AMRAP llega a 25+ repeticiones"
+        >
+          {row.t3Weight}
+          <br />
+          <span className="text-xs text-[var(--text-muted)] font-normal">3&times;15</span>
+        </td>
+        <td
+          data-testid={`t3-result-${row.index}`}
+          className="border border-[var(--border-light)] px-2 py-3 text-center align-middle"
+        >
+          <ResultCell
+            index={row.index}
+            tier="t3"
+            result={row.result.t3}
+            variant="table"
+            onMark={onMark}
+            onUndo={onUndo}
+          />
+        </td>
+      </tr>
+      {(row.result.t1 || row.result.t3) && (
+        <tr
+          className={[
+            'transition-colors',
+            allDone ? 'opacity-40 hover:opacity-70' : '',
+            isCurrent ? 'border-l-4 border-l-[var(--fill-progress)]' : '',
+            row.isChanged && !allDone ? '[&>td]:!bg-[var(--bg-changed)]' : '',
+          ]
+            .filter(Boolean)
+            .join(' ')}
+        >
+          <td
+            colSpan={TABLE_COLUMN_COUNT}
+            className="border border-[var(--border-light)] px-4 py-2 bg-[var(--bg-card)]"
           >
-            ↗ Cal
-          </a>
-        )}
-      </td>
-      <td className="border border-[var(--border-light)] px-2 py-3 text-center align-middle font-semibold text-xs text-[var(--text-muted)]">
-        {row.dayName}
-      </td>
-      {/* T1 */}
-      <td className="border border-[var(--border-light)] px-2 py-3 text-left align-middle font-bold text-[13px]">
-        {NAMES[row.t1Exercise]}
-      </td>
-      <td
-        data-testid={`t1-weight-${row.index}`}
-        className="font-mono border border-[var(--border-light)] px-2 py-3 text-center align-middle font-extrabold text-[15px] tabular-nums"
-      >
-        {row.t1Weight}
-      </td>
-      <td
-        data-testid={`t1-scheme-${row.index}`}
-        className="border border-[var(--border-light)] px-2 py-3 text-center align-middle font-semibold text-[13px]"
-      >
-        {row.t1Sets}&times;{row.t1Reps}
-        <br />
-        <StageTag stage={row.t1Stage} size="md" />
-      </td>
-      <td
-        data-testid={`t1-result-${row.index}`}
-        className="border border-[var(--border-light)] px-2 py-3 text-center align-middle"
-      >
-        <ResultCell
-          index={row.index}
-          tier="t1"
-          result={row.result.t1}
-          variant="table"
-          onMark={onMark}
-          onUndo={onUndo}
-        />
-        {row.result.t1 && (
-          <div className="mt-1 flex items-center justify-center gap-1">
-            <span className="text-xs text-[var(--text-muted)]">AMRAP</span>
-            <AmrapInput value={row.result.t1Reps} onChange={handleT1AmrapChange} />
-          </div>
-        )}
-        {row.result.t1 && onSetRpe && (
-          <div className="mt-1.5 flex justify-center" data-rpe-input={row.index}>
-            <RpeInput value={row.result.rpe} onChange={handleRpeChange} />
-          </div>
-        )}
-      </td>
-      {/* T2 */}
-      <td className="border border-[var(--border-light)] px-2 py-3 text-left align-middle font-bold text-[13px]">
-        {NAMES[row.t2Exercise]}
-      </td>
-      <td
-        data-testid={`t2-weight-${row.index}`}
-        className="font-mono border border-[var(--border-light)] px-2 py-3 text-center align-middle font-extrabold text-[15px] tabular-nums"
-      >
-        {row.t2Weight}
-      </td>
-      <td
-        data-testid={`t2-scheme-${row.index}`}
-        className="border border-[var(--border-light)] px-2 py-3 text-center align-middle font-semibold text-[13px]"
-      >
-        {row.t2Sets}&times;{row.t2Reps}
-        <br />
-        <StageTag stage={row.t2Stage} size="md" />
-      </td>
-      <td
-        data-testid={`t2-result-${row.index}`}
-        className="border border-[var(--border-light)] px-2 py-3 text-center align-middle"
-      >
-        <ResultCell
-          index={row.index}
-          tier="t2"
-          result={row.result.t2}
-          variant="table"
-          onMark={onMark}
-          onUndo={onUndo}
-        />
-      </td>
-      {/* T3 */}
-      <td className="border border-[var(--border-light)] px-2 py-3 text-left align-middle font-bold text-[13px]">
-        {NAMES[row.t3Exercise]}
-      </td>
-      <td
-        data-testid={`t3-weight-${row.index}`}
-        className="font-mono border border-[var(--border-light)] px-2 py-3 text-center align-middle font-extrabold text-[15px] tabular-nums"
-        title="El peso T3 sube cuando el set AMRAP llega a 25+ repeticiones"
-      >
-        {row.t3Weight}
-        <br />
-        <span className="text-xs text-[var(--text-muted)] font-normal">3&times;15</span>
-      </td>
-      <td
-        data-testid={`t3-result-${row.index}`}
-        className="border border-[var(--border-light)] px-2 py-3 text-center align-middle"
-      >
-        <ResultCell
-          index={row.index}
-          tier="t3"
-          result={row.result.t3}
-          variant="table"
-          onMark={onMark}
-          onUndo={onUndo}
-        />
-        {row.result.t3 && (
-          <div className="mt-1 flex items-center justify-center gap-1">
-            <span className="text-xs text-[var(--text-muted)]">AMRAP</span>
-            <AmrapInput value={row.result.t3Reps} onChange={handleT3AmrapChange} />
-          </div>
-        )}
-      </td>
-    </tr>
+            <div className="flex items-center gap-6 flex-wrap">
+              {row.result.t1 && (
+                <div className="flex items-center gap-2">
+                  <span className="text-xs font-bold uppercase text-[var(--text-muted)]">
+                    T1 AMRAP
+                  </span>
+                  <AmrapInput value={row.result.t1Reps} onChange={handleT1AmrapChange} />
+                </div>
+              )}
+              {row.result.t3 && (
+                <div className="flex items-center gap-2">
+                  <span className="text-xs font-bold uppercase text-[var(--text-muted)]">
+                    T3 AMRAP
+                  </span>
+                  <AmrapInput value={row.result.t3Reps} onChange={handleT3AmrapChange} />
+                </div>
+              )}
+              {row.result.t1 && onSetRpe && (
+                <div className="flex items-center gap-2" data-rpe-input={row.index}>
+                  <RpeInput value={row.result.rpe} onChange={handleRpeChange} />
+                </div>
+              )}
+            </div>
+          </td>
+        </tr>
+      )}
+    </>
   );
 }, areRowsEqual);

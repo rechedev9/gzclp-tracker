@@ -175,8 +175,7 @@ describe('WorkoutRow', () => {
     it('should show AMRAP input when T1 is marked', () => {
       renderRow({ result: { t1: 'success' } });
 
-      const amrapLabels = screen.getAllByText('AMRAP');
-      expect(amrapLabels.length).toBeGreaterThanOrEqual(1);
+      expect(screen.getByText('T1 AMRAP')).toBeInTheDocument();
     });
 
     it('should not show AMRAP input when T1 is unmarked', () => {
@@ -198,8 +197,7 @@ describe('WorkoutRow', () => {
     it('should show AMRAP input for T3 when marked', () => {
       renderRow({ result: { t3: 'success' } });
 
-      const amrapLabels = screen.getAllByText('AMRAP');
-      expect(amrapLabels.length).toBeGreaterThanOrEqual(1);
+      expect(screen.getByText('T3 AMRAP')).toBeInTheDocument();
     });
   });
 
@@ -216,6 +214,81 @@ describe('WorkoutRow', () => {
 
       const row = document.querySelector('[data-current-row]');
       expect(row).toBeNull();
+    });
+  });
+
+  describe('detail sub-row', () => {
+    it('should render detail sub-row when T1 is marked', () => {
+      const { container } = renderRow({ result: { t1: 'success' } });
+
+      const rows = container.querySelectorAll('tbody tr');
+      expect(rows).toHaveLength(2);
+      expect(screen.getByText('T1 AMRAP')).toBeInTheDocument();
+    });
+
+    it('should render detail sub-row when only T3 is marked', () => {
+      const { container } = renderRow({ result: { t3: 'success' } });
+
+      const rows = container.querySelectorAll('tbody tr');
+      expect(rows).toHaveLength(2);
+      expect(screen.getByText('T3 AMRAP')).toBeInTheDocument();
+      expect(screen.queryByText('T1 AMRAP')).not.toBeInTheDocument();
+    });
+
+    it('should render both T1 and T3 AMRAP in a single sub-row when both are marked', () => {
+      const { container } = renderRow({ result: { t1: 'success', t3: 'success' } });
+
+      const rows = container.querySelectorAll('tbody tr');
+      expect(rows).toHaveLength(2);
+      expect(screen.getByText('T1 AMRAP')).toBeInTheDocument();
+      expect(screen.getByText('T3 AMRAP')).toBeInTheDocument();
+    });
+
+    it('should not render detail sub-row when no tiers are marked', () => {
+      const { container } = renderRow({ result: {} });
+
+      const rows = container.querySelectorAll('tbody tr');
+      expect(rows).toHaveLength(1);
+    });
+
+    it('should not render detail sub-row when only T2 is marked', () => {
+      const { container } = renderRow({ result: { t2: 'success' } });
+
+      const rows = container.querySelectorAll('tbody tr');
+      expect(rows).toHaveLength(1);
+    });
+
+    it('should render RPE input in sub-row when T1 is marked and onSetRpe is provided', () => {
+      const onSetRpe = mock();
+      const onMark = mock();
+      const onSetAmrapReps = mock();
+      const onUndo = mock();
+      const row = buildRow({ result: { t1: 'success' } });
+
+      render(
+        <table>
+          <tbody>
+            <WorkoutRow
+              row={row}
+              isCurrent={false}
+              onMark={onMark}
+              onSetAmrapReps={onSetAmrapReps}
+              onUndo={onUndo}
+              onSetRpe={onSetRpe}
+            />
+          </tbody>
+        </table>
+      );
+
+      const rpeButtons = screen.getAllByRole('button', { name: /RPE/i });
+      expect(rpeButtons.length).toBeGreaterThan(0);
+    });
+
+    it('should not render RPE input in sub-row when onSetRpe is not provided', () => {
+      renderRow({ result: { t1: 'success' } });
+
+      const rpeButtons = screen.queryAllByRole('button', { name: /RPE/i });
+      expect(rpeButtons).toHaveLength(0);
     });
   });
 });
