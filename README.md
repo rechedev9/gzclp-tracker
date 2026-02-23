@@ -41,7 +41,7 @@ For rationale on every framework and tool choice, see [docs/tech-stack.md](docs/
 ## Monorepo structure
 
 ```
-gzclp-tracker/
+gravity-room/
 ├── apps/
 │   ├── web/                  ← Vite + React 19 SPA (PWA-installable)
 │   │   ├── src/

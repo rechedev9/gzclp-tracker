@@ -35,7 +35,7 @@ jobs:
         env:
           # Required for production Vite build validation.
           # Points to the Railway-hosted API (which also serves the SPA).
-          VITE_API_URL: https://gzclp-tracker-production.up.railway.app
+          VITE_API_URL: https://gravityroom.app
 
   deploy:
     needs: validate
@@ -48,6 +48,6 @@ jobs:
         run: npm install -g @railway/cli
 
       - name: Deploy to Railway
-        run: railway up --service gzclp-tracker --detach
+        run: railway up --service gravity-room --detach
         env:
           RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
