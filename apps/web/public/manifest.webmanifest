@@ -1,0 +1,19 @@
+{
+  "name": "The Real Hyperbolic Time Chamber",
+  "short_name": "TRHTC",
+  "description": "Science-backed training programs with automatic progression.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "theme_color": "#c8a84e",
+  "background_color": "#1a1410",
+  "icons": [
+    {
+      "src": "/logo.webp",
+      "sizes": "512x512",
+      "type": "image/webp",
+      "purpose": "any"
+    }
+  ]
+}

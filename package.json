@@ -1,0 +1,45 @@
+{
+  "name": "gzclp-tracker",
+  "version": "0.1.0",
+  "private": true,
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "dev": "bun run --filter '*' dev",
+    "dev:web": "bun run --filter web dev",
+    "dev:api": "bun run --filter api dev",
+    "build": "bun run --filter '*' build",
+    "build:web": "bun run --filter web build",
+    "typecheck": "bun run --filter '*' typecheck",
+    "lint": "bun run --filter '*' lint",
+    "format:check": "prettier --check .",
+    "format:fix": "prettier --write .",
+    "test": "bun run --filter '*' test",
+    "e2e": "bun run --filter web e2e",
+    "e2e:ui": "bun run --filter web e2e:ui",
+    "e2e:headed": "bun run --filter web e2e:headed",
+    "ci": "bun run typecheck && bun run lint && bun run format:check && bun run test && bun run build",
+    "db:generate": "bun run --filter api db:generate",
+    "db:migrate": "bun run --filter api db:migrate",
+    "db:studio": "bun run --filter api db:studio"
+  },
+  "devDependencies": {
+    "@types/bun": "^1.3.9",
+    "eslint": "^9",
+    "lefthook": "^2.1.1",
+    "prettier": "^3.8.1",
+    "typescript": "^5",
+    "typescript-eslint": "^8.56.0"
+  },
+  "ignoreScripts": [
+    "sharp",
+    "unrs-resolver"
+  ],
+  "trustedDependencies": [
+    "lefthook",
+    "sharp",
+    "unrs-resolver"
+  ]
+}

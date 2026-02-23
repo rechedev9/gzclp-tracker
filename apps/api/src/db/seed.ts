@@ -1,0 +1,56 @@
+/**
+ * Dev seed script — creates a test user and sample program instance.
+ * Run with: bun run db:seed
+ */
+import { getDb } from './index';
+import { users, programInstances } from './schema';
+
+async function seed(): Promise<void> {
+  console.error('Seeding database...');
+
+  // Create a test user (password: "testpassword123")
+  // Hash generated with: Bun.password.hash('testpassword123', 'argon2id')
+  const testPasswordHash = await Bun.password.hash('testpassword123', 'argon2id');
+
+  const [user] = await getDb()
+    .insert(users)
+    .values({
+      email: 'test@example.com',
+      passwordHash: testPasswordHash,
+      name: 'Test User',
+    })
+    .onConflictDoNothing()
+    .returning();
+
+  if (!user) {
+    console.error('Test user already exists, skipping seed.');
+    return;
+  }
+
+  // Create a sample GZCLP program instance
+  await getDb()
+    .insert(programInstances)
+    .values({
+      userId: user.id,
+      programId: 'gzclp',
+      name: 'My GZCLP Program',
+      config: {
+        squat: 100,
+        bench: 60,
+        deadlift: 100,
+        ohp: 40,
+        row: 60,
+        lat_pulldown: 40,
+        dumbbell_row: 20,
+      },
+      status: 'active',
+    });
+
+  console.error('Seed complete: test user + sample program created.');
+  process.exit(0);
+}
+
+seed().catch((err: unknown) => {
+  console.error('Seed failed:', err);
+  process.exit(1);
+});
