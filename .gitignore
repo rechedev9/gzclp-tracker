@@ -36,6 +36,12 @@ yarn-error.log*
 # vercel
 .vercel
 
+# AI tooling (Claude Code, SDD workflow)
+CLAUDE.md
+AGENTS.md
+.claude/
+openspec/
+
 # typescript
 *.tsbuildinfo
 next-env.d.ts
