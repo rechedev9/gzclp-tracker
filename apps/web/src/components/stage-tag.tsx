@@ -1,7 +1,7 @@
 import { memo } from 'react';
 
 const STAGE_STYLES = [
-  'bg-[var(--stage-s1)] text-white border-[var(--stage-s1)]',
+  'bg-[var(--stage-s1)] text-[var(--bg-header)] border-[var(--stage-s1)]',
   'bg-[var(--stage-s2)] text-black border-[var(--stage-s2)]',
   'bg-[var(--stage-s3)] text-white border-[var(--stage-s3)]',
 ] as const;

@@ -22,18 +22,18 @@ export function WeekNavigator({
   onGoToCurrent,
 }: WeekNavigatorProps): ReactNode {
   return (
-    <div className="flex items-center gap-3 mb-4">
+    <div className="flex items-center gap-4 mb-6">
       <button
         type="button"
         onClick={onPrev}
         disabled={selectedWeek <= 1}
         aria-label="Semana anterior"
-        className="font-mono text-[11px] font-bold tracking-widest uppercase px-4 py-2.5 border-2 border-[var(--border-color)] bg-[var(--bg-card)] text-[var(--text-muted)] disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer transition-colors hover:bg-[var(--bg-hover-row)] hover:text-[var(--text-main)]"
+        className="font-mono text-[11px] font-bold tracking-widest uppercase px-4 py-2.5 min-h-[44px] border-2 border-[var(--border-color)] bg-[var(--bg-card)] text-[var(--text-muted)] disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer transition-colors hover:bg-[var(--bg-hover-row)] hover:text-[var(--text-main)]"
       >
         &larr; Anterior
       </button>
 
-      <div className="flex-1 flex flex-col items-center gap-1">
+      <div className="flex-1 flex flex-col items-center gap-2">
         <div className="flex items-center gap-2">
           <span className="font-display" style={{ fontSize: '20px', letterSpacing: '0.05em' }}>
             Semana {selectedWeek}
@@ -72,7 +72,7 @@ export function WeekNavigator({
         onClick={onNext}
         disabled={selectedWeek >= totalWeeks}
         aria-label="Siguiente semana"
-        className="font-mono text-[11px] font-bold tracking-widest uppercase px-4 py-2.5 border-2 border-[var(--border-color)] bg-[var(--bg-card)] text-[var(--text-muted)] disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer transition-colors hover:bg-[var(--bg-hover-row)] hover:text-[var(--text-main)]"
+        className="font-mono text-[11px] font-bold tracking-widest uppercase px-4 py-2.5 min-h-[44px] border-2 border-[var(--border-color)] bg-[var(--bg-card)] text-[var(--text-muted)] disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer transition-colors hover:bg-[var(--bg-hover-row)] hover:text-[var(--text-main)]"
       >
         Siguiente &rarr;
       </button>

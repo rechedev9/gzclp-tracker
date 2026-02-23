@@ -30,7 +30,7 @@ export function ProfileStatCard({
       className={`bg-[var(--bg-card)] border border-[var(--border-color)] p-4 sm:p-5${accent ? ' border-l-2 border-l-[var(--text-header)]' : ''}`}
     >
       <div className="flex items-baseline gap-2">
-        <p className="text-2xl sm:text-3xl font-extrabold text-[var(--text-header)] leading-none">
+        <p className="font-display-data text-4xl sm:text-5xl text-[var(--text-header)] leading-none">
           {value}
         </p>
         {badge && (

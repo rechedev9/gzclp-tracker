@@ -270,7 +270,7 @@ export function GZCLPApp({
         )}
       </div>
 
-      <div className="max-w-[1300px] mx-auto px-5 pb-20">
+      <div className="max-w-[1300px] mx-auto px-5 pb-24">
         <SetupForm
           initialWeights={startWeights}
           isGenerating={isGenerating}
@@ -281,7 +281,7 @@ export function GZCLPApp({
         {startWeights && (
           <>
             {/* Tabs */}
-            <div className="flex gap-0 mb-6 border-b-2 border-[var(--border-color)]">
+            <div className="flex gap-0 mb-8 border-b-2 border-[var(--border-color)]">
               <TabButton
                 active={activeTab === 'program'}
                 onClick={() => startTransition(() => setActiveTab('program'))}
@@ -301,7 +301,7 @@ export function GZCLPApp({
             {activeTab === 'program' && (
               <>
                 {/* Info toggle */}
-                <details className="bg-[var(--bg-card)] border border-[var(--border-color)] mb-6 overflow-hidden">
+                <details className="bg-[var(--bg-card)] border border-[var(--border-color)] mb-8 overflow-hidden">
                   <summary className="font-mono px-5 py-3.5 font-bold cursor-pointer select-none flex justify-between items-center [&::marker]:hidden list-none text-[11px] tracking-widest uppercase">
                     Reglas de Progresión y Cómo Usar
                     <span className="transition-transform duration-200 [[open]>&]:rotate-90">

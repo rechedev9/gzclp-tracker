@@ -24,7 +24,9 @@ export function ToastContainer(): React.ReactNode {
             key={t.id}
             className={`pointer-events-auto flex items-center gap-3 px-4 py-3 text-xs font-bold shadow-lg ${animation} ${variantStyle}`}
           >
-            <span>{t.variant === 'pr' ? `NEW PR — ${t.message}` : t.message}</span>
+            <span className={t.variant === 'pr' ? 'hero-number-glow' : undefined}>
+              {t.variant === 'pr' ? `NEW PR — ${t.message}` : t.message}
+            </span>
             {t.action && (
               <button
                 onClick={() => {

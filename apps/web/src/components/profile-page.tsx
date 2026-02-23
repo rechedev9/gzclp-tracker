@@ -4,6 +4,7 @@ import { useAuth } from '@/contexts/auth-context';
 import { computeProfileData, formatVolume } from '@/lib/profile-stats';
 import { extractChartData, calculateStats } from '@gzclp/shared/stats';
 import { NAMES, T1_EXERCISES } from '@gzclp/shared/program';
+import { Button } from './button';
 import { ProfileStatCard } from './profile-stat-card';
 import { LineChart } from './line-chart';
 import { AppHeader } from './app-header';
@@ -34,8 +35,8 @@ export function ProfilePage({ onBack }: ProfilePageProps): React.ReactNode {
 
       <div className="max-w-3xl mx-auto px-5 sm:px-8 py-8 sm:py-12">
         {/* User identity */}
-        <section className="mb-10">
-          <h1 className="text-xl sm:text-2xl font-extrabold text-[var(--text-header)] leading-tight">
+        <section className="mb-12">
+          <h1 className="text-2xl sm:text-3xl font-extrabold text-[var(--text-header)] leading-tight">
             Perfil de Entrenamiento
           </h1>
           <p className="text-sm text-[var(--text-muted)] mt-1">{displayName}</p>
@@ -44,24 +45,25 @@ export function ProfilePage({ onBack }: ProfilePageProps): React.ReactNode {
         {/* Empty state */}
         {!profileData && (
           <div className="bg-[var(--bg-card)] border border-[var(--border-color)] p-8 sm:p-12 text-center">
-            <p className="text-lg font-bold text-[var(--text-header)] mb-2">Sin programa aún</p>
+            <p className="font-display text-6xl sm:text-7xl text-[var(--text-muted)] leading-none mb-4">
+              SIN PROGRAMA
+            </p>
             <p className="text-sm text-[var(--text-muted)]">
               Inicia un programa desde el Dashboard para ver tu perfil de entrenamiento.
             </p>
-            <button
-              onClick={onBack}
-              className="mt-5 px-5 py-2.5 text-xs font-bold border-2 border-[var(--btn-border)] bg-[var(--btn-hover-bg)] text-[var(--btn-hover-text)] cursor-pointer transition-all hover:opacity-90"
-            >
-              Ir al Dashboard
-            </button>
+            <div className="mt-5 flex justify-center">
+              <Button variant="primary" onClick={onBack}>
+                Ir al Dashboard
+              </Button>
+            </div>
           </div>
         )}
 
         {profileData && (
           <>
             {/* Summary stats */}
-            <section className="mb-10">
-              <h2 className="text-xs font-bold uppercase tracking-[0.15em] text-[var(--text-muted)] mb-3">
+            <section className="mb-12">
+              <h2 className="text-xs font-bold uppercase tracking-[0.15em] text-[var(--text-muted)] mb-4">
                 Resumen
               </h2>
               <div className="grid grid-cols-3 gap-3">
@@ -137,8 +139,8 @@ export function ProfilePage({ onBack }: ProfilePageProps): React.ReactNode {
             )}
 
             {/* Personal Records */}
-            <section className="mb-10">
-              <h2 className="text-xs font-bold uppercase tracking-[0.15em] text-[var(--text-muted)] mb-3">
+            <section className="mb-12">
+              <h2 className="text-xs font-bold uppercase tracking-[0.15em] text-[var(--text-muted)] mb-4">
                 Récords Personales (T1)
               </h2>
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">

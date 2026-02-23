@@ -123,6 +123,49 @@ describe('SetupForm', () => {
     });
   });
 
+  describe('submit button variant (REQ-MODAL-003)', () => {
+    it('should render "Generar Programa" as primary variant Button', () => {
+      render(<SetupForm onGenerate={mock(() => Promise.resolve())} />);
+
+      const btn = screen.getByRole('button', { name: /Generar Programa/i });
+
+      // Primary variant uses bg-[var(--btn-hover-bg)] (gold fill)
+      expect(btn.className).toContain('bg-[var(--btn-hover-bg)]');
+    });
+  });
+
+  describe('modal overlay blur (REQ-MODAL-003)', () => {
+    it('should have backdrop-blur-sm on expanded modal overlay in edit mode', () => {
+      render(
+        <SetupForm
+          initialWeights={DEFAULT_WEIGHTS}
+          onGenerate={mock(() => Promise.resolve())}
+          onUpdateWeights={mock()}
+        />
+      );
+
+      fireEvent.click(screen.getByText('Editar Pesos'));
+
+      const overlay = document.querySelector('.fixed.inset-0');
+      expect(overlay?.className).toContain('backdrop-blur-sm');
+    });
+
+    it('should have modal-box class on inner expanded form dialog', () => {
+      render(
+        <SetupForm
+          initialWeights={DEFAULT_WEIGHTS}
+          onGenerate={mock(() => Promise.resolve())}
+          onUpdateWeights={mock()}
+        />
+      );
+
+      fireEvent.click(screen.getByText('Editar Pesos'));
+
+      const modalBox = document.querySelector('.modal-box');
+      expect(modalBox).not.toBeNull();
+    });
+  });
+
   describe('edit mode', () => {
     it('should show collapsed summary with current weights', () => {
       render(

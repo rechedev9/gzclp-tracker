@@ -52,4 +52,20 @@ describe('StageTag', () => {
     const tag = screen.getByText('S6');
     expect(tag).toHaveAttribute('title', 'Etapa 6: Reinicio próximo fallo');
   });
+
+  it('should NOT have text-white class on S1 badge (WCAG contrast fix)', () => {
+    render(<StageTag stage={0} />);
+
+    const tag = screen.getByText('S1');
+
+    expect(tag.className).not.toContain('text-white');
+  });
+
+  it('should have dark text class on S1 badge for WCAG AA compliance', () => {
+    render(<StageTag stage={0} />);
+
+    const tag = screen.getByText('S1');
+
+    expect(tag.className).toContain('text-[var(--bg-header)]');
+  });
 });

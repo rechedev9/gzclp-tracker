@@ -87,7 +87,7 @@ export function Toolbar({
 
         {/* Right */}
         <div className="flex items-center gap-2.5 shrink-0">
-          <Button size="sm" onClick={onJumpToCurrent}>
+          <Button size="sm" variant="ghost" onClick={onJumpToCurrent}>
             Ir al actual
           </Button>
 
@@ -95,6 +95,7 @@ export function Toolbar({
           <div className="relative">
             <Button
               size="sm"
+              variant="ghost"
               onClick={() => setMenuOpen((prev) => !prev)}
               aria-label="Más acciones"
               aria-haspopup="true"

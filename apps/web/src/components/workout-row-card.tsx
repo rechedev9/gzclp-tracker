@@ -45,12 +45,19 @@ function TierSection({
   onMark: (index: number, tier: Tier, value: ResultValue) => void;
   onUndo: (index: number, tier: Tier) => void;
 }): React.ReactNode {
+  const isT1 = tier === 't1';
   return (
     <div className="py-2 border-b border-[var(--border-light)] last:border-b-0">
       <div className="flex items-center justify-between gap-2">
         <div className="flex-1 min-w-0">
-          <div className="text-[11px] font-bold uppercase text-[var(--text-muted)]">{label}</div>
-          <div className="text-[13px] font-bold truncate">{exercise}</div>
+          <div
+            className={`text-[11px] font-bold uppercase ${isT1 ? 'text-[var(--fill-progress)]' : 'text-[var(--text-muted)]'}`}
+          >
+            {label}
+          </div>
+          <div className={`font-bold truncate ${isT1 ? 'text-base' : 'text-[13px]'}`}>
+            {exercise}
+          </div>
         </div>
         <div
           className="text-center shrink-0"
@@ -60,7 +67,17 @@ function TierSection({
               : undefined
           }
         >
-          <div className="text-[15px] font-extrabold tabular-nums">{weight} kg</div>
+          <div
+            className={
+              isT1
+                ? 'font-display-data text-3xl text-[var(--fill-progress)] tabular-nums'
+                : tier === 't3'
+                  ? 'text-[15px] font-extrabold tabular-nums text-[var(--text-muted)]'
+                  : 'text-[15px] font-extrabold tabular-nums'
+            }
+          >
+            {weight} kg
+          </div>
           <div className="text-[12px] font-semibold text-[var(--text-muted)]">
             {scheme}
             {showStage && stage !== undefined && (
@@ -154,7 +171,7 @@ export const WorkoutRowCard = memo(function WorkoutRowCard({
       }`}
     >
       <div className="flex items-center justify-between mb-2">
-        <span className="text-[15px] font-extrabold">#{row.index + 1}</span>
+        <span className="font-display text-2xl">#{row.index + 1}</span>
         {!allDone && (
           <a
             href={buildGoogleCalendarUrl(row).calendarUrl}

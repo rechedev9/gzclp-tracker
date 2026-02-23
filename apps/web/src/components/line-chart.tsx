@@ -46,7 +46,7 @@ export const LineChart = memo(function LineChart({ data, label }: LineChartProps
 
     if (lastMarkedIdx < 0) {
       ctx.fillStyle = textColor;
-      ctx.font = '13px sans-serif';
+      ctx.font = '13px JetBrains Mono, monospace';
       ctx.textAlign = 'center';
       ctx.fillText('Completa entrenamientos para ver el gráfico', W / 2, H / 2);
       return;
@@ -54,7 +54,7 @@ export const LineChart = memo(function LineChart({ data, label }: LineChartProps
 
     if (data.length < 2) {
       ctx.fillStyle = textColor;
-      ctx.font = '13px sans-serif';
+      ctx.font = '13px JetBrains Mono, monospace';
       ctx.textAlign = 'center';
       ctx.fillText('Datos insuficientes aún', W / 2, H / 2);
       return;
@@ -89,13 +89,13 @@ export const LineChart = memo(function LineChart({ data, label }: LineChartProps
         ctx.lineTo(W - pad.right, y(w));
         ctx.stroke();
         ctx.fillStyle = textColor;
-        ctx.font = '10px sans-serif';
+        ctx.font = '10px JetBrains Mono, monospace';
         ctx.textAlign = 'right';
         ctx.fillText(String(w), pad.left - 6, y(w) + 3);
       }
 
       ctx.fillStyle = textColor;
-      ctx.font = '10px sans-serif';
+      ctx.font = '10px JetBrains Mono, monospace';
       ctx.textAlign = 'center';
       const labelInterval = Math.max(1, Math.floor(data.length / 6));
       for (let i = 0; i < data.length; i += labelInterval) {
@@ -215,7 +215,7 @@ export const LineChart = memo(function LineChart({ data, label }: LineChartProps
           ctx.stroke();
           ctx.setLineDash([]);
           ctx.fillStyle = textColor;
-          ctx.font = '9px sans-serif';
+          ctx.font = '9px JetBrains Mono, monospace';
           ctx.textAlign = 'center';
           ctx.fillText(`S${data[i].stage}`, x(i), pad.top - 4);
         }

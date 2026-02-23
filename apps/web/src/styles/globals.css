@@ -138,7 +138,26 @@
   }
 }
 
+@keyframes modal-enter {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
 /* ── Animation classes ─────────────────────────── */
+
+.modal-overlay {
+  backdrop-filter: blur(4px);
+}
+
+.modal-box {
+  animation: modal-enter 0.2s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
 
 .highlight-current {
   animation: highlight-pulse 1s ease-out 2;
@@ -251,6 +270,12 @@
 .font-display {
   font-family: 'Bebas Neue', system-ui;
   letter-spacing: 0.04em;
+}
+
+/* Bebas Neue — stat numbers (data-optimized, tighter tracking than .font-display) */
+.font-display-data {
+  font-family: 'Bebas Neue', system-ui;
+  letter-spacing: 0.02em;
 }
 
 /* Week/badge label — small mono pill inside week header */

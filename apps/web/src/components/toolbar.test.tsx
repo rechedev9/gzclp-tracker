@@ -73,6 +73,34 @@ describe('Toolbar', () => {
 
       expect(onJumpToCurrent).toHaveBeenCalledTimes(1);
     });
+
+    it('should render "Ir al actual" with ghost variant class (REQ-SPACE-002)', () => {
+      render(<Toolbar {...buildToolbarProps()} />);
+
+      const btn = screen.getByText('Ir al actual');
+
+      expect(btn.className).toContain('bg-[var(--bg-card)]');
+    });
+
+    it('should render "⋮" button with ghost variant class (REQ-SPACE-002)', () => {
+      render(<Toolbar {...buildToolbarProps()} />);
+
+      const btn = screen.getByLabelText('Más acciones');
+
+      expect(btn.className).toContain('bg-[var(--bg-card)]');
+    });
+
+    it('should render "Deshacer" WITHOUT ghost variant class (REQ-SPACE-002)', () => {
+      render(<Toolbar {...buildToolbarProps({ undoCount: 1 })} />);
+
+      const btn = screen.getByText('Deshacer');
+
+      // Ghost variant uses bg-[var(--bg-card)]; default variant does NOT
+      // (default uses bg-[var(--btn-bg)] which is different)
+      // The ghost class string contains 'bg-[var(--bg-card)]' but the default button
+      // uses 'bg-[var(--btn-bg)]'. Both contain 'bg-' so we check the ghost-specific text.
+      expect(btn.className).not.toContain('text-[var(--text-muted)]');
+    });
   });
 
   describe('reset flow', () => {

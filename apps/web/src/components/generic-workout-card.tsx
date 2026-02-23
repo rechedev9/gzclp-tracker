@@ -60,7 +60,17 @@ function SlotSection({
         </div>
         <div className="text-center shrink-0">
           {slot.weight > 0 && (
-            <div className="text-[15px] font-extrabold tabular-nums">{slot.weight} kg</div>
+            <div
+              className={
+                slot.tier === 't1'
+                  ? 'font-display-data text-3xl text-[var(--fill-progress)] tabular-nums'
+                  : slot.tier === 't3'
+                    ? 'text-[15px] font-extrabold tabular-nums text-[var(--text-muted)]'
+                    : 'text-[15px] font-extrabold tabular-nums'
+              }
+            >
+              {slot.weight} kg
+            </div>
           )}
           <div className="text-[12px] font-semibold text-[var(--text-muted)]">
             {slot.sets}&times;{slot.reps}
@@ -175,7 +185,7 @@ export const GenericWorkoutCard = memo(function GenericWorkoutCard({
       }`}
     >
       <div className="flex items-center justify-between mb-2">
-        <span className="text-[15px] font-extrabold">#{row.index + 1}</span>
+        <span className="font-display text-2xl">#{row.index + 1}</span>
         <span className="text-xs font-semibold text-[var(--text-muted)]">{row.dayName}</span>
       </div>
 

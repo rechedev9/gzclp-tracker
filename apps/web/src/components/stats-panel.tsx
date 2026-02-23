@@ -16,10 +16,14 @@ const StatsPanel = memo(function StatsPanel({ startWeights, results }: StatsPane
   if (!hasAnyResults) {
     return (
       <div className="text-center py-16">
-        <p className="text-sm font-bold text-[var(--text-muted)] mb-2">Sin datos aún</p>
-        <p className="text-xs text-[var(--text-muted)]">
-          Completa tu primer entrenamiento para ver estadísticas y gráficas.
-        </p>
+        <div>
+          <p className="font-display text-6xl text-[var(--text-muted)] leading-none mb-3">
+            SIN DATOS
+          </p>
+          <p className="text-xs text-[var(--text-muted)]">
+            Completa tu primer entrenamiento para ver estadísticas y gráficas.
+          </p>
+        </div>
       </div>
     );
   }
@@ -31,11 +35,11 @@ const StatsPanel = memo(function StatsPanel({ startWeights, results }: StatsPane
         {T1_EXERCISES.map((ex) => {
           const s = calculateStats(chartData[ex]);
           return (
-            <div key={ex} className="bg-[var(--bg-th)] border border-[var(--border-color)] p-4">
-              <h4 className="text-[13px] font-bold uppercase tracking-wide text-[var(--text-muted)] mb-2">
+            <div key={ex} className="bg-[var(--bg-card)] border border-[var(--border-color)] p-4">
+              <h4 className="text-[11px] font-bold uppercase tracking-[0.15em] text-[var(--text-muted)] mb-2">
                 {NAMES[ex]}
               </h4>
-              <div className="text-2xl font-extrabold mb-1">{s.currentWeight} kg</div>
+              <div className="font-display-data text-4xl mb-1">{s.currentWeight} kg</div>
               <div className="text-xs text-[var(--text-muted)]">
                 Inicio: {s.startWeight} kg | {s.gained >= 0 ? '+' : ''}
                 {s.gained} kg ganados
@@ -51,7 +55,9 @@ const StatsPanel = memo(function StatsPanel({ startWeights, results }: StatsPane
       <div className="grid grid-cols-2 gap-5 max-[900px]:grid-cols-1">
         {T1_EXERCISES.map((ex) => (
           <div key={ex} className="bg-[var(--bg-th)] border border-[var(--border-color)] p-4">
-            <h4 className="text-sm font-bold mb-3">{NAMES[ex]} — Progresión de Peso</h4>
+            <h4 className="text-xs font-bold uppercase tracking-[0.15em] text-[var(--text-muted)] mb-3">
+              {NAMES[ex]} — Progresión de Peso
+            </h4>
             <LineChart data={chartData[ex]} label={NAMES[ex]} />
           </div>
         ))}

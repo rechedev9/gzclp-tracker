@@ -22,8 +22,8 @@ export function AppHeader({
   const handleSignOut = onSignOut ?? ((): void => void signOut());
 
   return (
-    <header className="flex items-center justify-between px-5 sm:px-8 py-3.5 bg-[var(--bg-header)] border-b border-[var(--border-color)]">
-      <div className="flex items-center gap-3">
+    <header className="flex items-center justify-between px-5 sm:px-8 py-4 bg-[var(--bg-header)] border-b border-[var(--border-color)]">
+      <div className="flex items-center gap-4">
         {onBack && (
           <button
             onClick={onBack}
@@ -33,7 +33,7 @@ export function AppHeader({
             ← {backLabel ?? 'Volver'}
           </button>
         )}
-        <img src="/logo.webp" alt="Logo" width={28} height={28} className="rounded-full" />
+        <img src="/logo.webp" alt="Logo" width={32} height={32} className="rounded-full" />
         <span className="text-sm font-bold tracking-tight" style={{ color: 'var(--text-header)' }}>
           The Real Hyperbolic Time Chamber
         </span>

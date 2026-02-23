@@ -59,7 +59,7 @@ function ActiveProgramCard({
   if (!definition) return null;
 
   return (
-    <div className="bg-[var(--bg-card)] border border-[var(--border-color)] p-5 sm:p-6 hover:border-[var(--border-light)] transition-colors">
+    <div className="bg-[var(--bg-card)] border border-[var(--border-color)] p-6 sm:p-8 hover:border-[var(--border-light)] transition-colors">
       <div className="flex items-start justify-between gap-3 mb-3">
         <div>
           <h3 className="text-base sm:text-lg font-extrabold text-[var(--text-header)] leading-tight">
@@ -178,8 +178,8 @@ export function Dashboard({
       <div className="max-w-3xl mx-auto px-5 sm:px-8 py-8 sm:py-12">
         {/* Active program loading skeleton */}
         {programsQuery.isLoading && (
-          <section className="mb-10">
-            <div className="h-3 w-24 bg-[var(--border-color)] rounded mb-3 animate-pulse" />
+          <section className="mb-12">
+            <div className="h-3 w-24 bg-[var(--border-color)] rounded mb-4 animate-pulse" />
             <div className="bg-[var(--bg-card)] border border-[var(--border-color)] p-5 sm:p-6 animate-pulse">
               <div className="h-5 w-48 bg-[var(--border-color)] rounded mb-2" />
               <div className="h-3 w-64 bg-[var(--border-color)] rounded mb-4" />
@@ -191,8 +191,8 @@ export function Dashboard({
 
         {/* Active program card */}
         {activeProgram && (
-          <section className="mb-10">
-            <h2 className="text-xs font-bold uppercase tracking-[0.15em] text-[var(--text-muted)] mb-3">
+          <section className="mb-12">
+            <h2 className="text-xs font-bold uppercase tracking-[0.15em] text-[var(--text-muted)] mb-4">
               Tu Programa
             </h2>
             <ActiveProgramCard
@@ -205,8 +205,8 @@ export function Dashboard({
 
         {/* Other programs (archived / completed) */}
         {otherPrograms.length > 0 && (
-          <section className="mb-10">
-            <h2 className="text-xs font-bold uppercase tracking-[0.15em] text-[var(--text-muted)] mb-3">
+          <section className="mb-12">
+            <h2 className="text-xs font-bold uppercase tracking-[0.15em] text-[var(--text-muted)] mb-4">
               Otros Programas
             </h2>
             <div className="flex flex-col gap-2">
@@ -219,7 +219,7 @@ export function Dashboard({
 
         {/* Program catalog — all real programs from registry */}
         <section>
-          <h2 className="text-xs font-bold uppercase tracking-[0.15em] text-[var(--text-muted)] mb-3">
+          <h2 className="text-xs font-bold uppercase tracking-[0.15em] text-[var(--text-muted)] mb-4">
             {activeProgram ? 'Iniciar Nuevo Programa' : 'Elegir un Programa'}
           </h2>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">

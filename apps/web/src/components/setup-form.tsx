@@ -1,6 +1,7 @@
 import { useState, useCallback } from 'react';
 import { StartWeightsSchema } from '@gzclp/shared/schemas/legacy';
 import type { StartWeights } from '@gzclp/shared/types';
+import { Button } from './button';
 import { ConfirmDialog } from './confirm-dialog';
 import { WeightField } from './weight-field';
 
@@ -200,20 +201,13 @@ export function SetupForm({
 
       <div className="flex gap-3">
         {isEditMode && (
-          <button
-            onClick={() => setIsExpanded(false)}
-            className="flex-1 py-3.5 border-2 border-[var(--border-color)] bg-[var(--bg-card)] text-[var(--text-muted)] text-base font-bold cursor-pointer hover:bg-[var(--bg-hover-row)] hover:text-[var(--text-main)] transition-colors"
-          >
+          <Button variant="ghost" size="lg" onClick={() => setIsExpanded(false)}>
             Cancelar
-          </button>
+          </Button>
         )}
-        <button
-          onClick={handleSubmit}
-          disabled={isGenerating}
-          className="flex-1 py-3.5 border-none bg-[var(--bg-header)] text-[var(--text-header)] text-base font-bold cursor-pointer hover:opacity-85 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed"
-        >
+        <Button variant="primary" size="lg" onClick={handleSubmit} disabled={isGenerating}>
           {isGenerating ? 'Generando...' : isEditMode ? 'Actualizar Pesos' : 'Generar Programa'}
-        </button>
+        </Button>
       </div>
     </>
   );
@@ -237,22 +231,19 @@ export function SetupForm({
                   )}
                 </p>
               </div>
-              <button
-                onClick={() => setIsExpanded(true)}
-                className="px-4 py-2.5 min-h-[44px] border-2 border-[var(--btn-border)] text-xs font-bold cursor-pointer bg-[var(--btn-bg)] text-[var(--btn-text)] whitespace-nowrap transition-all hover:bg-[var(--btn-hover-bg)] hover:text-[var(--btn-hover-text)]"
-              >
+              <Button variant="default" onClick={() => setIsExpanded(true)}>
                 Editar Pesos
-              </button>
+              </Button>
             </div>
           </div>
 
           {isExpanded && (
             <div
-              className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60"
+              className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm"
               onClick={() => setIsExpanded(false)}
             >
               <div
-                className="bg-[var(--bg-card)] border border-[var(--border-color)] p-6 sm:p-8 max-w-2xl w-[calc(100%-2rem)] max-h-[90vh] overflow-y-auto shadow-lg"
+                className="modal-box bg-[var(--bg-card)] border border-[var(--border-color)] p-6 sm:p-8 max-w-2xl w-[calc(100%-2rem)] max-h-[90vh] overflow-y-auto shadow-lg"
                 onClick={(e) => e.stopPropagation()}
               >
                 {formContent}

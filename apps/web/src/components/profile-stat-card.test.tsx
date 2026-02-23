@@ -53,4 +53,20 @@ describe('ProfileStatCard', () => {
     const fill = container.querySelector('[role="progressbar"] > div') as HTMLElement;
     expect(fill.style.width).toBe('100%');
   });
+
+  it('should apply font-display-data class to value element (REQ-TYPO-001)', () => {
+    const { container } = render(<ProfileStatCard value="80 kg" label="Squat" />);
+
+    const valueParagraph = container.querySelector('p');
+
+    expect(valueParagraph?.className).toContain('font-display-data');
+  });
+
+  it('should NOT have plain font-extrabold class on value element', () => {
+    const { container } = render(<ProfileStatCard value="80 kg" label="Squat" />);
+
+    const valueParagraph = container.querySelector('p');
+
+    expect(valueParagraph?.className).not.toContain('font-extrabold');
+  });
 });

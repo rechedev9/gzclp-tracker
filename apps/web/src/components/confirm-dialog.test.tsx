@@ -102,4 +102,22 @@ describe('ConfirmDialog', () => {
       expect(onCancel).not.toHaveBeenCalled();
     });
   });
+
+  describe('modal animation and blur (REQ-MODAL-001, REQ-MODAL-002)', () => {
+    it('should have backdrop-blur-sm class on overlay when open', () => {
+      render(<ConfirmDialog {...baseProps} open={true} />);
+
+      const overlay = screen.getByText('Test Title').closest('.fixed');
+
+      expect(overlay?.className).toContain('backdrop-blur-sm');
+    });
+
+    it('should have modal-box class on inner dialog element', () => {
+      render(<ConfirmDialog {...baseProps} open={true} />);
+
+      const dialog = screen.getByRole('dialog');
+
+      expect(dialog.className).toContain('modal-box');
+    });
+  });
 });
