@@ -1,4 +1,4 @@
-import { memo } from 'react';
+import { memo, useCallback } from 'react';
 
 interface AmrapInputProps {
   readonly value: number | undefined;
@@ -6,28 +6,79 @@ interface AmrapInputProps {
   readonly variant?: 'table' | 'card';
 }
 
+const MIN_REPS = 0;
+const MAX_REPS = 99;
+
 export const AmrapInput = memo(function AmrapInput({
   value,
   onChange,
   variant = 'table',
 }: AmrapInputProps): React.ReactNode {
   const isCard = variant === 'card';
+  const current = value ?? 0;
+
+  const decrement = useCallback((): void => {
+    if (current <= MIN_REPS) return;
+    onChange(current - 1);
+  }, [current, onChange]);
+
+  const increment = useCallback((): void => {
+    if (current >= MAX_REPS) return;
+    onChange(current + 1);
+  }, [current, onChange]);
+
+  const handleInputChange = useCallback(
+    (e: React.ChangeEvent<HTMLInputElement>): void => {
+      const v = e.target.value;
+      if (v === '') {
+        onChange(undefined);
+        return;
+      }
+      const parsed = parseInt(v, 10);
+      if (isNaN(parsed)) return;
+      onChange(Math.min(MAX_REPS, Math.max(MIN_REPS, parsed)));
+    },
+    [onChange]
+  );
+
+  const btnBase = isCard
+    ? 'min-w-[40px] min-h-[40px] text-base'
+    : 'min-w-[36px] min-h-[36px] text-sm';
+
+  const inputWidth = isCard ? 'w-12' : 'w-10';
 
   return (
-    <input
-      type="number"
-      inputMode="numeric"
-      min="0"
-      max="99"
-      placeholder="—"
-      value={value ?? ''}
-      onChange={(e) => {
-        const v = e.target.value;
-        onChange(v === '' ? undefined : Math.max(0, parseInt(v, 10) || 0));
-      }}
-      className={`${isCard ? 'w-16 px-2 py-1.5 text-[13px]' : 'w-14 px-2 py-1.5 text-[13px]'} text-center font-bold bg-transparent border border-[var(--border-color)] text-[var(--text-main)] focus:border-[var(--fill-progress)] focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--fill-progress)] tabular-nums`}
-      aria-label="Reps AMRAP"
-      title="Reps AMRAP"
-    />
+    <div className="inline-flex items-stretch" role="group" aria-label="Reps AMRAP">
+      <button
+        type="button"
+        onClick={decrement}
+        disabled={current <= MIN_REPS}
+        aria-label="Disminuir reps"
+        className={`${btnBase} font-bold border-2 border-r-0 border-[var(--border-color)] bg-[var(--bg-card)] text-[var(--btn-text)] cursor-pointer transition-colors hover:bg-[var(--bg-hover-row)] focus-visible:ring-2 focus-visible:ring-[var(--fill-progress)] focus-visible:outline-none disabled:opacity-30 disabled:cursor-default`}
+      >
+        &minus;
+      </button>
+      <input
+        type="number"
+        inputMode="numeric"
+        min={MIN_REPS}
+        max={MAX_REPS}
+        placeholder="—"
+        value={value ?? ''}
+        onChange={handleInputChange}
+        className={`${inputWidth} px-0 py-1 text-center text-[13px] font-bold bg-transparent border-y-2 border-x-0 border-[var(--border-color)] text-[var(--text-main)] focus:border-[var(--fill-progress)] focus:outline-none tabular-nums [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none`}
+        aria-label="Reps AMRAP"
+        title="Reps AMRAP"
+      />
+      <button
+        type="button"
+        onClick={increment}
+        disabled={current >= MAX_REPS}
+        aria-label="Aumentar reps"
+        className={`${btnBase} font-bold border-2 border-l-0 border-[var(--border-color)] bg-[var(--bg-card)] text-[var(--btn-text)] cursor-pointer transition-colors hover:bg-[var(--bg-hover-row)] focus-visible:ring-2 focus-visible:ring-[var(--fill-progress)] focus-visible:outline-none disabled:opacity-30 disabled:cursor-default`}
+      >
+        +
+      </button>
+    </div>
   );
 });

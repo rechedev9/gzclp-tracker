@@ -119,9 +119,11 @@ export function SetupForm({
       setPendingWeights(weights);
       setShowConfirm(true);
     } else {
-      onGenerate(weights).catch((err: unknown) => {
-        setError(err instanceof Error ? err.message : 'Error al generar el programa.');
-      });
+      onGenerate(weights)
+        .then(() => setIsExpanded(false))
+        .catch((err: unknown) => {
+          setError(err instanceof Error ? err.message : 'Error al generar el programa.');
+        });
     }
   };
 
