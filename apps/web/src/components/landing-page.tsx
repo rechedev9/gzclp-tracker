@@ -156,6 +156,25 @@ export function LandingPage(): React.ReactNode {
                 Cómo Funciona
               </a>
             </div>
+
+            {/* Hero illustration */}
+            <div className="mt-16 relative max-w-2xl mx-auto">
+              <div
+                className="absolute inset-0 -m-4 rounded-lg pointer-events-none"
+                style={{
+                  background:
+                    'radial-gradient(ellipse at center, rgba(232,170,32,0.12) 0%, transparent 70%)',
+                }}
+              />
+              <img
+                src="/hero.webp"
+                alt="Gravity Room — training chamber with gravity levels"
+                width={1024}
+                height={572}
+                className="relative w-full h-auto rounded-sm border border-[var(--border-color)] shadow-2xl"
+                loading="eager"
+              />
+            </div>
           </div>
         </section>
 
@@ -492,7 +511,7 @@ export function LandingPage(): React.ReactNode {
               className="font-mono text-[11px] tracking-[0.3em] uppercase mb-6"
               style={{ color: 'var(--text-muted)' }}
             >
-              ¿Listo para entrar a la cámara?
+              ¿Listo para subir la gravedad?
             </p>
             <h2
               className="font-display mb-10 leading-none"
@@ -502,7 +521,7 @@ export function LandingPage(): React.ReactNode {
                 letterSpacing: '0.02em',
               }}
             >
-              Entra a la Cámara.
+              Entra a la Gravity Room.
               <br />
               <span style={{ color: 'var(--text-main)', opacity: 0.8 }}>
                 Comienza a Entrenar Hoy.

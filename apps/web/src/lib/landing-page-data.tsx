@@ -33,70 +33,28 @@ export interface Persona {
 export const FEATURES: readonly Feature[] = [
   {
     icon: (
-      <svg
-        width="36"
-        height="36"
-        viewBox="0 0 24 24"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="1.5"
-      >
-        <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z" strokeLinecap="round" strokeLinejoin="round" />
-      </svg>
+      <img
+        src="/feature-progression.webp"
+        alt="Automatic progression icon"
+        width={48}
+        height={48}
+      />
     ),
     title: 'Progresión Inteligente',
     desc: 'La app decide cuándo agregar peso y cómo manejar el fallo. Tú solo apareces y entrenas.',
   },
   {
-    icon: (
-      <svg
-        width="36"
-        height="36"
-        viewBox="0 0 24 24"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="1.5"
-      >
-        <rect x="3" y="4" width="18" height="18" rx="2" strokeLinecap="round" />
-        <path d="M16 2v4M8 2v4M3 10h18" strokeLinecap="round" />
-      </svg>
-    ),
+    icon: <img src="/feature-tracking.webp" alt="Exercise tracking icon" width={48} height={48} />,
     title: 'Programas Probados',
     desc: 'Programas de entrenamiento respaldados por la ciencia con periodización estructurada. Nuevos programas agregados regularmente.',
   },
   {
-    icon: (
-      <svg
-        width="36"
-        height="36"
-        viewBox="0 0 24 24"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="1.5"
-      >
-        <path d="M22 12h-4l-3 9L9 3l-3 9H2" strokeLinecap="round" strokeLinejoin="round" />
-      </svg>
-    ),
+    icon: <img src="/feature-stats.webp" alt="Statistics icon" width={48} height={48} />,
     title: 'Estadísticas y Gráficas',
     desc: 'Ve tu curva de fuerza a lo largo del tiempo. Datos reales, no suposiciones.',
   },
   {
-    icon: (
-      <svg
-        width="36"
-        height="36"
-        viewBox="0 0 24 24"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="1.5"
-      >
-        <path
-          d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-        />
-      </svg>
-    ),
+    icon: <img src="/feature-sync.webp" alt="Synchronization icon" width={48} height={48} />,
     title: 'Sin Conexión Primero',
     desc: 'Funciona sin internet. Tus datos se quedan en tu dispositivo. Sincronización opcional si la necesitas.',
   },
@@ -107,23 +65,22 @@ export const STEPS: readonly Step[] = [
     num: '01',
     title: 'Establece tus Pesos',
     desc: 'Ingresa tus pesos iniciales para cada levantamiento. El programa construye tu plan completo de 90 entrenamientos al instante.',
-    quote: '"Superaré mis límites aquí y ahora."',
-    source: '\u2014 Goku, entrando a la Cámara del Tiempo',
+    quote: '"El primer paso siempre es el más importante. Después, la gravedad hace el resto."',
+    source: '\u2014 Gravity Room',
   },
   {
     num: '02',
     title: 'Sigue el Programa',
     desc: 'Cada entrenamiento te dice exactamente qué hacer \u2014 ejercicio, series, repeticiones, peso. Sin adivinar.',
-    quote: '"Un año aquí es solo un día afuera. Hagamos que cada segundo cuente."',
-    source: '\u2014 Vegeta, Cámara del Tiempo',
+    quote: '"La disciplina es entrenar cuando la motivación ya no está. El programa nunca falla."',
+    source: '\u2014 Gravity Room',
   },
   {
     num: '03',
     title: 'Progresa Automáticamente',
     desc: 'Completa tus reps y el peso sube. Fallas y el programa se adapta \u2014 ajustando el volumen para mantenerte avanzando.',
-    quote:
-      '"El entrenamiento real comienza cuando empujas más allá de lo que crees que es tu límite."',
-    source: '\u2014 Goku, entrenando a Gohan',
+    quote: '"Cada kilo extra en la barra es gravedad que has conquistado."',
+    source: '\u2014 Gravity Room',
   },
 ];
 
