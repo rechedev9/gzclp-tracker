@@ -208,6 +208,7 @@ export const app = new Elysia()
     return registry.metrics();
   })
   .use(staticPlugin({ assets: '../web/dist', prefix: '/' }))
+  .get('/', () => Bun.file('../web/dist/index.html'))
   .get('/*', () => Bun.file('../web/dist/index.html'))
   .listen({ port: PORT, maxRequestBodySize: 1_048_576 }, () => {
     logger.info({ port: PORT }, 'API started');
