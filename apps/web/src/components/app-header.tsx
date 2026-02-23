@@ -35,7 +35,7 @@ export function AppHeader({
         )}
         <img src="/logo.webp" alt="Logo" width={32} height={32} className="rounded-full" />
         <span className="text-sm font-bold tracking-tight" style={{ color: 'var(--text-header)' }}>
-          The Real Hyperbolic Time Chamber
+          Gravity Room
         </span>
       </div>
 

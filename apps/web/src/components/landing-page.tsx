@@ -44,9 +44,15 @@ export function LandingPage(): React.ReactNode {
         className="sticky top-0 z-50 flex items-center justify-between px-6 sm:px-10 py-4 bg-[var(--bg-header)]/95 backdrop-blur-md border-b border-[var(--border-color)]"
       >
         <div className="flex items-center gap-3">
-          <img src="/logo.webp" alt="RSN logo" width={32} height={32} className="rounded-full" />
+          <img
+            src="/logo.webp"
+            alt="Gravity Room logo"
+            width={32}
+            height={32}
+            className="rounded-full"
+          />
           <span className="text-sm font-bold tracking-tight text-[var(--text-header)]">
-            The Real Hyperbolic Time Chamber
+            Gravity Room
           </span>
         </div>
         <div className="hidden md:flex items-center gap-8">
@@ -517,7 +523,7 @@ export function LandingPage(): React.ReactNode {
         <div className="max-w-5xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4">
           <div>
             <p className="text-sm font-bold mb-1" style={{ color: 'var(--text-header)' }}>
-              The Real Hyperbolic Time Chamber
+              Gravity Room
             </p>
             <p className="text-xs" style={{ color: 'var(--text-muted)' }}>
               Para atletas que se niegan a estancarse.
@@ -531,7 +537,7 @@ export function LandingPage(): React.ReactNode {
               Política de Privacidad
             </Link>
             <span aria-hidden="true">&middot;</span>
-            <span>Built by RSN</span>
+            <span>Built by Gravity Room</span>
           </div>
         </div>
       </footer>

@@ -1,5 +1,5 @@
 const CACHE_VERSION = 'v1';
-const CACHE_NAME = `trhtc-${CACHE_VERSION}`;
+const CACHE_NAME = `gr-${CACHE_VERSION}`;
 
 /** File extensions eligible for cache-first. */
 const CACHEABLE_EXT = /\.(js|css|webp|png|jpg|svg|woff2?|ico|webmanifest)$/;

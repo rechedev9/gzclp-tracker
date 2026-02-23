@@ -11,9 +11,7 @@ export function PrivacyPage(): React.ReactNode {
           >
             &larr; Volver
           </Link>
-          <span className="text-sm font-bold text-[var(--text-header)]">
-            The Real Hyperbolic Time Chamber
-          </span>
+          <span className="text-sm font-bold text-[var(--text-header)]">Gravity Room</span>
         </div>
       </header>
 

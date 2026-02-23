@@ -1,4 +1,4 @@
-# The Real Hyperbolic Time Chamber
+# Gravity Room
 
 A strength training tracker for any program. Define your progression rules declaratively — the engine handles the rest. Built as a Bun monorepo with a Vite + React 19 SPA frontend and an ElysiaJS API backend.
 

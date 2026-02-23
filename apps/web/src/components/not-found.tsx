@@ -3,7 +3,13 @@ import { Link } from 'react-router-dom';
 export function NotFound(): React.ReactNode {
   return (
     <div className="min-h-dvh flex flex-col items-center justify-center bg-[var(--bg-body)] px-6 text-center">
-      <img src="/logo.webp" alt="RSN logo" width={64} height={64} className="rounded-full mb-6" />
+      <img
+        src="/logo.webp"
+        alt="Gravity Room logo"
+        width={64}
+        height={64}
+        className="rounded-full mb-6"
+      />
       <h1 className="text-5xl font-extrabold text-[var(--text-header)] mb-3">404</h1>
       <p className="text-sm text-[var(--text-muted)] mb-8">
         Esta página no existe. Puede que haya sido movida, o escribiste la URL incorrectamente.

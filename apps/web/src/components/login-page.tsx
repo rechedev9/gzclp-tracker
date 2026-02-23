@@ -80,7 +80,7 @@ export function LoginPage(): React.ReactNode {
         />
         <img
           src="/logo.webp"
-          alt="RSN logo"
+          alt="Gravity Room logo"
           width={68}
           height={68}
           className="relative block rounded-full"
@@ -100,14 +100,10 @@ export function LoginPage(): React.ReactNode {
           animationDelay: '0.08s',
         }}
       >
-        The Real
-        <br />
-        Hyperbolic
-        <br />
-        Time Chamber
+        Gravity Room
       </h1>
 
-      {/* "Enter the Chamber" separator */}
+      {/* Auth divider separator */}
       <div
         className="flex items-center gap-3 w-full max-w-[310px] my-7"
         style={{ animation: 'riseIn 0.55s ease both', animationDelay: '0.16s' }}
