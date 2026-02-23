@@ -22,10 +22,21 @@ export interface Metric {
   readonly suffix: string;
 }
 
-export interface Persona {
+export interface ProgramCardMeta {
+  readonly daysPerWeek: string;
+  readonly duration: string;
+  readonly level: string;
+}
+
+export interface ProgramCard {
+  readonly id: string;
+  readonly name: string;
+  readonly author: string;
+  readonly tagline: string;
+  readonly audience: string;
+  readonly keyBenefit: string;
+  readonly metadata: ProgramCardMeta;
   readonly icon: React.ReactNode;
-  readonly title: string;
-  readonly desc: string;
 }
 
 /* ── Data ──────────────────────────────────────── */
@@ -55,16 +66,16 @@ export const FEATURES: readonly Feature[] = [
   },
   {
     icon: <img src="/feature-sync.webp" alt="Synchronization icon" width={48} height={48} />,
-    title: 'Sin Conexión Primero',
-    desc: 'Funciona sin internet. Tus datos se quedan en tu dispositivo. Sincronización opcional si la necesitas.',
+    title: 'Sincronización en la Nube',
+    desc: 'Tus datos se sincronizan automáticamente. Entrena desde cualquier dispositivo sin perder el progreso.',
   },
 ];
 
 export const STEPS: readonly Step[] = [
   {
     num: '01',
-    title: 'Establece tus Pesos',
-    desc: 'Ingresa tus pesos iniciales para cada levantamiento. El programa construye tu plan completo de 90 entrenamientos al instante.',
+    title: 'Elige tu Programa',
+    desc: 'Selecciona el programa que se adapte a tus objetivos y configura tus pesos iniciales. La app construye tu plan completo al instante.',
     quote: '"El primer paso siempre es el más importante. Después, la gravedad hace el resto."',
     source: '\u2014 Gravity Room',
   },
@@ -78,7 +89,7 @@ export const STEPS: readonly Step[] = [
   {
     num: '03',
     title: 'Progresa Automáticamente',
-    desc: 'Completa tus reps y el peso sube. Fallas y el programa se adapta \u2014 ajustando el volumen para mantenerte avanzando.',
+    desc: 'Completa tus reps y el peso sube. El programa se adapta a tu rendimiento para mantenerte avanzando.',
     quote: '"Cada kilo extra en la barra es gravedad que has conquistado."',
     source: '\u2014 Gravity Room',
   },
@@ -117,8 +128,8 @@ export const SCIENCE_CARDS: readonly Feature[] = [
         <path d="M12 20V10M18 20V4M6 20v-4" strokeLinecap="round" strokeLinejoin="round" />
       </svg>
     ),
-    title: 'Manejo del Fallo',
-    desc: '¿Fallaste un levantamiento? El programa se adapta \u2014 ajustando volumen e intensidad para que sigas progresando.',
+    title: 'Adaptación Inteligente',
+    desc: '¿No completaste las repeticiones? El programa ajusta la carga automáticamente para que sigas progresando sin estancarte.',
   },
   {
     icon: (
@@ -141,63 +152,68 @@ export const SCIENCE_CARDS: readonly Feature[] = [
 ];
 
 export const METRICS: readonly Metric[] = [
-  { value: '90', label: 'Entrenamientos Planificados', suffix: '' },
-  { value: '6', label: 'Levantamientos Principales', suffix: '' },
-  { value: '3', label: 'Sistema de Niveles', suffix: 'niveles' },
+  { value: '2+', label: 'Programas Disponibles', suffix: '' },
+  { value: '100%', label: 'Gratis', suffix: '' },
+  { value: 'Desde 3', label: 'Días por Semana', suffix: '' },
 ];
 
-export const PERSONAS: readonly Persona[] = [
+export const PROGRAM_CARDS: readonly ProgramCard[] = [
   {
+    id: 'gzclp',
+    name: 'GZCLP',
+    author: 'Sayar & Baker',
+    tagline: 'Progresión lineal probada para construir fuerza real desde cero.',
+    audience: 'Principiantes y atletas intermedios que buscan una base sólida.',
+    keyBenefit:
+      'Gestión automática del peso: sube cuando estás listo y se adapta cuando lo necesitas.',
+    metadata: {
+      daysPerWeek: '3–4 días/semana',
+      duration: '22+ semanas',
+      level: 'Principiante – Intermedio',
+    },
     icon: (
       <svg
-        width="32"
-        height="32"
-        viewBox="0 0 24 24"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="1.5"
-      >
-        <path d="M12 2a10 10 0 1 0 10 10" strokeLinecap="round" />
-        <path d="M12 6v6l4 2" strokeLinecap="round" strokeLinejoin="round" />
-      </svg>
-    ),
-    title: 'Principiantes',
-    desc: 'No se necesita experiencia. El programa te dice exactamente qué hacer cada sesión \u2014 solo síguelo.',
-  },
-  {
-    icon: (
-      <svg
-        width="32"
-        height="32"
-        viewBox="0 0 24 24"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="1.5"
-      >
-        <path d="M6 18L18 6M8 6h10v10" strokeLinecap="round" strokeLinejoin="round" />
-      </svg>
-    ),
-    title: 'Atletas Intermedios',
-    desc: 'Rompe estancamientos con periodización estructurada. El sistema de niveles se adapta cuando te estancas.',
-  },
-  {
-    icon: (
-      <svg
-        width="32"
-        height="32"
+        width="36"
+        height="36"
         viewBox="0 0 24 24"
         fill="none"
         stroke="currentColor"
         strokeWidth="1.5"
       >
         <path
-          d="M9 12l2 2 4-4M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0z"
+          d="M2 12h2m16 0h2M6 8v8M18 8v8M8 6v12M16 6v12M10 10v4h4v-4"
           strokeLinecap="round"
           strokeLinejoin="round"
         />
       </svg>
     ),
-    title: 'Saltadores de Programa',
-    desc: 'Deja de saltar entre programas. Mantente con un sistema probado y observa cómo suben los números.',
+  },
+  {
+    id: 'nivel-7',
+    name: 'Nivel 7',
+    author: 'Gravity Room',
+    tagline: 'Periodización intermedia-avanzada que combina hipertrofia y fuerza.',
+    audience: 'Atletas intermedios y avanzados que quieren romper mesetas.',
+    keyBenefit:
+      'Programación periodizada: cada semana está calculada para maximizar tu rendimiento.',
+    metadata: {
+      daysPerWeek: '4 días/semana',
+      duration: '12 semanas',
+      level: 'Intermedio – Avanzado',
+    },
+    icon: (
+      <svg
+        width="36"
+        height="36"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="1.5"
+      >
+        <circle cx="12" cy="12" r="10" />
+        <circle cx="12" cy="12" r="6" />
+        <circle cx="12" cy="12" r="2" />
+      </svg>
+    ),
   },
 ];

@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom';
-import { FEATURES, STEPS, METRICS, PERSONAS, SCIENCE_CARDS } from '@/lib/landing-page-data';
+import { FEATURES, STEPS, METRICS, PROGRAM_CARDS, SCIENCE_CARDS } from '@/lib/landing-page-data';
 import { useFadeInOnScroll } from '@/hooks/use-fade-in-on-scroll';
 import { useScrollSpy } from '@/hooks/use-scroll-spy';
 
@@ -435,17 +435,17 @@ export function LandingPage(): React.ReactNode {
 
         <GradientDivider />
 
-        {/* ── Who It's For ───────────────────────────────── */}
+        {/* ── Programs Catalog ─────────────────────────── */}
         <section
           id="programs"
-          aria-labelledby="personas-heading"
+          aria-labelledby="programs-heading"
           ref={observe}
           className="landing-fade-in px-6 sm:px-10 py-16 sm:py-24 bg-[var(--bg-header)]"
         >
           <div className="max-w-4xl mx-auto">
-            <SectionLabel>Diseñado Para</SectionLabel>
+            <SectionLabel>Programas Destacados</SectionLabel>
             <h2
-              id="personas-heading"
+              id="programs-heading"
               className="font-display text-center mb-4 leading-none"
               style={{
                 fontSize: 'clamp(40px, 6vw, 72px)',
@@ -453,7 +453,7 @@ export function LandingPage(): React.ReactNode {
                 letterSpacing: '0.02em',
               }}
             >
-              Para Cada Atleta
+              Elige Tu Programa
             </h2>
             <p
               className="text-center mb-16 max-w-lg mx-auto"
@@ -463,29 +463,85 @@ export function LandingPage(): React.ReactNode {
                 lineHeight: 1.7,
               }}
             >
-              Ya sea que estés tocando una barra por primera vez o rompiendo un estancamiento.
+              Programas de fuerza probados con progresión automática. Elige el que se adapte a tu
+              nivel y objetivos.
             </p>
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-px bg-[var(--border-color)]">
-              {PERSONAS.map((p) => (
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-px bg-[var(--border-color)]">
+              {PROGRAM_CARDS.map((program) => (
                 <div
-                  key={p.title}
-                  className="relative bg-[var(--bg-card)] p-8 text-center landing-card-glow group cursor-default"
+                  key={program.id}
+                  className="relative bg-[var(--bg-card)] p-8 landing-card-glow group cursor-default"
                 >
+                  {/* Icon */}
                   <div
                     className="mb-5 flex justify-center group-hover:scale-110 transition-transform duration-300"
                     style={{ color: 'var(--fill-progress)' }}
                   >
-                    {p.icon}
+                    {program.icon}
                   </div>
+
+                  {/* Name (Bebas Neue) */}
                   <h3
-                    className="text-sm font-bold mb-3 uppercase tracking-wider"
+                    className="font-display text-center text-3xl mb-1 tracking-wide"
+                    style={{ color: 'var(--text-header)' }}
+                  >
+                    {program.name}
+                  </h3>
+
+                  {/* Author */}
+                  <p
+                    className="font-mono text-center text-[11px] tracking-wider uppercase mb-4"
+                    style={{ color: 'var(--text-muted)' }}
+                  >
+                    por {program.author}
+                  </p>
+
+                  {/* Tagline */}
+                  <p
+                    className="text-sm text-center leading-relaxed mb-4"
                     style={{ color: 'var(--text-main)' }}
                   >
-                    {p.title}
-                  </h3>
-                  <p className="text-sm leading-relaxed" style={{ color: 'var(--text-muted)' }}>
-                    {p.desc}
+                    {program.tagline}
                   </p>
+
+                  {/* Audience line */}
+                  <p
+                    className="text-sm text-center leading-relaxed mb-5"
+                    style={{ color: 'var(--text-muted)' }}
+                  >
+                    <span
+                      className="font-mono text-[11px] uppercase tracking-wider"
+                      style={{ color: 'var(--fill-progress)' }}
+                    >
+                      Ideal para:
+                    </span>{' '}
+                    {program.audience}
+                  </p>
+
+                  {/* Key benefit */}
+                  <p
+                    className="text-sm text-center leading-relaxed mb-6"
+                    style={{ color: 'var(--text-muted)' }}
+                  >
+                    {program.keyBenefit}
+                  </p>
+
+                  {/* Metadata pills */}
+                  <div className="flex flex-wrap justify-center gap-2">
+                    {[
+                      program.metadata.daysPerWeek,
+                      program.metadata.duration,
+                      program.metadata.level,
+                    ].map((pill) => (
+                      <span
+                        key={pill}
+                        className="font-mono text-[10px] tracking-wider uppercase px-3 py-1 border border-[var(--border-light)] bg-[var(--bg-body)]"
+                        style={{ color: 'var(--text-muted)' }}
+                      >
+                        {pill}
+                      </span>
+                    ))}
+                  </div>
                 </div>
               ))}
             </div>
