@@ -145,7 +145,6 @@ export function useProgram(instanceId?: string): UseProgramReturn {
     queryKey: queryKeys.programs.detail(activeInstanceId ?? ''),
     queryFn: () => fetchProgram(activeInstanceId ?? ''),
     enabled: activeInstanceId !== null,
-    staleTime: 10_000,
   });
 
   const detail = detailQuery.data ?? null;
@@ -221,7 +220,8 @@ export function useProgram(instanceId?: string): UseProgramReturn {
         return { ...prev, results: updatedResults };
       }),
     onError: detailOnError,
-    onSettled: detailOnSettled,
+    // onSettled omitted — setAmrapRepsCb updates the cache directly (immediate setQueryData +
+    // debounced mutate); invalidating here would trigger a redundant GET on every click.
   });
 
   // fix: setRpe now accepts a tier parameter for independent T1/T3 RPE
@@ -255,7 +255,8 @@ export function useProgram(instanceId?: string): UseProgramReturn {
         return { ...prev, results: updatedResults };
       }),
     onError: detailOnError,
-    onSettled: detailOnSettled,
+    // onSettled omitted — setRpeCb updates the cache directly (immediate setQueryData +
+    // debounced mutate); invalidating here would trigger a redundant GET on every selection.
   });
 
   const undoSpecificMutation = useMutation({
