@@ -5,6 +5,7 @@
 import { eq, lt } from 'drizzle-orm';
 import { getDb } from '../db';
 import { users, refreshTokens } from '../db/schema';
+import { ApiError } from '../middleware/error-handler';
 
 // ---------------------------------------------------------------------------
 // Shared types
@@ -64,7 +65,7 @@ export async function findOrCreateGoogleUser(
         .set({ name, updatedAt: new Date() })
         .where(eq(users.id, existing.id))
         .returning();
-      if (!updated) throw new Error('Failed to update user name');
+      if (!updated) throw new ApiError(500, 'Failed to update user name', 'DB_WRITE_ERROR');
       return updated;
     }
     return existing;
@@ -75,7 +76,7 @@ export async function findOrCreateGoogleUser(
     .values({ googleId, email: email.toLowerCase(), name: name ?? null })
     .returning();
 
-  if (!created) throw new Error('Failed to create user');
+  if (!created) throw new ApiError(500, 'Failed to create user', 'DB_WRITE_ERROR');
   return created;
 }
 

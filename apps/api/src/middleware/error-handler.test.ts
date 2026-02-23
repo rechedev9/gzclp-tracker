@@ -25,4 +25,29 @@ describe('ApiError', () => {
     expect(apiErr instanceof ApiError).toBe(true);
     expect(plainErr instanceof ApiError).toBe(false);
   });
+
+  // 4.8: AUTH_JWKS_UNAVAILABLE code constructs correctly
+  it('4.8: ApiError with code AUTH_JWKS_UNAVAILABLE has statusCode 503', () => {
+    // Arrange / Act
+    const err = new ApiError(503, 'JWKS endpoint unavailable', 'AUTH_JWKS_UNAVAILABLE');
+
+    // Assert
+    expect(err.statusCode).toBe(503);
+  });
+
+  it('4.8: ApiError with code AUTH_JWKS_UNAVAILABLE has code AUTH_JWKS_UNAVAILABLE', () => {
+    // Arrange / Act
+    const err = new ApiError(503, 'JWKS endpoint unavailable', 'AUTH_JWKS_UNAVAILABLE');
+
+    // Assert
+    expect(err.code).toBe('AUTH_JWKS_UNAVAILABLE');
+  });
+
+  it('4.8: ApiError with code AUTH_JWKS_UNAVAILABLE is instanceof ApiError', () => {
+    // Arrange / Act
+    const err = new ApiError(503, 'JWKS endpoint unavailable', 'AUTH_JWKS_UNAVAILABLE');
+
+    // Assert
+    expect(err instanceof ApiError).toBe(true);
+  });
 });

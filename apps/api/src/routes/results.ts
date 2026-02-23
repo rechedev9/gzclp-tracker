@@ -5,18 +5,30 @@
 import { Elysia, t } from 'elysia';
 import { jwtPlugin, resolveUserId } from '../middleware/auth-guard';
 import { rateLimit } from '../middleware/rate-limit';
+import { requestLogger } from '../middleware/request-logger';
 import { recordResult, deleteResult, undoLast } from '../services/results';
 
 const security = [{ bearerAuth: [] }];
 
 export const resultRoutes = new Elysia({ prefix: '/programs/:id' })
+  .use(requestLogger)
   .use(jwtPlugin)
   .resolve(resolveUserId)
 
   // POST /programs/:id/results — record a workout result
   .post(
     '/results',
-    async ({ userId, params, body, set }) => {
+    async ({ userId, params, body, set, reqLogger }) => {
+      reqLogger.info(
+        {
+          event: 'result.record',
+          userId,
+          instanceId: params.id,
+          workoutIndex: body.workoutIndex,
+          slotId: body.slotId,
+        },
+        'recording result'
+      );
       await rateLimit(userId, 'POST /programs/results');
       const result = await recordResult(userId, params.id, body);
       set.status = 201;
@@ -57,7 +69,17 @@ export const resultRoutes = new Elysia({ prefix: '/programs/:id' })
   // DELETE /programs/:id/results/:workoutIndex/:slotId — delete a result
   .delete(
     '/results/:workoutIndex/:slotId',
-    async ({ userId, params, set }) => {
+    async ({ userId, params, set, reqLogger }) => {
+      reqLogger.info(
+        {
+          event: 'result.delete',
+          userId,
+          instanceId: params.id,
+          workoutIndex: params.workoutIndex,
+          slotId: params.slotId,
+        },
+        'deleting result'
+      );
       await deleteResult(userId, params.id, params.workoutIndex, params.slotId);
       set.status = 204;
     },
@@ -85,7 +107,11 @@ export const resultRoutes = new Elysia({ prefix: '/programs/:id' })
   // POST /programs/:id/undo — undo last action
   .post(
     '/undo',
-    async ({ userId, params }) => {
+    async ({ userId, params, reqLogger }) => {
+      reqLogger.info(
+        { event: 'result.undo', userId, instanceId: params.id },
+        'undoing last result action'
+      );
       await rateLimit(userId, 'POST /programs/undo');
       const entry = await undoLast(userId, params.id);
       if (!entry) {

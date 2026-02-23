@@ -1,5 +1,6 @@
 import { Elysia } from 'elysia';
-import { httpRequestDuration, httpRequestsTotal } from '../lib/metrics';
+import { httpRequestDuration, httpRequestsTotal, httpErrorsTotal } from '../lib/metrics';
+import { ApiError } from '../middleware/error-handler';
 
 /**
  * Normalises URL paths to route patterns to prevent high-cardinality Prometheus
@@ -33,5 +34,22 @@ export const metricsPlugin = new Elysia({ name: 'metrics-plugin' })
     const durationSec = (Date.now() - startMs) / 1000;
 
     httpRequestDuration.observe({ method, route, status_code: statusCode }, durationSec);
+    httpRequestsTotal.inc({ method, route, status_code: statusCode });
+  })
+  .onError({ as: 'global' }, ({ request, error, set }): void => {
+    const startMs = requestStartTimes.get(request);
+    if (startMs !== undefined) {
+      requestStartTimes.delete(request);
+    }
+
+    const rawStatus = typeof set.status === 'number' ? set.status : 500;
+    const statusClass = rawStatus >= 500 ? '5xx' : '4xx';
+    const errorCode = error instanceof ApiError ? error.code : 'UNKNOWN';
+
+    httpErrorsTotal.inc({ status_class: statusClass, error_code: errorCode });
+
+    const method = request.method;
+    const route = normaliseRoute(new URL(request.url).pathname);
+    const statusCode = String(rawStatus);
     httpRequestsTotal.inc({ method, route, status_code: statusCode });
   });

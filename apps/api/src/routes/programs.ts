@@ -4,6 +4,7 @@
 import { Elysia, t } from 'elysia';
 import { jwtPlugin, resolveUserId } from '../middleware/auth-guard';
 import { rateLimit } from '../middleware/rate-limit';
+import { requestLogger } from '../middleware/request-logger';
 import {
   createInstance,
   getInstances,
@@ -17,6 +18,7 @@ import {
 const security = [{ bearerAuth: [] }];
 
 export const programRoutes = new Elysia({ prefix: '/programs' })
+  .use(requestLogger)
   .use(jwtPlugin)
   .resolve(resolveUserId)
 
@@ -46,7 +48,8 @@ export const programRoutes = new Elysia({ prefix: '/programs' })
   // POST /programs — create a new program instance
   .post(
     '/',
-    async ({ userId, body, set }) => {
+    async ({ userId, body, set, reqLogger }) => {
+      reqLogger.info({ event: 'program.create', userId }, 'creating program instance');
       await rateLimit(userId, 'POST /programs');
       const instance = await createInstance(userId, body.programId, body.name, body.config);
       set.status = 201;
@@ -94,7 +97,11 @@ export const programRoutes = new Elysia({ prefix: '/programs' })
   // PATCH /programs/:id — update a program instance
   .patch(
     '/:id',
-    async ({ userId, params, body }) => {
+    async ({ userId, params, body, reqLogger }) => {
+      reqLogger.info(
+        { event: 'program.update', userId, instanceId: params.id },
+        'updating program instance'
+      );
       await rateLimit(userId, 'PATCH /programs');
       return updateInstance(userId, params.id, body);
     },
@@ -128,7 +135,11 @@ export const programRoutes = new Elysia({ prefix: '/programs' })
   // DELETE /programs/:id — delete a program instance
   .delete(
     '/:id',
-    async ({ userId, params, set }) => {
+    async ({ userId, params, set, reqLogger }) => {
+      reqLogger.info(
+        { event: 'program.delete', userId, instanceId: params.id },
+        'deleting program instance'
+      );
       await rateLimit(userId, 'DELETE /programs');
       await deleteInstance(userId, params.id);
       set.status = 204;
@@ -171,7 +182,8 @@ export const programRoutes = new Elysia({ prefix: '/programs' })
   // POST /programs/import — import a program from exported JSON
   .post(
     '/import',
-    async ({ userId, body, set }) => {
+    async ({ userId, body, set, reqLogger }) => {
+      reqLogger.info({ event: 'program.import', userId }, 'importing program instance');
       await rateLimit(userId, 'POST /programs/import');
       const instance = await importInstance(userId, body);
       set.status = 201;

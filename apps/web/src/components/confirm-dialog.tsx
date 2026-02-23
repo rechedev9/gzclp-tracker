@@ -65,14 +65,14 @@ export function ConfirmDialog({
 
   return (
     <div
-      className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60"
+      className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm"
       onClick={onCancel}
     >
       <div
         role="dialog"
         aria-modal="true"
         aria-labelledby="confirm-dialog-title"
-        className="bg-[var(--bg-card)] border border-[var(--border-color)] p-6 max-w-sm w-[calc(100%-2rem)] shadow-lg"
+        className="modal-box bg-[var(--bg-card)] border border-[var(--border-color)] p-6 max-w-sm w-[calc(100%-2rem)] shadow-lg"
         onClick={(e) => e.stopPropagation()}
         onKeyDown={handleDialogKeyDown}
       >
@@ -84,11 +84,7 @@ export function ConfirmDialog({
           <Button ref={cancelRef} variant="ghost" onClick={onCancel}>
             {cancelLabel}
           </Button>
-          <Button
-            ref={confirmRef}
-            variant={variant === 'danger' ? 'danger' : 'default'}
-            onClick={onConfirm}
-          >
+          <Button ref={confirmRef} variant={variant} onClick={onConfirm}>
             {confirmLabel}
           </Button>
         </div>

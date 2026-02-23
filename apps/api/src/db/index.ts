@@ -2,8 +2,24 @@ import { drizzle } from 'drizzle-orm/postgres-js';
 import postgres from 'postgres';
 import * as schema from './schema';
 import { logger } from '../lib/logger';
+import { dbQueriesTotal } from '../lib/metrics';
 
 type DbInstance = ReturnType<typeof drizzle<typeof schema>>;
+
+type QueryType = 'select' | 'insert' | 'update' | 'delete' | 'other';
+
+function deriveQueryType(sql: string): QueryType {
+  const keyword = sql.trimStart().split(/\s+/)[0]?.toLowerCase() ?? 'other';
+  if (
+    keyword === 'select' ||
+    keyword === 'insert' ||
+    keyword === 'update' ||
+    keyword === 'delete'
+  ) {
+    return keyword;
+  }
+  return 'other';
+}
 
 let _client: postgres.Sql | undefined;
 let _db: DbInstance | undefined;
@@ -13,6 +29,7 @@ const devQueryLogger =
     ? {
         logQuery(query: string, params: unknown[]): void {
           logger.debug({ sql: query, params }, 'SQL');
+          dbQueriesTotal?.inc({ query_type: deriveQueryType(query) });
         },
       }
     : undefined;

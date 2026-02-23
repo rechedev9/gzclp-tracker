@@ -3,6 +3,7 @@
  * No google-auth-library dependency — pure Web Crypto API.
  */
 import { isRecord } from '@gzclp/shared/type-guards';
+import { ApiError } from '../middleware/error-handler';
 
 const JWKS_URL = 'https://www.googleapis.com/oauth2/v3/certs';
 const GOOGLE_ISSUERS = new Set(['accounts.google.com', 'https://accounts.google.com']);
@@ -93,10 +94,11 @@ async function fetchGoogleCerts(): Promise<GoogleJwk[]> {
   }
 
   const res = await fetch(JWKS_URL, { signal: AbortSignal.timeout(5_000) });
-  if (!res.ok) throw new Error(`Failed to fetch Google JWKS: ${res.status}`);
+  if (!res.ok) throw new ApiError(503, 'Google JWKS endpoint unavailable', 'AUTH_JWKS_UNAVAILABLE');
 
   const rawData: unknown = await res.json();
-  if (!isJwksResponse(rawData)) throw new Error('Invalid JWKS response format');
+  if (!isJwksResponse(rawData))
+    throw new ApiError(503, 'Invalid JWKS response format', 'AUTH_JWKS_UNAVAILABLE');
 
   jwksCache = { keys: rawData.keys, fetchedAt: Date.now() };
   return rawData.keys;
@@ -109,23 +111,26 @@ async function fetchGoogleCerts(): Promise<GoogleJwk[]> {
 /** Verifies a Google ID token (RS256) against Google's JWKS. */
 export async function verifyGoogleToken(credential: string): Promise<GoogleTokenPayload> {
   const clientId = process.env['GOOGLE_CLIENT_ID'];
-  if (!clientId) throw new Error('GOOGLE_CLIENT_ID env var must be set');
+  if (!clientId)
+    throw new ApiError(500, 'GOOGLE_CLIENT_ID env var must be set', 'CONFIGURATION_ERROR');
 
   const parts = credential.split('.');
-  if (parts.length !== 3) throw new Error('Invalid JWT format: expected 3 segments');
+  if (parts.length !== 3)
+    throw new ApiError(401, 'Invalid JWT format: expected 3 segments', 'AUTH_INVALID');
 
   const headerB64 = parts[0] ?? '';
   const payloadB64 = parts[1] ?? '';
   const signatureB64 = parts[2] ?? '';
 
   const rawHeader: unknown = JSON.parse(Buffer.from(headerB64, 'base64url').toString('utf8'));
-  if (!isIdTokenHeader(rawHeader)) throw new Error('Invalid JWT header');
+  if (!isIdTokenHeader(rawHeader)) throw new ApiError(401, 'Invalid JWT header', 'AUTH_INVALID');
 
-  if (rawHeader.alg !== 'RS256') throw new Error(`Unsupported algorithm: ${rawHeader.alg}`);
+  if (rawHeader.alg !== 'RS256')
+    throw new ApiError(401, 'Unsupported token algorithm', 'AUTH_INVALID');
 
   const keys = await fetchGoogleCerts();
   const jwk = keys.find((k) => k.kid === rawHeader.kid);
-  if (!jwk) throw new Error(`Unknown key ID: ${rawHeader.kid}`);
+  if (!jwk) throw new ApiError(401, 'Unknown token signing key', 'AUTH_INVALID');
 
   // Pass the narrowed JWK fields directly — TypeScript infers compatibility
   const cryptoKey = await crypto.subtle.importKey(
@@ -146,20 +151,21 @@ export async function verifyGoogleToken(credential: string): Promise<GoogleToken
     new TextEncoder().encode(signingInput)
   );
 
-  if (!isValid) throw new Error('Invalid JWT signature');
+  if (!isValid) throw new ApiError(401, 'Invalid JWT signature', 'AUTH_INVALID');
 
   const rawPayload: unknown = JSON.parse(Buffer.from(payloadB64, 'base64url').toString('utf8'));
-  if (!isIdTokenPayload(rawPayload)) throw new Error('Invalid JWT payload');
+  if (!isIdTokenPayload(rawPayload)) throw new ApiError(401, 'Invalid JWT payload', 'AUTH_INVALID');
 
   // Validate standard claims
-  if (Date.now() / 1000 > rawPayload.exp) throw new Error('Token has expired');
+  if (Date.now() / 1000 > rawPayload.exp)
+    throw new ApiError(401, 'Token has expired', 'AUTH_INVALID');
 
   if (!GOOGLE_ISSUERS.has(rawPayload.iss)) {
-    throw new Error(`Invalid issuer: ${rawPayload.iss}`);
+    throw new ApiError(401, 'Invalid token issuer', 'AUTH_INVALID');
   }
 
   const audiences = Array.isArray(rawPayload.aud) ? rawPayload.aud : [rawPayload.aud];
-  if (!audiences.includes(clientId)) throw new Error('Invalid audience');
+  if (!audiences.includes(clientId)) throw new ApiError(401, 'Invalid audience', 'AUTH_INVALID');
 
   return {
     sub: rawPayload.sub,
