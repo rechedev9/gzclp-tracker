@@ -210,9 +210,9 @@ export const WorkoutRow = memo(function WorkoutRow({
         >
           <td
             colSpan={TABLE_COLUMN_COUNT}
-            className="border border-[var(--border-light)] px-4 py-2 bg-[var(--bg-card)]"
+            className="border-x border-b border-[var(--border-light)] px-4 py-1"
           >
-            <div className="flex items-center gap-6 flex-wrap">
+            <div className="flex items-center gap-4 flex-wrap">
               {row.result.t1 && (
                 <div className="flex items-center gap-2">
                   <span className="text-xs font-bold uppercase text-[var(--text-muted)]">
