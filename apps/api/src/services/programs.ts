@@ -97,6 +97,20 @@ function toResponse(
   };
 }
 
+/** Fetches results + undo rows in parallel for a given instance. */
+async function fetchResultsAndUndo(
+  instanceId: string
+): Promise<readonly [readonly WorkoutResultRow[], readonly UndoEntryRow[]]> {
+  return Promise.all([
+    getDb().select().from(workoutResults).where(eq(workoutResults.instanceId, instanceId)),
+    getDb()
+      .select()
+      .from(undoEntries)
+      .where(eq(undoEntries.instanceId, instanceId))
+      .orderBy(undoEntries.id),
+  ]);
+}
+
 // ---------------------------------------------------------------------------
 // CRUD operations
 // ---------------------------------------------------------------------------
@@ -204,15 +218,7 @@ export async function getInstance(
     throw new ApiError(404, 'Program instance not found', 'INSTANCE_NOT_FOUND');
   }
 
-  // Fetch results and undo history
-  const [resultRows, undoRows] = await Promise.all([
-    getDb().select().from(workoutResults).where(eq(workoutResults.instanceId, instanceId)),
-    getDb()
-      .select()
-      .from(undoEntries)
-      .where(eq(undoEntries.instanceId, instanceId))
-      .orderBy(undoEntries.id),
-  ]);
+  const [resultRows, undoRows] = await fetchResultsAndUndo(instanceId);
 
   return toResponse(instance, resultRows, undoRows);
 }
@@ -248,7 +254,8 @@ export async function updateInstance(
     throw new ApiError(404, 'Program instance not found', 'INSTANCE_NOT_FOUND');
   }
 
-  return getInstance(userId, instanceId);
+  const [resultRows, undoRows] = await fetchResultsAndUndo(instanceId);
+  return toResponse(updated, resultRows, undoRows);
 }
 
 export async function deleteInstance(userId: string, instanceId: string): Promise<void> {
