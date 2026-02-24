@@ -34,9 +34,15 @@ function setResultOptimistic(
   };
 }
 
+type LegacyTierKey = 't1' | 't2' | 't3';
+
+function isLegacyTierKey(tier: string): tier is LegacyTierKey {
+  return tier === 't1' || tier === 't2' || tier === 't3';
+}
+
 function removeTierResult(results: Results, index: number, tier: Tier): Results {
   const updated = { ...results };
-  if (updated[index]) {
+  if (updated[index] && isLegacyTierKey(tier)) {
     const entry = { ...updated[index] };
     delete entry[tier];
     if (Object.keys(entry).length === 0) {
@@ -202,7 +208,7 @@ export function useProgram(instanceId?: string): UseProgramReturn {
       reps: number | undefined;
     }) => {
       if (!activeInstanceId) throw new Error('No active program');
-      const tier: Tier = field === 't1Reps' ? 't1' : 't3';
+      const tier: LegacyTierKey = field === 't1Reps' ? 't1' : 't3';
       const currentResult = results[index]?.[tier];
       if (!currentResult) return;
       await recordResult(activeInstanceId, index, tier, currentResult, reps);

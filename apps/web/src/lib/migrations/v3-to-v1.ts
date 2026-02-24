@@ -7,8 +7,10 @@
  */
 
 import { GZCLP_DEFINITION } from '@gzclp/shared/programs/gzclp';
-import type { Results, UndoHistory, Tier } from '@gzclp/shared/types';
+import type { Results, UndoHistory } from '@gzclp/shared/types';
 import type { GenericResults, GenericUndoHistory } from '@gzclp/shared/types/program';
+
+type LegacyTierKey = 't1' | 't2' | 't3';
 
 // ---------------------------------------------------------------------------
 // Slot ↔ Tier lookup tables (built once from GZCLP definition)
@@ -28,7 +30,7 @@ function buildSlotTierMap(): Record<string, string> {
 const SLOT_TIER_MAP = buildSlotTierMap();
 const VALID_TIERS: ReadonlySet<string> = new Set(['t1', 't2', 't3']);
 
-function isTier(value: string): value is Tier {
+function isTier(value: string): value is LegacyTierKey {
   return VALID_TIERS.has(value);
 }
 

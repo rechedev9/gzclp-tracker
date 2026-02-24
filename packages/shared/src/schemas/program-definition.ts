@@ -28,6 +28,12 @@ const AdvanceStageAddWeightRuleSchema = z.strictObject({
   type: z.literal('advance_stage_add_weight'),
 });
 
+const UpdateTmRuleSchema = z.strictObject({
+  type: z.literal('update_tm'),
+  amount: z.number(),
+  minAmrapReps: z.number().int().nonnegative(),
+});
+
 export const ProgressionRuleSchema = z.discriminatedUnion('type', [
   AddWeightRuleSchema,
   DeloadPercentRuleSchema,
@@ -35,6 +41,7 @@ export const ProgressionRuleSchema = z.discriminatedUnion('type', [
   AddWeightResetStageRuleSchema,
   NoChangeRuleSchema,
   AdvanceStageAddWeightRuleSchema,
+  UpdateTmRuleSchema,
 ]);
 
 // --- Stage Definition ---
@@ -43,11 +50,16 @@ export const StageDefinitionSchema = z.strictObject({
   sets: z.number().int().positive(),
   reps: z.number().int().positive(),
   amrap: z.boolean().optional(),
+  repsMax: z.number().int().positive().optional(),
 });
 
 // --- Tier ---
 
-export const TierSchema = z.enum(['t1', 't2', 't3']);
+export const TierSchema = z.string().min(1);
+
+// --- Role ---
+
+const RoleSchema = z.enum(['primary', 'secondary', 'accessory']);
 
 // --- Exercise Slot ---
 
@@ -64,6 +76,9 @@ export const ExerciseSlotSchema = z.strictObject({
   startWeightKey: z.string().min(1),
   startWeightMultiplier: z.number().positive().optional(),
   startWeightOffset: z.number().int().optional(),
+  trainingMaxKey: z.string().min(1).optional(),
+  tmPercent: z.number().positive().max(1).optional(),
+  role: RoleSchema.optional(),
 });
 
 // --- Program Day ---

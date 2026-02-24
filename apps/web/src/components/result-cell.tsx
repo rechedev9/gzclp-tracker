@@ -1,13 +1,13 @@
 import { memo } from 'react';
-import type { Tier, ResultValue } from '@gzclp/shared/types';
+import type { ResultValue } from '@gzclp/shared/types';
 
 interface ResultCellProps {
   readonly index: number;
-  readonly tier: Tier;
+  readonly tier: string;
   readonly result?: ResultValue;
   readonly variant: 'table' | 'card';
-  readonly onMark: (index: number, tier: Tier, value: ResultValue) => void;
-  readonly onUndo: (index: number, tier: Tier) => void;
+  readonly onMark: (index: number, tier: string, value: ResultValue) => void;
+  readonly onUndo: (index: number, tier: string) => void;
 }
 
 export const ResultCell = memo(function ResultCell({

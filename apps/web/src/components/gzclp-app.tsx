@@ -141,8 +141,12 @@ export function GZCLPApp({
       markResult(index, tier, value);
       const row = rowsRef.current[index];
       if (!row) return;
-      const exerciseByTier = { t1: row.t1Exercise, t2: row.t2Exercise, t3: row.t3Exercise };
-      const exerciseKey = exerciseByTier[tier];
+      const exerciseByTier: Record<string, string> = {
+        t1: row.t1Exercise,
+        t2: row.t2Exercise,
+        t3: row.t3Exercise,
+      };
+      const exerciseKey = exerciseByTier[tier] ?? '';
       const isPr = detectT1PersonalRecord(rowsRef.current, index, tier, value);
       if (isPr) {
         toast({
@@ -276,7 +280,7 @@ export function GZCLPApp({
         )}
       </div>
 
-      <div className="max-w-[1300px] mx-auto px-5 pb-24">
+      <div className="max-w-[1300px] mx-auto px-3 sm:px-5 pb-24">
         <SetupForm
           initialWeights={startWeights}
           isGenerating={isGenerating}
@@ -287,7 +291,10 @@ export function GZCLPApp({
         {startWeights && (
           <>
             {/* Tabs */}
-            <div role="tablist" className="flex gap-0 mb-8 border-b-2 border-[var(--border-color)]">
+            <div
+              role="tablist"
+              className="flex gap-0 mb-4 sm:mb-8 border-b-2 border-[var(--border-color)]"
+            >
               <TabButton
                 active={activeTab === 'program'}
                 onClick={() => startTransition(() => setActiveTab('program'))}
@@ -307,7 +314,7 @@ export function GZCLPApp({
             {activeTab === 'program' && (
               <>
                 {/* Info toggle */}
-                <details className="bg-[var(--bg-card)] border border-[var(--border-color)] mb-8 overflow-hidden">
+                <details className="bg-[var(--bg-card)] border border-[var(--border-color)] mb-4 sm:mb-8 overflow-hidden">
                   <summary className="font-mono px-5 py-3.5 font-bold cursor-pointer select-none flex justify-between items-center [&::marker]:hidden list-none text-[11px] tracking-widest uppercase">
                     Reglas de Progresión y Cómo Usar
                     <span className="transition-transform duration-200 [[open]>&]:rotate-90">

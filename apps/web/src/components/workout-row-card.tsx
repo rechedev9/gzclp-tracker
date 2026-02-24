@@ -10,10 +10,10 @@ import { RpeInput } from './rpe-input';
 interface WorkoutRowCardProps {
   row: WorkoutRowType;
   isCurrent: boolean;
-  onMark: (index: number, tier: Tier, value: ResultValue) => void;
+  onMark: (index: number, tier: string, value: ResultValue) => void;
   onSetAmrapReps: (index: number, field: 't1Reps' | 't3Reps', reps: number | undefined) => void;
   onSetRpe?: (index: number, tier: 't1' | 't3', rpe: number | undefined) => void;
-  onUndo: (index: number, tier: Tier) => void;
+  onUndo: (index: number, tier: string) => void;
 }
 
 function TierSection({
@@ -213,7 +213,7 @@ export const WorkoutRowCard = memo(function WorkoutRowCard({
         {/* fix: RPE only shows for T1 success */}
         {row.result.t1 === 'success' && onSetRpe && (
           <div className="mt-1 pl-1" data-rpe-input={row.index}>
-            <RpeInput value={row.result.rpe} onChange={handleRpeChange} tier="t1" />
+            <RpeInput value={row.result.rpe} onChange={handleRpeChange} label="T1" />
           </div>
         )}
       </div>
@@ -250,7 +250,7 @@ export const WorkoutRowCard = memo(function WorkoutRowCard({
         {/* fix: independent T3 RPE */}
         {row.result.t3 === 'success' && onSetRpe && (
           <div className="mt-1 pl-1">
-            <RpeInput value={row.result.t3Rpe} onChange={handleT3RpeChange} tier="t3" />
+            <RpeInput value={row.result.t3Rpe} onChange={handleT3RpeChange} label="T3" />
           </div>
         )}
       </div>

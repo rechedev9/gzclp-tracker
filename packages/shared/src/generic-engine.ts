@@ -47,7 +47,104 @@ function applyRule(
       };
     case 'no_change':
       return { ...state };
+    case 'update_tm':
+      // update_tm is handled inline in the progression loop (needs tmState access).
+      // If reached here (defensive), treat as no-op for slotState.
+      return { ...state };
   }
+}
+
+type Role = 'primary' | 'secondary' | 'accessory' | undefined;
+
+/** Tier-to-role inference map for legacy programs (GZCLP, Nivel7). */
+const TIER_ROLE_MAP: Record<string, 'primary' | 'secondary' | 'accessory'> = {
+  t1: 'primary',
+  t2: 'secondary',
+  t3: 'primary',
+};
+
+function resolveRole(
+  explicitRole: 'primary' | 'secondary' | 'accessory' | undefined,
+  tier: string
+): Role {
+  if (explicitRole !== undefined) return explicitRole;
+  return TIER_ROLE_MAP[tier];
+}
+
+type UpdateTmRule = {
+  readonly type: 'update_tm';
+  readonly amount: number;
+  readonly minAmrapReps: number;
+};
+type SlotDef = ProgramDefinition['days'][number]['slots'][number];
+type SlotResult = { result?: 'success' | 'fail'; amrapReps?: number; rpe?: number };
+
+function applyUpdateTm(
+  rule: UpdateTmRule,
+  slot: SlotDef,
+  slotResult: SlotResult,
+  tmState: Record<string, number>,
+  slotState: Record<string, SlotState>,
+  state: SlotState
+): void {
+  if (slot.trainingMaxKey === undefined) {
+    throw new Error('update_tm rule requires trainingMaxKey on slot');
+  }
+  const amrapReps = slotResult.amrapReps;
+  if (amrapReps !== undefined && amrapReps >= rule.minAmrapReps) {
+    tmState[slot.trainingMaxKey] = roundToNearestHalf(tmState[slot.trainingMaxKey] + rule.amount);
+    slotState[slot.id] = { ...state, everChanged: true };
+  } else {
+    slotState[slot.id] = { ...state, everChanged: state.everChanged };
+  }
+}
+
+/** Selects the applicable rule and applies progression for a single slot. */
+function applySlotProgression(
+  slot: SlotDef,
+  state: SlotState,
+  slotResult: SlotResult,
+  resultValue: ResultValue | undefined,
+  increment: number,
+  tmState: Record<string, number>,
+  slotState: Record<string, SlotState>
+): void {
+  const maxStageIdx = slot.stages.length - 1;
+
+  if (resultValue === 'fail') {
+    const rule = state.stage >= maxStageIdx ? slot.onFinalStageFail : slot.onMidStageFail;
+    if (rule.type === 'update_tm') {
+      applyUpdateTm(rule, slot, slotResult, tmState, slotState, state);
+      return;
+    }
+    const changesState = rule.type !== 'no_change';
+    const nextState = applyRule(rule, state, increment, maxStageIdx);
+    slotState[slot.id] = { ...nextState, everChanged: state.everChanged || changesState };
+    return;
+  }
+
+  if (resultValue === 'success') {
+    const rule =
+      state.stage >= maxStageIdx && slot.onFinalStageSuccess
+        ? slot.onFinalStageSuccess
+        : slot.onSuccess;
+    if (rule.type === 'update_tm') {
+      applyUpdateTm(rule, slot, slotResult, tmState, slotState, state);
+      return;
+    }
+    const nextState = applyRule(rule, state, increment, maxStageIdx);
+    slotState[slot.id] = { ...nextState, everChanged: state.everChanged };
+    return;
+  }
+
+  // undefined — apply onUndefined if set, else onSuccess (implicit pass)
+  const rule = slot.onUndefined ?? slot.onSuccess;
+  if (rule.type === 'update_tm') {
+    applyUpdateTm(rule, slot, slotResult, tmState, slotState, state);
+    return;
+  }
+  const nextState = applyRule(rule, state, increment, maxStageIdx);
+  slotState[slot.id] = { ...nextState, everChanged: state.everChanged };
 }
 
 /**
@@ -81,6 +178,16 @@ export function computeGenericProgram(
     }
   }
 
+  // --- TM initialization: one entry per unique trainingMaxKey ---
+  const tmState: Record<string, number> = {};
+  for (const day of definition.days) {
+    for (const slot of day.slots) {
+      if (slot.trainingMaxKey !== undefined && !(slot.trainingMaxKey in tmState)) {
+        tmState[slot.trainingMaxKey] = config[slot.trainingMaxKey] ?? 0;
+      }
+    }
+  }
+
   const rows: GenericWorkoutRow[] = [];
   const cycleLength = definition.days.length;
 
@@ -95,20 +202,31 @@ export function computeGenericProgram(
       const slotResult = workoutResult[slot.id] ?? {};
       const exerciseName = definition.exercises[slot.exerciseId].name;
 
+      // TM-derived weight or absolute weight
+      const weight =
+        slot.trainingMaxKey !== undefined && slot.tmPercent !== undefined
+          ? roundToNearestHalf(tmState[slot.trainingMaxKey] * slot.tmPercent)
+          : state.weight;
+
+      // Role resolution: explicit > infer from tier > undefined
+      const role = resolveRole(slot.role, slot.tier);
+
       return {
         slotId: slot.id,
         exerciseId: slot.exerciseId,
         exerciseName,
         tier: slot.tier,
-        weight: state.weight,
+        weight,
         stage: state.stage,
         sets: stageConfig.sets,
         reps: stageConfig.reps,
+        repsMax: stageConfig.repsMax,
         isAmrap: stageConfig.amrap === true,
         result: slotResult.result,
         amrapReps: slotResult.amrapReps,
         rpe: slotResult.rpe,
         isChanged: state.everChanged,
+        role,
       };
     });
 
@@ -124,27 +242,8 @@ export function computeGenericProgram(
       const state = slotState[slot.id];
       const slotResult = workoutResult[slot.id] ?? {};
       const resultValue: ResultValue | undefined = slotResult.result;
-      const maxStageIdx = slot.stages.length - 1;
       const increment = definition.weightIncrements[slot.exerciseId] ?? 0;
-
-      if (resultValue === 'fail') {
-        const rule = state.stage >= maxStageIdx ? slot.onFinalStageFail : slot.onMidStageFail;
-        const changesState = rule.type !== 'no_change';
-        const nextState = applyRule(rule, state, increment, maxStageIdx);
-        slotState[slot.id] = { ...nextState, everChanged: state.everChanged || changesState };
-      } else if (resultValue === 'success') {
-        const rule =
-          state.stage >= maxStageIdx && slot.onFinalStageSuccess
-            ? slot.onFinalStageSuccess
-            : slot.onSuccess;
-        const nextState = applyRule(rule, state, increment, maxStageIdx);
-        slotState[slot.id] = { ...nextState, everChanged: state.everChanged };
-      } else {
-        // undefined — apply onUndefined if set, else onSuccess (implicit pass)
-        const rule = slot.onUndefined ?? slot.onSuccess;
-        const nextState = applyRule(rule, state, increment, maxStageIdx);
-        slotState[slot.id] = { ...nextState, everChanged: state.everChanged };
-      }
+      applySlotProgression(slot, state, slotResult, resultValue, increment, tmState, slotState);
     }
   }
 

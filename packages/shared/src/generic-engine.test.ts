@@ -3,21 +3,88 @@ import { computeGenericProgram, roundToNearestHalf as round } from './generic-en
 import { GZCLP_DEFINITION } from './programs/gzclp';
 import { DEFAULT_WEIGHTS, buildResults } from '../test/fixtures';
 import type { ProgramDefinition, GenericResults } from './types/program';
+import {
+  ProgressionRuleSchema,
+  ExerciseSlotSchema,
+  StageDefinitionSchema,
+} from './schemas/program-definition';
 
 // ---------------------------------------------------------------------------
 // Test helpers
 // ---------------------------------------------------------------------------
 
-/** Minimal single-exercise program for testing individual rules in isolation. */
-function makeDefinition(overrides: {
-  stages?: Array<{ sets: number; reps: number; amrap?: boolean }>;
+type SlotOverrides = {
+  stages?: Array<{ sets: number; reps: number; amrap?: boolean; repsMax?: number }>;
   onSuccess?: ProgramDefinition['days'][number]['slots'][number]['onSuccess'];
+  onFinalStageSuccess?: ProgramDefinition['days'][number]['slots'][number]['onSuccess'];
   onUndefined?: ProgramDefinition['days'][number]['slots'][number]['onUndefined'];
   onMidStageFail?: ProgramDefinition['days'][number]['slots'][number]['onMidStageFail'];
   onFinalStageFail?: ProgramDefinition['days'][number]['slots'][number]['onFinalStageFail'];
   weightIncrement?: number;
   totalWorkouts?: number;
-}): ProgramDefinition {
+  trainingMaxKey?: string;
+  tmPercent?: number;
+  role?: 'primary' | 'secondary' | 'accessory';
+  tier?: string;
+  /** Additional slots to add alongside the default slot. */
+  extraSlots?: Array<{
+    id: string;
+    exerciseId: string;
+    tier: string;
+    stages: Array<{ sets: number; reps: number; amrap?: boolean; repsMax?: number }>;
+    onSuccess: ProgramDefinition['days'][number]['slots'][number]['onSuccess'];
+    onMidStageFail: ProgramDefinition['days'][number]['slots'][number]['onMidStageFail'];
+    onFinalStageFail: ProgramDefinition['days'][number]['slots'][number]['onFinalStageFail'];
+    startWeightKey: string;
+    trainingMaxKey?: string;
+    tmPercent?: number;
+    role?: 'primary' | 'secondary' | 'accessory';
+    onUndefined?: ProgramDefinition['days'][number]['slots'][number]['onUndefined'];
+  }>;
+  /** Extra exercises to register (e.g. { ex2: { name: 'Exercise 2' } }) */
+  extraExercises?: Record<string, { name: string }>;
+  /** Extra weight increments (e.g. { ex2: 2.5 }) */
+  extraIncrements?: Record<string, number>;
+  /** Extra config fields */
+  extraConfigFields?: Array<{
+    key: string;
+    label: string;
+    type: 'weight';
+    min: number;
+    step: number;
+  }>;
+};
+
+/** Minimal single-exercise program for testing individual rules in isolation. */
+function makeDefinition(overrides: SlotOverrides): ProgramDefinition {
+  const primarySlot: ProgramDefinition['days'][number]['slots'][number] = {
+    id: 'slot1',
+    exerciseId: 'ex',
+    tier: overrides.tier ?? 't1',
+    stages: overrides.stages ?? [
+      { sets: 5, reps: 3 },
+      { sets: 6, reps: 2 },
+      { sets: 10, reps: 1 },
+    ],
+    onSuccess: overrides.onSuccess ?? { type: 'add_weight' },
+    onFinalStageSuccess: overrides.onFinalStageSuccess,
+    onUndefined: overrides.onUndefined,
+    onMidStageFail: overrides.onMidStageFail ?? { type: 'advance_stage' },
+    onFinalStageFail: overrides.onFinalStageFail ?? {
+      type: 'deload_percent',
+      percent: 10,
+    },
+    startWeightKey: overrides.trainingMaxKey ?? 'ex',
+    trainingMaxKey: overrides.trainingMaxKey,
+    tmPercent: overrides.tmPercent,
+    role: overrides.role,
+  };
+
+  const slots: ProgramDefinition['days'][number]['slots'] = [
+    primarySlot,
+    ...(overrides.extraSlots ?? []),
+  ];
+
   return {
     id: 'test',
     name: 'Test',
@@ -29,32 +96,22 @@ function makeDefinition(overrides: {
     cycleLength: 1,
     totalWorkouts: overrides.totalWorkouts ?? 10,
     workoutsPerWeek: 3,
-    exercises: { ex: { name: 'Exercise' } },
-    configFields: [{ key: 'ex', label: 'Exercise', type: 'weight', min: 0, step: 2.5 }],
-    weightIncrements: { ex: overrides.weightIncrement ?? 5 },
+    exercises: { ex: { name: 'Exercise' }, ...overrides.extraExercises },
+    configFields: [
+      {
+        key: overrides.trainingMaxKey ?? 'ex',
+        label: 'Exercise',
+        type: 'weight' as const,
+        min: 0,
+        step: 2.5,
+      },
+      ...(overrides.extraConfigFields ?? []),
+    ],
+    weightIncrements: { ex: overrides.weightIncrement ?? 5, ...overrides.extraIncrements },
     days: [
       {
         name: 'Day 1',
-        slots: [
-          {
-            id: 'slot1',
-            exerciseId: 'ex',
-            tier: 't1',
-            stages: overrides.stages ?? [
-              { sets: 5, reps: 3 },
-              { sets: 6, reps: 2 },
-              { sets: 10, reps: 1 },
-            ],
-            onSuccess: overrides.onSuccess ?? { type: 'add_weight' },
-            onUndefined: overrides.onUndefined,
-            onMidStageFail: overrides.onMidStageFail ?? { type: 'advance_stage' },
-            onFinalStageFail: overrides.onFinalStageFail ?? {
-              type: 'deload_percent',
-              percent: 10,
-            },
-            startWeightKey: 'ex',
-          },
-        ],
+        slots,
       },
     ],
   };
@@ -724,5 +781,480 @@ describe('computeGenericProgram: isChanged semantics', () => {
     expect(rows[1].isChanged).toBe(false);
     // Bench on Day 3 should not be affected
     expect(rows[2].isChanged).toBe(false);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// 4.1 — TM initialization tests (REQ-ENGINE-001)
+// ---------------------------------------------------------------------------
+describe('computeGenericProgram: TM initialization', () => {
+  it('initializes TM from config for a single TM key (REQ-ENGINE-001 scenario 1)', () => {
+    const def = makeDefinition({
+      stages: [{ sets: 1, reps: 5, amrap: true }],
+      onSuccess: { type: 'update_tm', amount: 5, minAmrapReps: 5 },
+      onMidStageFail: { type: 'no_change' },
+      onFinalStageFail: { type: 'no_change' },
+      trainingMaxKey: 'squat_tm',
+      tmPercent: 0.85,
+      role: 'primary',
+    });
+    const rows = computeGenericProgram(def, { squat_tm: 100 }, {});
+
+    expect(rows[0].slots[0].weight).toBe(round(100 * 0.85));
+  });
+
+  it('initializes TM to 0 when key missing from config (REQ-ENGINE-001 scenario 2)', () => {
+    const def = makeDefinition({
+      stages: [{ sets: 1, reps: 5, amrap: true }],
+      onSuccess: { type: 'update_tm', amount: 5, minAmrapReps: 5 },
+      onMidStageFail: { type: 'no_change' },
+      onFinalStageFail: { type: 'no_change' },
+      trainingMaxKey: 'bench_tm',
+      tmPercent: 0.85,
+      role: 'primary',
+    });
+    const rows = computeGenericProgram(def, {}, {});
+
+    expect(rows[0].slots[0].weight).toBe(0);
+  });
+
+  it('non-TM slots are unaffected by TM initialization (REQ-ENGINE-001 scenario 3)', () => {
+    const def = makeDefinition({
+      stages: [{ sets: 1, reps: 5, amrap: true }],
+      onSuccess: { type: 'update_tm', amount: 5, minAmrapReps: 5 },
+      onMidStageFail: { type: 'no_change' },
+      onFinalStageFail: { type: 'no_change' },
+      trainingMaxKey: 'squat_tm',
+      tmPercent: 0.85,
+      role: 'primary',
+      extraSlots: [
+        {
+          id: 'abs_slot',
+          exerciseId: 'ex2',
+          tier: 't3',
+          stages: [{ sets: 3, reps: 8 }],
+          onSuccess: { type: 'add_weight' },
+          onMidStageFail: { type: 'no_change' },
+          onFinalStageFail: { type: 'no_change' },
+          startWeightKey: 'ex2',
+        },
+      ],
+      extraExercises: { ex2: { name: 'Exercise 2' } },
+      extraIncrements: { ex2: 2.5 },
+      extraConfigFields: [
+        { key: 'ex2', label: 'Exercise 2', type: 'weight' as const, min: 0, step: 2.5 },
+      ],
+    });
+    const rows = computeGenericProgram(def, { squat_tm: 100, ex2: 80 }, {});
+
+    expect(rows[0].slots[1].weight).toBe(80);
+    expect(rows[0].slots[0].weight).toBe(round(100 * 0.85));
+  });
+});
+
+// ---------------------------------------------------------------------------
+// 4.2 — TM weight computation tests (REQ-ENGINE-002)
+// ---------------------------------------------------------------------------
+describe('computeGenericProgram: TM weight computation', () => {
+  it('computes TM slot weight at 75% (REQ-ENGINE-002 scenario 1)', () => {
+    const def = makeDefinition({
+      stages: [{ sets: 1, reps: 5 }],
+      onSuccess: { type: 'no_change' },
+      onMidStageFail: { type: 'no_change' },
+      onFinalStageFail: { type: 'no_change' },
+      trainingMaxKey: 'squat_tm',
+      tmPercent: 0.75,
+      role: 'secondary',
+    });
+    const rows = computeGenericProgram(def, { squat_tm: 100 }, {});
+
+    expect(rows[0].slots[0].weight).toBe(75);
+  });
+
+  it('computes TM slot weight at 85% (REQ-ENGINE-002 scenario 2)', () => {
+    const def = makeDefinition({
+      stages: [{ sets: 1, reps: 5, amrap: true }],
+      onSuccess: { type: 'no_change' },
+      onMidStageFail: { type: 'no_change' },
+      onFinalStageFail: { type: 'no_change' },
+      trainingMaxKey: 'squat_tm',
+      tmPercent: 0.85,
+      role: 'primary',
+    });
+    const rows = computeGenericProgram(def, { squat_tm: 100 }, {});
+
+    expect(rows[0].slots[0].weight).toBe(85);
+  });
+
+  it('two slots sharing same TM key reflect the same TM (REQ-ENGINE-002 scenario 3)', () => {
+    const def = makeDefinition({
+      stages: [{ sets: 1, reps: 5, amrap: true }],
+      onSuccess: { type: 'no_change' },
+      onMidStageFail: { type: 'no_change' },
+      onFinalStageFail: { type: 'no_change' },
+      trainingMaxKey: 'squat_tm',
+      tmPercent: 0.85,
+      role: 'primary',
+      extraSlots: [
+        {
+          id: 'squat_sec',
+          exerciseId: 'ex',
+          tier: 'secondary',
+          stages: [{ sets: 3, reps: 5 }],
+          onSuccess: { type: 'no_change' },
+          onMidStageFail: { type: 'no_change' },
+          onFinalStageFail: { type: 'no_change' },
+          startWeightKey: 'squat_tm',
+          trainingMaxKey: 'squat_tm',
+          tmPercent: 0.75,
+          role: 'secondary',
+        },
+      ],
+    });
+    const rows = computeGenericProgram(def, { squat_tm: 100 }, {});
+
+    expect(rows[0].slots[0].weight).toBe(85);
+    expect(rows[0].slots[1].weight).toBe(75);
+  });
+
+  it('applies roundToNearestHalf to TM-derived weight (REQ-ENGINE-002 scenario 4)', () => {
+    const def = makeDefinition({
+      stages: [{ sets: 1, reps: 5, amrap: true }],
+      onSuccess: { type: 'no_change' },
+      onMidStageFail: { type: 'no_change' },
+      onFinalStageFail: { type: 'no_change' },
+      trainingMaxKey: 'bench_tm',
+      tmPercent: 0.85,
+      role: 'primary',
+    });
+    const rows = computeGenericProgram(def, { bench_tm: 92.5 }, {});
+
+    // 92.5 * 0.85 = 78.625 → roundToNearestHalf → 78.5
+    expect(rows[0].slots[0].weight).toBe(78.5);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// 4.3 — update_tm progression tests (REQ-ENGINE-003)
+// ---------------------------------------------------------------------------
+describe('computeGenericProgram: update_tm progression', () => {
+  it('TM increases when AMRAP meets minimum (REQ-ENGINE-003 scenario 1)', () => {
+    const def = makeDefinition({
+      stages: [{ sets: 1, reps: 5, amrap: true }],
+      onSuccess: { type: 'update_tm', amount: 5, minAmrapReps: 5 },
+      onMidStageFail: { type: 'no_change' },
+      onFinalStageFail: { type: 'no_change' },
+      trainingMaxKey: 'squat_tm',
+      tmPercent: 0.85,
+      role: 'primary',
+    });
+    const results: GenericResults = {
+      '0': { slot1: { result: 'success', amrapReps: 6 } },
+    };
+    const rows = computeGenericProgram(def, { squat_tm: 100 }, results);
+
+    // TM goes from 100 to 105, next workout weight = round(105 * 0.85) = 89 (89.25 rounds to 89)
+    expect(rows[1].slots[0].weight).toBe(round(105 * 0.85));
+  });
+
+  it('TM does not increase when AMRAP falls short (REQ-ENGINE-003 scenario 2)', () => {
+    const def = makeDefinition({
+      stages: [{ sets: 1, reps: 5, amrap: true }],
+      onSuccess: { type: 'update_tm', amount: 5, minAmrapReps: 5 },
+      onMidStageFail: { type: 'no_change' },
+      onFinalStageFail: { type: 'no_change' },
+      trainingMaxKey: 'squat_tm',
+      tmPercent: 0.85,
+      role: 'primary',
+    });
+    const results: GenericResults = {
+      '0': { slot1: { result: 'success', amrapReps: 3 } },
+    };
+    const rows = computeGenericProgram(def, { squat_tm: 100 }, results);
+
+    // TM stays at 100
+    expect(rows[1].slots[0].weight).toBe(round(100 * 0.85));
+  });
+
+  it('TM does not increase when amrapReps is undefined (REQ-ENGINE-003 scenario 3)', () => {
+    const def = makeDefinition({
+      stages: [{ sets: 1, reps: 5, amrap: true }],
+      onSuccess: { type: 'update_tm', amount: 5, minAmrapReps: 5 },
+      onMidStageFail: { type: 'no_change' },
+      onFinalStageFail: { type: 'no_change' },
+      trainingMaxKey: 'squat_tm',
+      tmPercent: 0.85,
+      role: 'primary',
+    });
+    const results: GenericResults = {
+      '0': { slot1: { result: 'success' } },
+    };
+    const rows = computeGenericProgram(def, { squat_tm: 100 }, results);
+
+    // TM stays at 100
+    expect(rows[1].slots[0].weight).toBe(round(100 * 0.85));
+  });
+
+  it('update_tm on slot without trainingMaxKey throws (REQ-ENGINE-003 scenario 5)', () => {
+    const def = makeDefinition({
+      stages: [{ sets: 1, reps: 5, amrap: true }],
+      onSuccess: { type: 'update_tm', amount: 5, minAmrapReps: 5 },
+      onMidStageFail: { type: 'no_change' },
+      onFinalStageFail: { type: 'no_change' },
+      // No trainingMaxKey set — override startWeightKey back to 'ex'
+    });
+
+    // Need to manually construct to have update_tm without trainingMaxKey
+    const broken: ProgramDefinition = {
+      ...def,
+      days: [
+        {
+          name: 'Day 1',
+          slots: [
+            {
+              id: 'slot1',
+              exerciseId: 'ex',
+              tier: 't1',
+              stages: [{ sets: 1, reps: 5, amrap: true }],
+              onSuccess: { type: 'update_tm', amount: 5, minAmrapReps: 5 },
+              onMidStageFail: { type: 'no_change' },
+              onFinalStageFail: { type: 'no_change' },
+              startWeightKey: 'ex',
+              // trainingMaxKey intentionally missing
+            },
+          ],
+        },
+      ],
+    };
+    const results: GenericResults = {
+      '0': { slot1: { result: 'success', amrapReps: 6 } },
+    };
+
+    expect(() => computeGenericProgram(broken, { ex: 100 }, results)).toThrow(
+      'update_tm rule requires trainingMaxKey'
+    );
+  });
+});
+
+// ---------------------------------------------------------------------------
+// 4.4 — repsMax pass-through tests (REQ-ENGINE-004)
+// ---------------------------------------------------------------------------
+describe('computeGenericProgram: repsMax pass-through', () => {
+  it('stage with repsMax emits repsMax in GenericSlotRow (REQ-ENGINE-004 scenario 1)', () => {
+    const def = makeDefinition({
+      stages: [{ sets: 3, reps: 8, repsMax: 10 }],
+      onSuccess: { type: 'advance_stage' },
+      onMidStageFail: { type: 'no_change' },
+      onFinalStageFail: { type: 'no_change' },
+    });
+    const rows = computeGenericProgram(def, { ex: 50 }, {});
+
+    expect(rows[0].slots[0].reps).toBe(8);
+    expect(rows[0].slots[0].repsMax).toBe(10);
+  });
+
+  it('stage without repsMax emits undefined repsMax (REQ-ENGINE-004 scenario 2)', () => {
+    const def = makeDefinition({
+      stages: [{ sets: 5, reps: 3 }],
+      onMidStageFail: { type: 'no_change' },
+      onFinalStageFail: { type: 'no_change' },
+    });
+    const rows = computeGenericProgram(def, { ex: 50 }, {});
+
+    expect(rows[0].slots[0].reps).toBe(3);
+    expect(rows[0].slots[0].repsMax).toBeUndefined();
+  });
+});
+
+// ---------------------------------------------------------------------------
+// 4.5 — Role emission tests (REQ-ENGINE-005)
+// ---------------------------------------------------------------------------
+describe('computeGenericProgram: role emission', () => {
+  it('slot with explicit role "primary" emits that role (REQ-ENGINE-005 scenario 1)', () => {
+    const def = makeDefinition({
+      tier: 'main',
+      role: 'primary',
+      stages: [{ sets: 1, reps: 5 }],
+      onSuccess: { type: 'no_change' },
+      onMidStageFail: { type: 'no_change' },
+      onFinalStageFail: { type: 'no_change' },
+    });
+    const rows = computeGenericProgram(def, { ex: 100 }, {});
+
+    expect(rows[0].slots[0].role).toBe('primary');
+  });
+
+  it('legacy GZCLP t1 slot synthesizes "primary" (REQ-ENGINE-005 scenario 2)', () => {
+    const rows = computeGenericProgram(GZCLP_DEFINITION, DEFAULT_WEIGHTS, {});
+    const t1Slot = rows[0].slots.find((s) => s.tier === 't1');
+
+    expect(t1Slot?.role).toBe('primary');
+  });
+
+  it('legacy GZCLP t2 slot synthesizes "secondary" (REQ-ENGINE-005 scenario 3)', () => {
+    const rows = computeGenericProgram(GZCLP_DEFINITION, DEFAULT_WEIGHTS, {});
+    const t2Slot = rows[0].slots.find((s) => s.tier === 't2');
+
+    expect(t2Slot?.role).toBe('secondary');
+  });
+
+  it('legacy GZCLP t3 slot synthesizes "primary" (REQ-ENGINE-005 scenario 4)', () => {
+    const rows = computeGenericProgram(GZCLP_DEFINITION, DEFAULT_WEIGHTS, {});
+    const t3Slot = rows[0].slots.find((s) => s.tier === 't3');
+
+    expect(t3Slot?.role).toBe('primary');
+  });
+
+  it('unknown tier with no explicit role emits undefined role (REQ-ENGINE-005 scenario 5)', () => {
+    const def = makeDefinition({
+      tier: 'warmup',
+      stages: [{ sets: 1, reps: 5 }],
+      onSuccess: { type: 'no_change' },
+      onMidStageFail: { type: 'no_change' },
+      onFinalStageFail: { type: 'no_change' },
+    });
+    const rows = computeGenericProgram(def, { ex: 50 }, {});
+
+    expect(rows[0].slots[0].role).toBeUndefined();
+  });
+});
+
+// ---------------------------------------------------------------------------
+// 4.6 — Deterministic replay test (REQ-ENGINE-006)
+// ---------------------------------------------------------------------------
+describe('computeGenericProgram: deterministic replay', () => {
+  it('same inputs produce identical output on repeated calls (REQ-ENGINE-006 scenario 1)', () => {
+    const def = makeDefinition({
+      stages: [{ sets: 1, reps: 5, amrap: true }],
+      onSuccess: { type: 'update_tm', amount: 5, minAmrapReps: 5 },
+      onMidStageFail: { type: 'no_change' },
+      onFinalStageFail: { type: 'no_change' },
+      trainingMaxKey: 'squat_tm',
+      tmPercent: 0.85,
+      role: 'primary',
+      totalWorkouts: 6,
+    });
+    const config = { squat_tm: 100 };
+    const results: GenericResults = {
+      '0': { slot1: { result: 'success', amrapReps: 6 } },
+      '2': { slot1: { result: 'success', amrapReps: 5 } },
+      '4': { slot1: { result: 'success', amrapReps: 3 } },
+    };
+
+    const run1 = computeGenericProgram(def, config, results);
+    const run2 = computeGenericProgram(def, config, results);
+
+    expect(run1).toEqual(run2);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// 4.7 — Schema validation tests (REQ-SCHEMA-001 through REQ-SCHEMA-005)
+// ---------------------------------------------------------------------------
+describe('Schema validation: new fields', () => {
+  /** Minimal valid slot for schema testing. */
+  const validSlot = {
+    id: 'slot1',
+    exerciseId: 'ex',
+    tier: 't1',
+    stages: [{ sets: 5, reps: 3 }],
+    onSuccess: { type: 'add_weight' },
+    onMidStageFail: { type: 'advance_stage' },
+    onFinalStageFail: { type: 'deload_percent', percent: 10 },
+    startWeightKey: 'ex',
+  };
+
+  // REQ-SCHEMA-004: UpdateTm progression rule
+  it('update_tm rule with valid fields parses (REQ-SCHEMA-004 scenario 1)', () => {
+    const rule = { type: 'update_tm', amount: 2.5, minAmrapReps: 5 };
+    const parsed = ProgressionRuleSchema.parse(rule);
+
+    expect(parsed.type).toBe('update_tm');
+    if (parsed.type === 'update_tm') {
+      expect(parsed.amount).toBe(2.5);
+      expect(parsed.minAmrapReps).toBe(5);
+    }
+  });
+
+  it('update_tm rule missing amount is rejected (REQ-SCHEMA-004 scenario 2)', () => {
+    const rule = { type: 'update_tm', minAmrapReps: 5 };
+
+    expect(() => ProgressionRuleSchema.parse(rule)).toThrow();
+  });
+
+  it('update_tm with negative minAmrapReps is rejected (REQ-SCHEMA-004 scenario 3)', () => {
+    const rule = { type: 'update_tm', amount: 2.5, minAmrapReps: -1 };
+
+    expect(() => ProgressionRuleSchema.parse(rule)).toThrow();
+  });
+
+  it('existing rule types still parse (REQ-SCHEMA-004 scenario 4)', () => {
+    const rule = { type: 'add_weight' };
+    const parsed = ProgressionRuleSchema.parse(rule);
+
+    expect(parsed.type).toBe('add_weight');
+  });
+
+  // REQ-SCHEMA-001: trainingMaxKey and tmPercent on ExerciseSlot
+  it('slot with trainingMaxKey and tmPercent parses (REQ-SCHEMA-001 scenario 1)', () => {
+    const slot = { ...validSlot, trainingMaxKey: 'squat_tm', tmPercent: 0.85 };
+    const parsed = ExerciseSlotSchema.parse(slot);
+
+    expect(parsed.trainingMaxKey).toBe('squat_tm');
+    expect(parsed.tmPercent).toBe(0.85);
+  });
+
+  it('tmPercent: 0 rejected (REQ-SCHEMA-001 scenario 3)', () => {
+    const slot = { ...validSlot, tmPercent: 0 };
+
+    expect(() => ExerciseSlotSchema.parse(slot)).toThrow();
+  });
+
+  it('tmPercent: 1.1 rejected (REQ-SCHEMA-001 scenario 4)', () => {
+    const slot = { ...validSlot, tmPercent: 1.1 };
+
+    expect(() => ExerciseSlotSchema.parse(slot)).toThrow();
+  });
+
+  // REQ-SCHEMA-002: role field on ExerciseSlot
+  it('role: "primary" on slot parses (REQ-SCHEMA-002 scenario 1)', () => {
+    const slot = { ...validSlot, role: 'primary' };
+    const parsed = ExerciseSlotSchema.parse(slot);
+
+    expect(parsed.role).toBe('primary');
+  });
+
+  it('role: "tertiary" rejected (REQ-SCHEMA-002 scenario 4)', () => {
+    const slot = { ...validSlot, role: 'tertiary' };
+
+    expect(() => ExerciseSlotSchema.parse(slot)).toThrow();
+  });
+
+  // REQ-SCHEMA-003: repsMax on StageDefinition
+  it('repsMax on stage parses (REQ-SCHEMA-003 scenario 1)', () => {
+    const stage = { sets: 3, reps: 8, repsMax: 10 };
+    const parsed = StageDefinitionSchema.parse(stage);
+
+    expect(parsed.repsMax).toBe(10);
+  });
+
+  it('repsMax: 0 rejected (REQ-SCHEMA-003 scenario 3)', () => {
+    const stage = { sets: 3, reps: 8, repsMax: 0 };
+
+    expect(() => StageDefinitionSchema.parse(stage)).toThrow();
+  });
+
+  // REQ-SCHEMA-005: TierSchema relaxed to open string
+  it('tier: "main" parses (REQ-SCHEMA-005 scenario 2)', () => {
+    const slot = { ...validSlot, tier: 'main' };
+    const parsed = ExerciseSlotSchema.parse(slot);
+
+    expect(parsed.tier).toBe('main');
+  });
+
+  it('empty string tier rejected (REQ-SCHEMA-005 scenario 3)', () => {
+    const slot = { ...validSlot, tier: '' };
+
+    expect(() => ExerciseSlotSchema.parse(slot)).toThrow();
   });
 });

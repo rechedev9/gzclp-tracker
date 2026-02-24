@@ -1,6 +1,6 @@
 import { memo, useCallback } from 'react';
 import { NAMES } from '@gzclp/shared/program';
-import type { WorkoutRow as WorkoutRowType, Tier, ResultValue } from '@gzclp/shared/types';
+import type { WorkoutRow as WorkoutRowType, ResultValue } from '@gzclp/shared/types';
 import { buildGoogleCalendarUrl } from '@/lib/calendar';
 import { StageTag } from './stage-tag';
 import { ResultCell } from './result-cell';
@@ -17,10 +17,10 @@ const TABLE_COLUMN_COUNT = 13;
 interface WorkoutRowProps {
   row: WorkoutRowType;
   isCurrent: boolean;
-  onMark: (index: number, tier: Tier, value: ResultValue) => void;
+  onMark: (index: number, tier: string, value: ResultValue) => void;
   onSetAmrapReps: (index: number, field: 't1Reps' | 't3Reps', reps: number | undefined) => void;
   onSetRpe?: (index: number, tier: 't1' | 't3', rpe: number | undefined) => void;
-  onUndo: (index: number, tier: Tier) => void;
+  onUndo: (index: number, tier: string) => void;
 }
 
 function areRowsEqual(prev: WorkoutRowProps, next: WorkoutRowProps): boolean {
@@ -238,7 +238,7 @@ export const WorkoutRow = memo(function WorkoutRow({
               </div>
               {onSetRpe && (
                 <div className="flex items-center gap-2" data-rpe-input={row.index}>
-                  <RpeInput value={row.result.rpe} onChange={handleRpeChange} tier="t1" />
+                  <RpeInput value={row.result.rpe} onChange={handleRpeChange} label="T1" />
                 </div>
               )}
             </div>
@@ -269,7 +269,7 @@ export const WorkoutRow = memo(function WorkoutRow({
               </div>
               {onSetRpe && (
                 <div className="flex items-center gap-2">
-                  <RpeInput value={row.result.t3Rpe} onChange={handleT3RpeChange} tier="t3" />
+                  <RpeInput value={row.result.t3Rpe} onChange={handleT3RpeChange} label="T3" />
                 </div>
               )}
             </div>

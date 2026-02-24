@@ -11,7 +11,7 @@ export type Results = z.infer<typeof ResultsSchema>;
 export type UndoHistory = z.infer<typeof UndoHistorySchema>;
 export type ExportData = z.infer<typeof ExportDataSchema>;
 export type ResultValue = 'success' | 'fail';
-export type Tier = 't1' | 't2' | 't3';
+export type Tier = string;
 
 export interface WorkoutRow {
   index: number;
@@ -44,16 +44,18 @@ export interface GenericSlotRow {
   readonly slotId: string;
   readonly exerciseId: string;
   readonly exerciseName: string;
-  readonly tier: 't1' | 't2' | 't3';
+  readonly tier: string;
   readonly weight: number;
   readonly stage: number;
   readonly sets: number;
   readonly reps: number;
+  readonly repsMax: number | undefined;
   readonly isAmrap: boolean;
   readonly result: ResultValue | undefined;
   readonly amrapReps: number | undefined;
   readonly rpe: number | undefined;
   readonly isChanged: boolean;
+  readonly role: 'primary' | 'secondary' | 'accessory' | undefined;
 }
 
 export interface GenericWorkoutRow {
