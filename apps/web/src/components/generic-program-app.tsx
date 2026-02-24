@@ -252,7 +252,7 @@ export function GenericProgramApp({
     queryClient.clear();
   }, [signOut, queryClient]);
 
-  if (authLoading || user === null) return null;
+  if (authLoading || (user === null && !isGuest)) return null;
 
   if (!definition) {
     return (

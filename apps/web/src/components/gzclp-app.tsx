@@ -256,7 +256,7 @@ export function GZCLPApp({
     queryClient.clear();
   }, [signOut, queryClient]);
 
-  if (authLoading || user === null) return null;
+  if (authLoading || (user === null && !isGuest)) return null;
 
   return (
     <>
