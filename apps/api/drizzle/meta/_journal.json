@@ -64,6 +64,13 @@
       "when": 1771900000000,
       "tag": "0008_slot_id_varchar50",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1771942990285,
+      "tag": "0009_silky_crystal",
+      "breakpoints": true
     }
   ]
 }

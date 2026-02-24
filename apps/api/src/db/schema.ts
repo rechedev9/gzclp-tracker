@@ -3,6 +3,7 @@ import {
   pgEnum,
   uuid,
   varchar,
+  text,
   timestamp,
   jsonb,
   smallint,
@@ -36,6 +37,8 @@ export const users = pgTable('users', {
   email: varchar({ length: 255 }).unique().notNull(),
   googleId: varchar('google_id', { length: 255 }).unique().notNull(),
   name: varchar({ length: 100 }),
+  avatarUrl: text('avatar_url'),
+  deletedAt: timestamp('deleted_at', { withTimezone: true }),
   createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
   updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
 });
