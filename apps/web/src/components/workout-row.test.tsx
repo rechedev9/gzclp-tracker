@@ -184,24 +184,24 @@ describe('WorkoutRow', () => {
       expect(screen.queryByText('AMRAP')).not.toBeInTheDocument();
     });
 
-    it('should call onSetAmrapReps when AMRAP value changes', () => {
+    it('should call onSetAmrapReps when AMRAP increment button is clicked', () => {
       const onSetAmrapReps = mock();
       renderRow({ index: 0, result: { t1: 'success' } }, { onSetAmrapReps });
 
-      const amrapInputs = screen.getAllByTitle('Reps AMRAP');
-      fireEvent.change(amrapInputs[0], { target: { value: '8' } });
+      const incrementBtn = screen.getAllByRole('button', { name: 'Aumentar reps' })[0];
+      fireEvent.click(incrementBtn);
 
-      expect(onSetAmrapReps).toHaveBeenCalledWith(0, 't1Reps', 8);
+      expect(onSetAmrapReps).toHaveBeenCalledWith(0, 't1Reps', 1);
     });
 
-    it('should call onSetAmrapReps with t3Reps when T3 AMRAP value changes', () => {
+    it('should call onSetAmrapReps with t3Reps when T3 AMRAP increment button is clicked', () => {
       const onSetAmrapReps = mock();
       renderRow({ index: 0, result: { t3: 'success' } }, { onSetAmrapReps });
 
-      const amrapInputs = screen.getAllByTitle('Reps AMRAP');
-      fireEvent.change(amrapInputs[0], { target: { value: '12' } });
+      const incrementBtn = screen.getAllByRole('button', { name: 'Aumentar reps' })[0];
+      fireEvent.click(incrementBtn);
 
-      expect(onSetAmrapReps).toHaveBeenCalledWith(0, 't3Reps', 12);
+      expect(onSetAmrapReps).toHaveBeenCalledWith(0, 't3Reps', 1);
     });
 
     it('should show AMRAP input for T3 when marked', () => {
