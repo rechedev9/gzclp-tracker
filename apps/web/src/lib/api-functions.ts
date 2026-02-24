@@ -349,6 +349,33 @@ export async function importProgram(data: unknown): Promise<ProgramSummary> {
 }
 
 // ---------------------------------------------------------------------------
+// User profile
+// ---------------------------------------------------------------------------
+
+/** Update user profile (name and/or avatar). */
+export async function updateProfile(fields: {
+  name?: string;
+  avatarUrl?: string | null;
+}): Promise<{ id: string; email: string; name: string | null; avatarUrl: string | null }> {
+  const data = await apiFetch('/auth/me', {
+    method: 'PATCH',
+    body: JSON.stringify(fields),
+  });
+  if (!isRecord(data)) throw new Error('Invalid profile response');
+  return {
+    id: String(data.id ?? ''),
+    email: String(data.email ?? ''),
+    name: typeof data.name === 'string' ? data.name : null,
+    avatarUrl: typeof data.avatarUrl === 'string' ? data.avatarUrl : null,
+  };
+}
+
+/** Soft-delete the current user account. */
+export async function deleteAccount(): Promise<void> {
+  await apiFetch('/auth/me', { method: 'DELETE' });
+}
+
+// ---------------------------------------------------------------------------
 // Generic API Functions (slot-keyed, no legacy conversion)
 // ---------------------------------------------------------------------------
 

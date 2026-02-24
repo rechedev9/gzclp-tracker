@@ -17,6 +17,7 @@ export interface UserInfo {
   readonly id: string;
   readonly email: string;
   readonly name?: string;
+  readonly avatarUrl?: string;
 }
 
 interface AuthResult {
@@ -34,6 +35,8 @@ interface AuthActions {
   readonly signInWithGoogle: (credential: string) => Promise<AuthResult | null>;
   readonly signOut: () => Promise<void>;
   readonly startGuestSession: () => void;
+  readonly updateUser: (info: Partial<Pick<UserInfo, 'name' | 'avatarUrl'>>) => void;
+  readonly deleteAccount: () => Promise<void>;
 }
 
 type AuthContextValue = AuthState & AuthActions;
@@ -49,6 +52,7 @@ function parseUserInfo(data: unknown): UserInfo | null {
     id: data.id,
     email: data.email,
     ...(typeof data.name === 'string' ? { name: data.name } : {}),
+    ...(typeof data.avatarUrl === 'string' ? { avatarUrl: data.avatarUrl } : {}),
   };
 }
 
@@ -153,6 +157,17 @@ export function AuthProvider({
     }
   }, []);
 
+  const updateUser = useCallback((info: Partial<Pick<UserInfo, 'name' | 'avatarUrl'>>): void => {
+    setUser((prev) => (prev ? { ...prev, ...info } : prev));
+  }, []);
+
+  const deleteAccount = useCallback(async (): Promise<void> => {
+    await apiFetch('/auth/me', { method: 'DELETE' });
+    setAccessToken(null);
+    setUser(null);
+    setIsGuest(false);
+  }, []);
+
   const signOut = useCallback(async (): Promise<void> => {
     try {
       await apiFetch('/auth/signout', { method: 'POST' });
@@ -177,8 +192,19 @@ export function AuthProvider({
       signInWithGoogle,
       signOut,
       startGuestSession,
+      updateUser,
+      deleteAccount,
     }),
-    [user, loading, isGuest, signInWithGoogle, signOut, startGuestSession]
+    [
+      user,
+      loading,
+      isGuest,
+      signInWithGoogle,
+      signOut,
+      startGuestSession,
+      updateUser,
+      deleteAccount,
+    ]
   );
 
   return <AuthContext value={value}>{children}</AuthContext>;
