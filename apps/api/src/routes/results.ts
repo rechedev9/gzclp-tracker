@@ -7,6 +7,7 @@ import { jwtPlugin, resolveUserId } from '../middleware/auth-guard';
 import { rateLimit } from '../middleware/rate-limit';
 import { requestLogger } from '../middleware/request-logger';
 import { recordResult, deleteResult, undoLast } from '../services/results';
+import { invalidateCachedInstance } from '../lib/program-cache';
 
 const security = [{ bearerAuth: [] }];
 
@@ -31,6 +32,7 @@ export const resultRoutes = new Elysia({ prefix: '/programs/:id' })
       );
       await rateLimit(userId, 'POST /programs/results', { maxRequests: 60 });
       const result = await recordResult(userId, params.id, body);
+      await invalidateCachedInstance(userId, params.id);
       set.status = 201;
       return {
         workoutIndex: result.workoutIndex,
@@ -81,6 +83,7 @@ export const resultRoutes = new Elysia({ prefix: '/programs/:id' })
         'deleting result'
       );
       await deleteResult(userId, params.id, params.workoutIndex, params.slotId);
+      await invalidateCachedInstance(userId, params.id);
       set.status = 204;
     },
     {
@@ -114,6 +117,7 @@ export const resultRoutes = new Elysia({ prefix: '/programs/:id' })
       );
       await rateLimit(userId, 'POST /programs/undo');
       const entry = await undoLast(userId, params.id);
+      await invalidateCachedInstance(userId, params.id);
       if (!entry) {
         return { undone: null };
       }

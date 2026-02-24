@@ -14,6 +14,11 @@ import {
   exportInstance,
   importInstance,
 } from '../services/programs';
+import {
+  getCachedInstance,
+  setCachedInstance,
+  invalidateCachedInstance,
+} from '../lib/program-cache';
 
 const security = [{ bearerAuth: [] }];
 
@@ -78,21 +83,31 @@ export const programRoutes = new Elysia({ prefix: '/programs' })
   )
 
   // GET /programs/:id — get a single program instance with results
-  .get('/:id', ({ userId, params }) => getInstance(userId, params.id), {
-    params: t.Object({ id: t.String() }),
-    detail: {
-      tags: ['Programs'],
-      summary: 'Get program instance',
-      description:
-        'Returns a single program instance including all recorded workout results and undo history.',
-      security,
-      responses: {
-        200: { description: 'Program instance with results and undo history' },
-        401: { description: 'Missing or invalid token' },
-        404: { description: 'Program not found or not owned by user' },
-      },
+  .get(
+    '/:id',
+    async ({ userId, params }) => {
+      const cached = await getCachedInstance(userId, params.id);
+      if (cached) return cached;
+      const fresh = await getInstance(userId, params.id);
+      await setCachedInstance(userId, params.id, fresh);
+      return fresh;
     },
-  })
+    {
+      params: t.Object({ id: t.String() }),
+      detail: {
+        tags: ['Programs'],
+        summary: 'Get program instance',
+        description:
+          'Returns a single program instance including all recorded workout results and undo history.',
+        security,
+        responses: {
+          200: { description: 'Program instance with results and undo history' },
+          401: { description: 'Missing or invalid token' },
+          404: { description: 'Program not found or not owned by user' },
+        },
+      },
+    }
+  )
 
   // PATCH /programs/:id — update a program instance
   .patch(
@@ -103,7 +118,9 @@ export const programRoutes = new Elysia({ prefix: '/programs' })
         'updating program instance'
       );
       await rateLimit(userId, 'PATCH /programs');
-      return updateInstance(userId, params.id, body);
+      const result = await updateInstance(userId, params.id, body);
+      await invalidateCachedInstance(userId, params.id);
+      return result;
     },
     {
       params: t.Object({ id: t.String() }),
@@ -142,6 +159,7 @@ export const programRoutes = new Elysia({ prefix: '/programs' })
       );
       await rateLimit(userId, 'DELETE /programs');
       await deleteInstance(userId, params.id);
+      await invalidateCachedInstance(userId, params.id);
       set.status = 204;
     },
     {
