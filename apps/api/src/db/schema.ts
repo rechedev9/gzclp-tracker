@@ -167,7 +167,10 @@ export const undoEntries = pgTable(
     prevRpe: smallint('prev_rpe'),
     createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
   },
-  (table) => [index('undo_entries_instance_id_idx').on(table.instanceId)]
+  (table) => [
+    index('undo_entries_instance_id_idx').on(table.instanceId),
+    index('undo_entries_instance_id_desc_idx').on(table.instanceId, table.id),
+  ]
 );
 
 export const undoEntriesRelations = relations(undoEntries, ({ one }) => ({

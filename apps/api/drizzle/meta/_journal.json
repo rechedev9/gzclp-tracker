@@ -113,6 +113,13 @@
       "when": 1772200000000,
       "tag": "0015_add_performance_indexes",
       "breakpoints": true
+    },
+    {
+      "idx": 16,
+      "version": "7",
+      "when": 1772300000000,
+      "tag": "0016_add_undo_entries_composite_index",
+      "breakpoints": true
     }
   ]
 }
