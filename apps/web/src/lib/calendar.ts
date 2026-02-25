@@ -1,5 +1,45 @@
-import { NAMES, T1_STAGES, T2_STAGES, T3_SETS, T3_PRESCRIBED_REPS } from '@gzclp/shared/program';
+import type { ProgramDefinition } from '@gzclp/shared/types/program';
 import type { WorkoutRow } from '@gzclp/shared/types';
+
+// ---------------------------------------------------------------------------
+// Definition-derived helpers
+// ---------------------------------------------------------------------------
+
+function deriveNames(definition: ProgramDefinition): Readonly<Record<string, string>> {
+  const map: Record<string, string> = {};
+  for (const [id, ex] of Object.entries(definition.exercises)) {
+    map[id] = ex.name;
+  }
+  return map;
+}
+
+function deriveStages(
+  definition: ProgramDefinition,
+  tier: string
+): readonly { readonly sets: number; readonly reps: number }[] {
+  for (const day of definition.days) {
+    for (const slot of day.slots) {
+      if (slot.tier === tier) {
+        return slot.stages.map((s) => ({ sets: s.sets, reps: s.reps }));
+      }
+    }
+  }
+  return [{ sets: 5, reps: 3 }];
+}
+
+function deriveT3Constants(definition: ProgramDefinition): {
+  sets: number;
+  prescribedReps: number;
+} {
+  for (const day of definition.days) {
+    for (const slot of day.slots) {
+      if (slot.tier === 't3' && slot.stages.length > 0) {
+        return { sets: slot.stages[0].sets, prescribedReps: slot.stages[0].reps };
+      }
+    }
+  }
+  return { sets: 3, prescribedReps: 15 };
+}
 
 export interface CalendarEventOptions {
   readonly date?: string;
@@ -40,10 +80,16 @@ function formatGoogleDate(d: Date): string {
  */
 export function buildGoogleCalendarUrl(
   row: WorkoutRow,
+  definition: ProgramDefinition,
   options?: CalendarEventOptions
 ): CalendarEvent {
   const startHour = options?.startHour ?? 7;
   const durationMinutes = options?.durationMinutes ?? 60;
+
+  const names = deriveNames(definition);
+  const t1Stages = deriveStages(definition, 't1');
+  const t2Stages = deriveStages(definition, 't2');
+  const t3Constants = deriveT3Constants(definition);
 
   let dateStr: string;
   if (options?.date) {
@@ -56,16 +102,16 @@ export function buildGoogleCalendarUrl(
 
   const title =
     `GZCLP ${row.dayName} — ` +
-    `${NAMES[row.t1Exercise]} / ${NAMES[row.t2Exercise]} / ${NAMES[row.t3Exercise]}`;
+    `${names[row.t1Exercise] ?? row.t1Exercise} / ${names[row.t2Exercise] ?? row.t2Exercise} / ${names[row.t3Exercise] ?? row.t3Exercise}`;
 
-  const t1Stage = T1_STAGES[row.t1Stage] ?? T1_STAGES[0];
-  const t2Stage = T2_STAGES[row.t2Stage] ?? T2_STAGES[0];
+  const t1Stage = t1Stages[row.t1Stage] ?? t1Stages[0];
+  const t2Stage = t2Stages[row.t2Stage] ?? t2Stages[0];
   const description = [
     `Entrenamiento #${row.index + 1} — ${row.dayName}`,
     '',
-    `T1: ${NAMES[row.t1Exercise]} — ${row.t1Weight}kg (${t1Stage.sets}×${t1Stage.reps}, Etapa ${row.t1Stage + 1})`,
-    `T2: ${NAMES[row.t2Exercise]} — ${row.t2Weight}kg (${t2Stage.sets}×${t2Stage.reps}, Etapa ${row.t2Stage + 1})`,
-    `T3: ${NAMES[row.t3Exercise]} — ${row.t3Weight}kg (${T3_SETS}×${T3_PRESCRIBED_REPS})`,
+    `T1: ${names[row.t1Exercise] ?? row.t1Exercise} — ${row.t1Weight}kg (${t1Stage.sets}×${t1Stage.reps}, Etapa ${row.t1Stage + 1})`,
+    `T2: ${names[row.t2Exercise] ?? row.t2Exercise} — ${row.t2Weight}kg (${t2Stage.sets}×${t2Stage.reps}, Etapa ${row.t2Stage + 1})`,
+    `T3: ${names[row.t3Exercise] ?? row.t3Exercise} — ${row.t3Weight}kg (${t3Constants.sets}×${t3Constants.prescribedReps})`,
   ].join('\n');
 
   const startDate = new Date(`${dateStr}T${String(startHour).padStart(2, '0')}:00:00`);

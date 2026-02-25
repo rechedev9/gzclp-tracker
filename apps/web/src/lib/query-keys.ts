@@ -4,6 +4,10 @@ export const queryKeys = {
     detail: (id: string): readonly ['programs', string] => ['programs', id] as const,
   },
   catalog: {
-    all: ['catalog'] as const,
+    list: (): readonly ['catalog', 'list'] => ['catalog', 'list'] as const,
+    detail: (programId: string): readonly ['catalog', 'detail', string] =>
+      ['catalog', 'detail', programId] as const,
+    exercises: (): readonly ['catalog', 'exercises'] => ['catalog', 'exercises'] as const,
+    muscleGroups: (): readonly ['catalog', 'muscleGroups'] => ['catalog', 'muscleGroups'] as const,
   },
 } as const;

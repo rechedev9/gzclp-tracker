@@ -9,8 +9,9 @@
  */
 import { getAccessToken, refreshAccessToken } from './api';
 import { convertResultsToLegacy, convertUndoToLegacy } from './migrations/v3-to-v1';
-import { GZCLP_DEFINITION } from '@gzclp/shared/programs/gzclp';
+import { ProgramDefinitionSchema } from '@gzclp/shared/schemas/program-definition';
 import type { StartWeights, Results, UndoHistory, Tier, ResultValue } from '@gzclp/shared/types';
+import type { ProgramDefinition } from '@gzclp/shared/types/program';
 import type { GenericResults, GenericUndoHistory } from '@gzclp/shared/types/program';
 import { isRecord } from '@gzclp/shared/type-guards';
 
@@ -49,27 +50,23 @@ export interface GenericProgramDetail {
 }
 
 // ---------------------------------------------------------------------------
-// Slot ↔ Tier lookup (reuses GZCLP definition)
+// Slot ↔ Tier lookup (GZCLP-specific, inlined to avoid importing gzclp.ts)
 // ---------------------------------------------------------------------------
 
-function buildDaySlotMap(): Record<number, Record<string, string>> {
-  const map: Record<number, Record<string, string>> = {};
-  for (let i = 0; i < GZCLP_DEFINITION.days.length; i++) {
-    const day = GZCLP_DEFINITION.days[i];
-    map[i] = {};
-    for (const slot of day.slots) {
-      map[i][slot.tier] = slot.id;
-    }
-  }
-  return map;
-}
+/** GZCLP day-slot map. Inlined for legacy tier-to-slot conversion. */
+const GZCLP_DAY_SLOT_MAP: Readonly<Record<number, Readonly<Record<string, string>>>> = {
+  0: { t1: 'd1-t1', t2: 'd1-t2', t3: 'latpulldown-t3' },
+  1: { t1: 'd2-t1', t2: 'd2-t2', t3: 'dbrow-t3' },
+  2: { t1: 'd3-t1', t2: 'd3-t2', t3: 'latpulldown-t3' },
+  3: { t1: 'd4-t1', t2: 'd4-t2', t3: 'dbrow-t3' },
+};
 
-const DAY_SLOT_MAP = buildDaySlotMap();
+const GZCLP_CYCLE_LENGTH = 4;
 
 /** Convert a tier + workout index to a slot ID. */
 export function tierToSlotId(workoutIndex: number, tier: Tier): string | null {
-  const dayIndex = workoutIndex % GZCLP_DEFINITION.cycleLength;
-  return DAY_SLOT_MAP[dayIndex]?.[tier] ?? null;
+  const dayIndex = workoutIndex % GZCLP_CYCLE_LENGTH;
+  return GZCLP_DAY_SLOT_MAP[dayIndex]?.[tier] ?? null;
 }
 
 // ---------------------------------------------------------------------------
@@ -435,4 +432,107 @@ export async function deleteGenericResult(
     `/programs/${encodeURIComponent(instanceId)}/results/${workoutIndex}/${encodeURIComponent(slotId)}`,
     { method: 'DELETE' }
   );
+}
+
+// ---------------------------------------------------------------------------
+// Catalog types (mirrors API service types)
+// ---------------------------------------------------------------------------
+
+export interface CatalogEntry {
+  readonly id: string;
+  readonly name: string;
+  readonly description: string;
+  readonly author: string;
+  readonly category: string;
+  readonly source: string;
+  readonly totalWorkouts: number;
+  readonly workoutsPerWeek: number;
+  readonly cycleLength: number;
+}
+
+export interface ExerciseEntry {
+  readonly id: string;
+  readonly name: string;
+  readonly muscleGroupId: string;
+  readonly equipment: string | null;
+  readonly isCompound: boolean;
+  readonly isPreset: boolean;
+  readonly createdBy: string | null;
+}
+
+export interface MuscleGroupEntry {
+  readonly id: string;
+  readonly name: string;
+}
+
+// ---------------------------------------------------------------------------
+// Catalog API functions (public, no auth required)
+// ---------------------------------------------------------------------------
+
+function parseCatalogEntry(raw: unknown): CatalogEntry {
+  if (!isRecord(raw)) throw new Error('Invalid catalog entry');
+  return {
+    id: String(raw.id ?? ''),
+    name: String(raw.name ?? ''),
+    description: String(raw.description ?? ''),
+    author: String(raw.author ?? ''),
+    category: String(raw.category ?? ''),
+    source: String(raw.source ?? ''),
+    totalWorkouts: typeof raw.totalWorkouts === 'number' ? raw.totalWorkouts : 0,
+    workoutsPerWeek: typeof raw.workoutsPerWeek === 'number' ? raw.workoutsPerWeek : 0,
+    cycleLength: typeof raw.cycleLength === 'number' ? raw.cycleLength : 0,
+  };
+}
+
+/** Fetch the catalog list of all preset programs (no auth required). */
+export async function fetchCatalogList(): Promise<readonly CatalogEntry[]> {
+  const data = await apiFetch('/catalog');
+  if (!Array.isArray(data)) return [];
+  return data.map(parseCatalogEntry);
+}
+
+/** Fetch a full hydrated ProgramDefinition by program ID (no auth required). */
+export async function fetchCatalogDetail(programId: string): Promise<ProgramDefinition> {
+  const data = await apiFetch(`/catalog/${encodeURIComponent(programId)}`);
+  // Client-side validation with the same schema the API uses
+  return ProgramDefinitionSchema.parse(data);
+}
+
+// ---------------------------------------------------------------------------
+// Exercise API functions
+// ---------------------------------------------------------------------------
+
+function parseExerciseEntry(raw: unknown): ExerciseEntry {
+  if (!isRecord(raw)) throw new Error('Invalid exercise entry');
+  return {
+    id: String(raw.id ?? ''),
+    name: String(raw.name ?? ''),
+    muscleGroupId: String(raw.muscleGroupId ?? ''),
+    equipment: typeof raw.equipment === 'string' ? raw.equipment : null,
+    isCompound: raw.isCompound === true,
+    isPreset: raw.isPreset === true,
+    createdBy: typeof raw.createdBy === 'string' ? raw.createdBy : null,
+  };
+}
+
+function parseMuscleGroupEntry(raw: unknown): MuscleGroupEntry {
+  if (!isRecord(raw)) throw new Error('Invalid muscle group entry');
+  return {
+    id: String(raw.id ?? ''),
+    name: String(raw.name ?? ''),
+  };
+}
+
+/** Fetch all exercises visible to the current user (optional auth). */
+export async function fetchExercises(): Promise<readonly ExerciseEntry[]> {
+  const data = await apiFetch('/exercises');
+  if (!Array.isArray(data)) return [];
+  return data.map(parseExerciseEntry);
+}
+
+/** Fetch all muscle groups (no auth required). */
+export async function fetchMuscleGroups(): Promise<readonly MuscleGroupEntry[]> {
+  const data = await apiFetch('/muscle-groups');
+  if (!Array.isArray(data)) return [];
+  return data.map(parseMuscleGroupEntry);
 }

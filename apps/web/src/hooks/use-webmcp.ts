@@ -1,6 +1,6 @@
 import { useEffect, useRef } from 'react';
 import type { StartWeights, Results, WorkoutRow, ResultValue, Tier } from '@gzclp/shared/types';
-import { TOTAL_WORKOUTS, T1_EXERCISES, NAMES } from '@gzclp/shared/program';
+import type { ProgramDefinition } from '@gzclp/shared/types/program';
 import { extractChartData, calculateStats } from '@gzclp/shared/stats';
 import { isRecord } from '@gzclp/shared/type-guards';
 import { buildGoogleCalendarUrl } from '@/lib/calendar';
@@ -9,6 +9,9 @@ interface UseWebMcpOptions {
   readonly startWeights: StartWeights | null;
   readonly results: Results;
   readonly rows: readonly WorkoutRow[];
+  readonly names: Readonly<Record<string, string>>;
+  readonly totalWorkouts: number;
+  readonly definition?: ProgramDefinition;
   readonly generateProgram: (weights: StartWeights) => void;
   readonly markResult: (index: number, tier: Tier, value: ResultValue) => void;
   readonly setAmrapReps: (
@@ -35,9 +38,21 @@ function findNextIncomplete(rows: readonly WorkoutRow[]): WorkoutRow | undefined
   return rows.find((r) => !r.result.t1 || !r.result.t2 || !r.result.t3);
 }
 
-const VALID_EXERCISES = new Set<string>(T1_EXERCISES);
 const EXERCISE_FIELDS = ['squat', 'bench', 'deadlift', 'ohp', 'latpulldown', 'dbrow'] as const;
+const FALLBACK_T1_EXERCISES = ['squat', 'bench', 'deadlift', 'ohp'] as const;
 const NO_PROGRAM = 'No program initialized. Use initializeProgram first.';
+
+/** Derive T1 exercise IDs from the definition, with fallback for when definition hasn't loaded. */
+function deriveT1ExercisesFromOptions(options: UseWebMcpOptions): readonly string[] {
+  if (!options.definition) return FALLBACK_T1_EXERCISES;
+  const ids = new Set<string>();
+  for (const day of options.definition.days) {
+    for (const slot of day.slots) {
+      if (slot.tier === 't1') ids.add(slot.exerciseId);
+    }
+  }
+  return [...ids];
+}
 
 function isTier(value: unknown): value is Tier {
   return value === 't1' || value === 't2' || value === 't3';
@@ -47,9 +62,9 @@ function isResultValue(value: unknown): value is ResultValue {
   return value === 'success' || value === 'fail';
 }
 
-function isValidIndex(value: unknown): value is number {
+function isValidIndex(value: unknown, totalWorkouts: number): value is number {
   return (
-    typeof value === 'number' && Number.isInteger(value) && value >= 0 && value < TOTAL_WORKOUTS
+    typeof value === 'number' && Number.isInteger(value) && value >= 0 && value < totalWorkouts
   );
 }
 
@@ -95,17 +110,17 @@ export function useWebMcp(options: UseWebMcpOptions): void {
       inputSchema: { type: 'object', properties: {} },
       annotations: { readOnlyHint: true },
       execute: async (): Promise<ModelContextToolResponse> => {
-        const { rows, startWeights } = stateRef.current;
+        const { rows, startWeights, names } = stateRef.current;
         if (!startWeights) return errorResponse(NO_PROGRAM);
         const current = findNextIncomplete(rows);
         if (!current) {
-          return textResponse({ message: 'All 90 workouts completed!', completed: true });
+          return textResponse({ message: 'All workouts completed!', completed: true });
         }
         return textResponse({
           index: current.index,
           dayName: current.dayName,
           t1: {
-            exercise: NAMES[current.t1Exercise],
+            exercise: names[current.t1Exercise] ?? current.t1Exercise,
             weight: current.t1Weight,
             sets: current.t1Sets,
             reps: current.t1Reps,
@@ -113,7 +128,7 @@ export function useWebMcp(options: UseWebMcpOptions): void {
             result: current.result.t1 ?? null,
           },
           t2: {
-            exercise: NAMES[current.t2Exercise],
+            exercise: names[current.t2Exercise] ?? current.t2Exercise,
             weight: current.t2Weight,
             sets: current.t2Sets,
             reps: current.t2Reps,
@@ -121,7 +136,7 @@ export function useWebMcp(options: UseWebMcpOptions): void {
             result: current.result.t2 ?? null,
           },
           t3: {
-            exercise: NAMES[current.t3Exercise],
+            exercise: names[current.t3Exercise] ?? current.t3Exercise,
             weight: current.t3Weight,
             sets: 3,
             reps: 15,
@@ -144,20 +159,20 @@ export function useWebMcp(options: UseWebMcpOptions): void {
       },
       annotations: { readOnlyHint: true },
       execute: async (input: unknown): Promise<ModelContextToolResponse> => {
-        const { rows, startWeights } = stateRef.current;
+        const { rows, startWeights, names, totalWorkouts: tw } = stateRef.current;
         if (!startWeights) return errorResponse(NO_PROGRAM);
         let start = 0;
-        let end = TOTAL_WORKOUTS - 1;
+        let end = tw - 1;
         if (isRecord(input)) {
           if (input.startIndex !== undefined) {
-            if (!isValidIndex(input.startIndex)) {
-              return errorResponse('startIndex must be an integer between 0 and 89.');
+            if (!isValidIndex(input.startIndex, tw)) {
+              return errorResponse(`startIndex must be an integer between 0 and ${tw - 1}.`);
             }
             start = input.startIndex;
           }
           if (input.endIndex !== undefined) {
-            if (!isValidIndex(input.endIndex)) {
-              return errorResponse('endIndex must be an integer between 0 and 89.');
+            if (!isValidIndex(input.endIndex, tw)) {
+              return errorResponse(`endIndex must be an integer between 0 and ${tw - 1}.`);
             }
             end = input.endIndex;
           }
@@ -168,9 +183,17 @@ export function useWebMcp(options: UseWebMcpOptions): void {
         const slice = rows.slice(start, end + 1).map((r) => ({
           index: r.index,
           dayName: r.dayName,
-          t1: { exercise: NAMES[r.t1Exercise], weight: r.t1Weight, stage: r.t1Stage + 1 },
-          t2: { exercise: NAMES[r.t2Exercise], weight: r.t2Weight, stage: r.t2Stage + 1 },
-          t3: { exercise: NAMES[r.t3Exercise], weight: r.t3Weight },
+          t1: {
+            exercise: names[r.t1Exercise] ?? r.t1Exercise,
+            weight: r.t1Weight,
+            stage: r.t1Stage + 1,
+          },
+          t2: {
+            exercise: names[r.t2Exercise] ?? r.t2Exercise,
+            weight: r.t2Weight,
+            stage: r.t2Stage + 1,
+          },
+          t3: { exercise: names[r.t3Exercise] ?? r.t3Exercise, weight: r.t3Weight },
           completed: Boolean(r.result.t1 && r.result.t2 && r.result.t3),
         }));
         return textResponse(slice);
@@ -194,11 +217,14 @@ export function useWebMcp(options: UseWebMcpOptions): void {
       execute: async (input: unknown): Promise<ModelContextToolResponse> => {
         const { startWeights } = stateRef.current;
         if (!startWeights) return errorResponse(NO_PROGRAM);
+        // Derive T1 exercises from definition or fall back to known GZCLP T1s
+        const t1Exercises = deriveT1ExercisesFromOptions(stateRef.current);
+        const validExercises = new Set<string>(t1Exercises);
         const chartData = extractChartData(startWeights, stateRef.current.results);
         if (isRecord(input) && typeof input.exercise === 'string') {
           const ex = input.exercise.toLowerCase();
-          if (!VALID_EXERCISES.has(ex)) {
-            return errorResponse(`Invalid exercise. Must be one of: ${T1_EXERCISES.join(', ')}`);
+          if (!validExercises.has(ex)) {
+            return errorResponse(`Invalid exercise. Must be one of: ${t1Exercises.join(', ')}`);
           }
           const points = chartData[ex];
           if (!points) {
@@ -207,7 +233,7 @@ export function useWebMcp(options: UseWebMcpOptions): void {
           return textResponse({ [ex]: calculateStats(points) });
         }
         const allStats: Record<string, unknown> = {};
-        for (const ex of T1_EXERCISES) {
+        for (const ex of t1Exercises) {
           const points = chartData[ex];
           if (points) {
             allStats[ex] = calculateStats(points);
@@ -224,14 +250,14 @@ export function useWebMcp(options: UseWebMcpOptions): void {
       inputSchema: { type: 'object', properties: {} },
       annotations: { readOnlyHint: true },
       execute: async (): Promise<ModelContextToolResponse> => {
-        const { rows, startWeights } = stateRef.current;
+        const { rows, startWeights, totalWorkouts: tw } = stateRef.current;
         if (!startWeights) return errorResponse(NO_PROGRAM);
         const completed = rows.filter((r) => r.result.t1 && r.result.t2 && r.result.t3).length;
         const next = findNextIncomplete(rows);
         return textResponse({
-          total: TOTAL_WORKOUTS,
+          total: tw,
           completed,
-          percentage: Math.round((completed / TOTAL_WORKOUTS) * 100),
+          percentage: tw > 0 ? Math.round((completed / tw) * 100) : 0,
           nextWorkoutIndex: next ? next.index : null,
         });
       },
@@ -262,8 +288,9 @@ export function useWebMcp(options: UseWebMcpOptions): void {
           return errorResponse('Input must be an object with index, tier, and result.');
         }
         const { index, tier, result, amrapReps } = input;
-        if (!isValidIndex(index)) {
-          return errorResponse('index must be an integer between 0 and 89.');
+        const tw = stateRef.current.totalWorkouts;
+        if (!isValidIndex(index, tw)) {
+          return errorResponse(`index must be an integer between 0 and ${tw - 1}.`);
         }
         if (!isTier(tier)) {
           return errorResponse('tier must be one of: t1, t2, t3.');
@@ -378,8 +405,9 @@ export function useWebMcp(options: UseWebMcpOptions): void {
       },
       annotations: { readOnlyHint: true },
       execute: async (input: unknown): Promise<ModelContextToolResponse> => {
-        const { rows, startWeights } = stateRef.current;
+        const { rows, startWeights, totalWorkouts: tw, definition: def } = stateRef.current;
         if (!startWeights) return errorResponse(NO_PROGRAM);
+        if (!def) return errorResponse('Program definition not loaded yet.');
 
         let workoutIndex: number | undefined;
         let date: string | undefined;
@@ -388,8 +416,8 @@ export function useWebMcp(options: UseWebMcpOptions): void {
 
         if (isRecord(input)) {
           if (input.workoutIndex !== undefined) {
-            if (!isValidIndex(input.workoutIndex)) {
-              return errorResponse('workoutIndex must be an integer between 0 and 89.');
+            if (!isValidIndex(input.workoutIndex, tw)) {
+              return errorResponse(`workoutIndex must be an integer between 0 and ${tw - 1}.`);
             }
             workoutIndex = input.workoutIndex;
           }
@@ -430,17 +458,17 @@ export function useWebMcp(options: UseWebMcpOptions): void {
         if (workoutIndex === undefined) {
           const next = findNextIncomplete(rows);
           if (!next) {
-            return errorResponse('All 90 workouts completed. No workout to schedule.');
+            return errorResponse('All workouts completed. No workout to schedule.');
           }
           workoutIndex = next.index;
         }
 
         const row = rows[workoutIndex];
         if (!row) {
-          return errorResponse('workoutIndex must be an integer between 0 and 89.');
+          return errorResponse(`workoutIndex must be an integer between 0 and ${tw - 1}.`);
         }
 
-        const event = buildGoogleCalendarUrl(row, { date, startHour, durationMinutes });
+        const event = buildGoogleCalendarUrl(row, def, { date, startHour, durationMinutes });
 
         return textResponse({
           calendarUrl: event.calendarUrl,

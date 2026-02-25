@@ -1,13 +1,55 @@
 import { computeProgram } from '@gzclp/shared/engine';
-import {
-  NAMES,
-  TOTAL_WORKOUTS,
-  T1_STAGES,
-  T1_EXERCISES,
-  T3_SETS,
-  T3_PRESCRIBED_REPS,
-} from '@gzclp/shared/program';
+import type { ProgramDefinition } from '@gzclp/shared/types/program';
 import type { StartWeights, Results, WorkoutRow } from '@gzclp/shared/types';
+
+// ---------------------------------------------------------------------------
+// Definition-derived helpers (replaces hardcoded @gzclp/shared/program imports)
+// ---------------------------------------------------------------------------
+
+function deriveNames(definition: ProgramDefinition): Readonly<Record<string, string>> {
+  const map: Record<string, string> = {};
+  for (const [id, ex] of Object.entries(definition.exercises)) {
+    map[id] = ex.name;
+  }
+  return map;
+}
+
+function deriveT1Exercises(definition: ProgramDefinition): readonly string[] {
+  const ids = new Set<string>();
+  for (const day of definition.days) {
+    for (const slot of day.slots) {
+      if (slot.tier === 't1') ids.add(slot.exerciseId);
+    }
+  }
+  return [...ids];
+}
+
+function deriveT1Stages(
+  definition: ProgramDefinition
+): readonly { readonly sets: number; readonly reps: number }[] {
+  for (const day of definition.days) {
+    for (const slot of day.slots) {
+      if (slot.tier === 't1') {
+        return slot.stages.map((s) => ({ sets: s.sets, reps: s.reps }));
+      }
+    }
+  }
+  return [{ sets: 5, reps: 3 }];
+}
+
+function deriveT3Constants(definition: ProgramDefinition): {
+  sets: number;
+  prescribedReps: number;
+} {
+  for (const day of definition.days) {
+    for (const slot of day.slots) {
+      if (slot.tier === 't3' && slot.stages.length > 0) {
+        return { sets: slot.stages[0].sets, prescribedReps: slot.stages[0].reps };
+      }
+    }
+  }
+  return { sets: 3, prescribedReps: 15 };
+}
 
 // ─── Types ──────────────────────────────────────────────────────────
 
@@ -70,13 +112,17 @@ interface SuccessTick {
   marks: number;
 }
 
-function rowVolumeTick(row: WorkoutRow): VolumeTick {
+function rowVolumeTick(
+  row: WorkoutRow,
+  t1Stages: readonly { readonly sets: number; readonly reps: number }[],
+  t3Constants: { sets: number; prescribedReps: number }
+): VolumeTick {
   let volume = 0;
   let sets = 0;
   let reps = 0;
 
   if (row.result.t1) {
-    const stage = T1_STAGES[row.t1Stage];
+    const stage = t1Stages[row.t1Stage] ?? t1Stages[0];
     const regularReps = (stage.sets - 1) * stage.reps;
     const amrapReps = row.result.t1Reps ?? stage.reps;
     const total = regularReps + amrapReps;
@@ -91,11 +137,11 @@ function rowVolumeTick(row: WorkoutRow): VolumeTick {
     reps += total;
   }
   if (row.result.t3) {
-    const regularReps = (T3_SETS - 1) * T3_PRESCRIBED_REPS;
-    const amrapReps = row.result.t3Reps ?? T3_PRESCRIBED_REPS;
+    const regularReps = (t3Constants.sets - 1) * t3Constants.prescribedReps;
+    const amrapReps = row.result.t3Reps ?? t3Constants.prescribedReps;
     const total = regularReps + amrapReps;
     volume += total * row.t3Weight;
-    sets += T3_SETS;
+    sets += t3Constants.sets;
     reps += total;
   }
 
@@ -134,35 +180,43 @@ function toPercentage(numerator: number, denominator: number): number {
 
 function computePersonalRecords(
   rows: readonly WorkoutRow[],
-  startWeights: StartWeights
+  startWeights: StartWeights,
+  t1Exercises: readonly string[],
+  names: Readonly<Record<string, string>>
 ): readonly PersonalRecord[] {
+  // Widen StartWeights to Record<string, number> so we can index with dynamic keys
+  const sw: Readonly<Record<string, number>> = startWeights;
   const best: Record<string, { weight: number; workoutIndex: number }> = {};
 
-  for (const ex of T1_EXERCISES) {
-    best[ex] = { weight: startWeights[ex], workoutIndex: -1 };
+  for (const ex of t1Exercises) {
+    best[ex] = { weight: sw[ex] ?? 0, workoutIndex: -1 };
   }
 
   for (const row of rows) {
-    if (row.result.t1 === 'success' && row.t1Weight >= best[row.t1Exercise].weight) {
+    if (
+      row.result.t1 === 'success' &&
+      best[row.t1Exercise] &&
+      row.t1Weight >= best[row.t1Exercise].weight
+    ) {
       best[row.t1Exercise] = { weight: row.t1Weight, workoutIndex: row.index };
     }
   }
 
-  return T1_EXERCISES.map((ex) => ({
+  return t1Exercises.map((ex) => ({
     exercise: ex,
-    displayName: NAMES[ex] ?? ex,
+    displayName: names[ex] ?? ex,
     weight: best[ex].weight,
-    startWeight: startWeights[ex],
+    startWeight: sw[ex] ?? 0,
     workoutIndex: best[ex].workoutIndex,
   }));
 }
 
-function computeStreak(results: Results): StreakInfo {
+function computeStreak(results: Results, totalWorkouts: number): StreakInfo {
   let current = 0;
   let longest = 0;
   let streak = 0;
 
-  for (let i = 0; i < TOTAL_WORKOUTS; i++) {
+  for (let i = 0; i < totalWorkouts; i++) {
     const res = results[i];
     const isComplete = !!(res?.t1 && res?.t2 && res?.t3);
 
@@ -184,7 +238,7 @@ function computeStreak(results: Results): StreakInfo {
     }
 
     // If we've gone through all marked workouts
-    if (i === TOTAL_WORKOUTS - 1) {
+    if (i === totalWorkouts - 1) {
       current = streak;
     }
   }
@@ -192,13 +246,17 @@ function computeStreak(results: Results): StreakInfo {
   return { current, longest };
 }
 
-function computeVolume(rows: readonly WorkoutRow[]): VolumeStats {
+function computeVolume(
+  rows: readonly WorkoutRow[],
+  t1Stages: readonly { readonly sets: number; readonly reps: number }[],
+  t3Constants: { sets: number; prescribedReps: number }
+): VolumeStats {
   let totalVolume = 0;
   let totalSets = 0;
   let totalReps = 0;
 
   for (const row of rows) {
-    const { volume, sets, reps } = rowVolumeTick(row);
+    const { volume, sets, reps } = rowVolumeTick(row, t1Stages, t3Constants);
     totalVolume += volume;
     totalSets += sets;
     totalReps += reps;
@@ -209,7 +267,9 @@ function computeVolume(rows: readonly WorkoutRow[]): VolumeStats {
 
 function computeCompletion(
   rows: readonly WorkoutRow[],
-  startWeights: StartWeights
+  startWeights: StartWeights,
+  totalWorkouts: number,
+  t1Exercises: readonly string[]
 ): CompletionStats {
   let completed = 0;
   let successes = 0;
@@ -227,15 +287,16 @@ function computeCompletion(
     if (row.result.t1 === 'success') lastSuccessWeight[row.t1Exercise] = row.t1Weight;
   }
 
-  const totalWeightGained = T1_EXERCISES.reduce((sum, ex) => {
-    const gained = (lastSuccessWeight[ex] ?? startWeights[ex]) - startWeights[ex];
+  const sw: Readonly<Record<string, number>> = startWeights;
+  const totalWeightGained = t1Exercises.reduce((sum, ex) => {
+    const gained = (lastSuccessWeight[ex] ?? sw[ex] ?? 0) - (sw[ex] ?? 0);
     return gained > 0 ? sum + gained : sum;
   }, 0);
 
   return {
     workoutsCompleted: completed,
-    totalWorkouts: TOTAL_WORKOUTS,
-    completionPct: toPercentage(completed, TOTAL_WORKOUTS),
+    totalWorkouts,
+    completionPct: toPercentage(completed, totalWorkouts),
     overallSuccessRate: toPercentage(successes, totalMarks),
     totalWeightGained,
   };
@@ -244,7 +305,9 @@ function computeCompletion(
 function computeMonthlyReport(
   rows: readonly WorkoutRow[],
   startWeights: StartWeights,
-  resultTimestamps: Readonly<Record<string, string>>
+  resultTimestamps: Readonly<Record<string, string>>,
+  t1Stages: readonly { readonly sets: number; readonly reps: number }[],
+  t3Constants: { sets: number; prescribedReps: number }
 ): MonthlyReport | null {
   const now = new Date();
   const currentMonth = now.getMonth();
@@ -278,7 +341,7 @@ function computeMonthlyReport(
     successes += st.successes;
     totalMarks += st.marks;
 
-    const vt = rowVolumeTick(row);
+    const vt = rowVolumeTick(row, t1Stages, t3Constants);
     volume += vt.volume;
     sets += vt.sets;
     reps += vt.reps;
@@ -319,15 +382,22 @@ function computeMonthlyReport(
 export function computeProfileData(
   startWeights: StartWeights,
   results: Results,
+  definition: ProgramDefinition,
   resultTimestamps?: Readonly<Record<string, string>>
 ): ProfileData {
+  const names = deriveNames(definition);
+  const t1Exercises = deriveT1Exercises(definition);
+  const t1Stages = deriveT1Stages(definition);
+  const t3Constants = deriveT3Constants(definition);
+  const totalWorkouts = definition.totalWorkouts;
+
   const rows = computeProgram(startWeights, results);
-  const personalRecords = computePersonalRecords(rows, startWeights);
-  const streak = computeStreak(results);
-  const volume = computeVolume(rows);
-  const completion = computeCompletion(rows, startWeights);
+  const personalRecords = computePersonalRecords(rows, startWeights, t1Exercises, names);
+  const streak = computeStreak(results, totalWorkouts);
+  const volume = computeVolume(rows, t1Stages, t3Constants);
+  const completion = computeCompletion(rows, startWeights, totalWorkouts, t1Exercises);
   const monthlyReport = resultTimestamps
-    ? computeMonthlyReport(rows, startWeights, resultTimestamps)
+    ? computeMonthlyReport(rows, startWeights, resultTimestamps, t1Stages, t3Constants)
     : null;
 
   return { personalRecords, streak, volume, completion, monthlyReport };

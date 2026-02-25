@@ -6,6 +6,7 @@ import { describe, it, expect, mock, beforeEach } from 'bun:test';
 import { render, screen, waitFor } from '@testing-library/react';
 import React from 'react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { MemoryRouter } from 'react-router-dom';
 
 // ---------------------------------------------------------------------------
 // Mock auth
@@ -91,9 +92,13 @@ function createWrapper(): React.FC<{ readonly children: React.ReactNode }> {
 
   return function Wrapper({ children }: { readonly children: React.ReactNode }): React.ReactNode {
     return React.createElement(
-      QueryClientProvider,
-      { client: queryClient },
-      React.createElement(AuthProvider, null, React.createElement(ToastProvider, null, children))
+      MemoryRouter,
+      null,
+      React.createElement(
+        QueryClientProvider,
+        { client: queryClient },
+        React.createElement(AuthProvider, null, React.createElement(ToastProvider, null, children))
+      )
     );
   };
 }

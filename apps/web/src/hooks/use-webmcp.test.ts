@@ -2,8 +2,16 @@ import { describe, it, expect, mock, beforeEach, afterEach } from 'bun:test';
 import { renderHook } from '@testing-library/react';
 import { useWebMcp } from './use-webmcp';
 import { computeProgram } from '@gzclp/shared/engine';
-import { DEFAULT_WEIGHTS } from '../../test/helpers/fixtures';
+import { DEFAULT_WEIGHTS, GZCLP_DEFINITION_FIXTURE } from '../../test/helpers/fixtures';
 import type { StartWeights, Results, WorkoutRow } from '@gzclp/shared/types';
+
+const GZCLP_NAMES: Readonly<Record<string, string>> = (() => {
+  const map: Record<string, string> = {};
+  for (const [id, ex] of Object.entries(GZCLP_DEFINITION_FIXTURE.exercises)) {
+    map[id] = ex.name;
+  }
+  return map;
+})();
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -42,6 +50,9 @@ function buildOptions(overrides?: {
   startWeights: StartWeights | null;
   results: Results;
   rows: readonly WorkoutRow[];
+  names: Readonly<Record<string, string>>;
+  totalWorkouts: number;
+  definition: typeof GZCLP_DEFINITION_FIXTURE;
   generateProgram: ReturnType<typeof mock>;
   markResult: ReturnType<typeof mock>;
   setAmrapReps: ReturnType<typeof mock>;
@@ -54,6 +65,9 @@ function buildOptions(overrides?: {
     startWeights: sw,
     results,
     rows,
+    names: GZCLP_NAMES,
+    totalWorkouts: GZCLP_DEFINITION_FIXTURE.totalWorkouts,
+    definition: GZCLP_DEFINITION_FIXTURE,
     generateProgram: mock(),
     markResult: mock(),
     setAmrapReps: mock(),
