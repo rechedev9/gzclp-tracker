@@ -8,10 +8,36 @@ import { Elysia, t } from 'elysia';
 import { jwtPlugin, resolveUserId } from '../middleware/auth-guard';
 import { rateLimit } from '../middleware/rate-limit';
 import { requestLogger } from '../middleware/request-logger';
-import { listExercises, listMuscleGroups, createExercise } from '../services/exercises';
+import {
+  listExercises,
+  listMuscleGroups,
+  createExercise,
+  type ExerciseFilter,
+} from '../services/exercises';
 import { ApiError } from '../middleware/error-handler';
 
 const security = [{ bearerAuth: [] }];
+
+// ---------------------------------------------------------------------------
+// Helpers: query param parsing
+// ---------------------------------------------------------------------------
+
+/** Split a comma-separated string into a trimmed non-empty array, or undefined. */
+function parseCommaSeparated(value: string | undefined): readonly string[] | undefined {
+  if (!value) return undefined;
+  const parts = value
+    .split(',')
+    .map((s) => s.trim())
+    .filter(Boolean);
+  return parts.length > 0 ? parts : undefined;
+}
+
+/** Parse "true"/"false" string to boolean, or undefined. */
+function parseBooleanString(value: string | undefined): boolean | undefined {
+  if (value === 'true') return true;
+  if (value === 'false') return false;
+  return undefined;
+}
 
 // ---------------------------------------------------------------------------
 // Helper: optional auth — extracts userId from JWT if present, undefined otherwise
@@ -60,16 +86,38 @@ const publicExerciseRoutes = new Elysia()
   // GET /exercises — optional auth: preset-only for unauthenticated, preset+own for authenticated
   .get(
     '/exercises',
-    async ({ jwt: jwtCtx, headers }) => {
+    async ({ jwt: jwtCtx, headers, query }) => {
       const { userId } = await resolveOptionalUserId({ jwt: jwtCtx, headers });
-      return listExercises(userId);
+
+      const filter: ExerciseFilter = {
+        q: query.q || undefined,
+        muscleGroupId: parseCommaSeparated(query.muscleGroupId),
+        equipment: parseCommaSeparated(query.equipment),
+        force: parseCommaSeparated(query.force),
+        level: parseCommaSeparated(query.level),
+        mechanic: parseCommaSeparated(query.mechanic),
+        category: parseCommaSeparated(query.category),
+        isCompound: parseBooleanString(query.isCompound),
+      };
+
+      return listExercises(userId, filter);
     },
     {
+      query: t.Object({
+        q: t.Optional(t.String()),
+        muscleGroupId: t.Optional(t.String()),
+        equipment: t.Optional(t.String()),
+        force: t.Optional(t.String()),
+        level: t.Optional(t.String()),
+        mechanic: t.Optional(t.String()),
+        category: t.Optional(t.String()),
+        isCompound: t.Optional(t.String()),
+      }),
       detail: {
         tags: ['Exercises'],
         summary: 'List exercises',
         description:
-          'Returns preset exercises for unauthenticated requests, or preset + user-created exercises when authenticated.',
+          'Returns preset exercises for unauthenticated requests, or preset + user-created exercises when authenticated. Supports filtering by text search (q), muscle group, equipment, force, level, mechanic, category (comma-separated for multi-value), and isCompound (true/false).',
         responses: {
           200: { description: 'Array of exercises' },
         },
