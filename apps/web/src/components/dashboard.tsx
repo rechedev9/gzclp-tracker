@@ -123,19 +123,22 @@ function OtherProgramCard({ program, onContinue }: OtherProgramCardProps): React
   const definition = getProgramDefinition(program.programId);
   if (!definition) return null;
 
+  const statusLabel = program.status === 'completed' ? 'completado' : program.status;
+  const buttonLabel = program.status === 'completed' ? 'Ver Historial' : 'Continuar';
+
   return (
     <div className="bg-[var(--bg-card)] border border-[var(--border-color)] p-4 sm:p-5 flex items-center justify-between gap-3">
       <div>
         <span className="text-xs font-bold text-[var(--text-header)]">{program.name}</span>
         <span className="ml-2 text-[10px] text-[var(--text-muted)] uppercase tracking-wider">
-          {program.status}
+          {statusLabel}
         </span>
       </div>
       <button
         onClick={() => onContinue(program.id, program.programId)}
         className="px-4 py-2 text-xs font-bold border border-[var(--border-color)] text-[var(--text-main)] hover:border-[var(--border-light)] cursor-pointer transition-colors whitespace-nowrap"
       >
-        Continuar
+        {buttonLabel}
       </button>
     </div>
   );
@@ -220,23 +223,33 @@ export function Dashboard({
         {/* Program catalog — all real programs from registry */}
         <section>
           <h2 className="text-xs font-bold uppercase tracking-[0.15em] text-[var(--text-muted)] mb-4">
-            {activeProgram ? 'Iniciar Nuevo Programa' : 'Elegir un Programa'}
+            {activeProgram ? 'Otros Programas Disponibles' : 'Elegir un Programa'}
           </h2>
+          {activeProgram && (
+            <p className="text-xs text-[var(--text-muted)] mb-4">
+              Finaliza tu programa actual para iniciar uno nuevo.
+            </p>
+          )}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            {presets.map((def) => (
-              <ProgramCard
-                key={def.id}
-                definition={def}
-                isActive={activeProgram?.programId === def.id}
-                onSelect={() => {
-                  if (activeProgram?.programId === def.id) {
-                    onSelectProgram(activeProgram.id, activeProgram.programId);
-                  } else {
-                    onStartNewProgram(def.id);
-                  }
-                }}
-              />
-            ))}
+            {presets.map((def) => {
+              const isCurrent = activeProgram?.programId === def.id;
+              return (
+                <ProgramCard
+                  key={def.id}
+                  definition={def}
+                  isActive={isCurrent}
+                  disabled={activeProgram !== null && !isCurrent}
+                  disabledLabel="Finaliza tu programa actual"
+                  onSelect={() => {
+                    if (isCurrent && activeProgram) {
+                      onSelectProgram(activeProgram.id, activeProgram.programId);
+                    } else {
+                      onStartNewProgram(def.id);
+                    }
+                  }}
+                />
+              );
+            })}
           </div>
         </section>
       </div>

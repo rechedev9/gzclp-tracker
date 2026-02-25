@@ -10,16 +10,19 @@ import {
 } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
-import type { ResultValue } from '@gzclp/shared/types';
+import type { ResultValue, GenericWorkoutRow } from '@gzclp/shared/types';
 import { useGenericProgram } from '@/hooks/use-generic-program';
 import { useAuth } from '@/contexts/auth-context';
 import { useToast } from '@/contexts/toast-context';
 import { detectGenericPersonalRecord } from '@/lib/pr-detection';
 import { AppHeader } from './app-header';
 import { ConfirmDialog } from './confirm-dialog';
+import { DayNavigator } from './day-navigator';
+import type { DayTab } from './day-navigator';
+import { DayView } from './day-view';
+import type { DayViewSlot } from './day-view';
 import { ErrorBoundary } from './error-boundary';
 import { GenericSetupForm } from './generic-setup-form';
-import { GenericWeekSection } from './generic-week-section';
 import { StatsSkeleton } from './stats-skeleton';
 import { TabButton } from './tab-button';
 import { ToastContainer } from './toast';
@@ -30,6 +33,25 @@ const GenericStatsPanel = lazy(() => import('./generic-stats-panel'));
 const preloadGenericStatsPanel = (): void => {
   void import('./generic-stats-panel');
 };
+
+function genericRowToSlots(row: GenericWorkoutRow): readonly DayViewSlot[] {
+  return row.slots.map((slot) => ({
+    key: slot.slotId,
+    exerciseName: slot.exerciseName,
+    tierLabel: slot.tier.toUpperCase(),
+    role: slot.role ?? 'accessory',
+    weight: slot.weight,
+    scheme: `${slot.sets}\u00d7${slot.reps}${slot.repsMax !== undefined ? `-${slot.repsMax}` : ''}`,
+    stage: slot.stage,
+    showStage: slot.stage > 0,
+    isAmrap: slot.isAmrap,
+    result: slot.result,
+    amrapReps: slot.amrapReps,
+    rpe: slot.rpe,
+    showRpe: slot.role === 'primary',
+    isChanged: slot.isChanged,
+  }));
+}
 
 interface GenericProgramAppProps {
   readonly programId: string;
@@ -66,6 +88,7 @@ export function GenericProgramApp({
     setRpe,
     undoSpecific,
     undoLast,
+    finishProgram,
     resetAll,
   } = useGenericProgram(programId, instanceId);
 
@@ -130,6 +153,33 @@ export function GenericProgramApp({
     [weeks, selectedWeek]
   );
   const weekTotalCount = weeks[selectedWeek - 1]?.rows.length ?? workoutsPerWeek;
+
+  // Day-level navigation within the selected week
+  const [selectedDay, setSelectedDay] = useState(0);
+  const [prevSelectedWeek, setPrevSelectedWeek] = useState(selectedWeek);
+
+  if (prevSelectedWeek !== selectedWeek) {
+    setPrevSelectedWeek(selectedWeek);
+    const weekRows = weeks[selectedWeek - 1]?.rows ?? [];
+    const pending = weekRows.findIndex((r) => r.slots.some((s) => s.result === undefined));
+    setSelectedDay(pending >= 0 ? pending : 0);
+  }
+
+  const dayTabs = useMemo((): readonly DayTab[] => {
+    const weekRows = weeks[selectedWeek - 1]?.rows ?? [];
+    return weekRows.map((row) => ({
+      label: row.dayName,
+      isComplete: row.slots.every((s) => s.result !== undefined),
+    }));
+  }, [weeks, selectedWeek]);
+
+  const currentDayInWeek = useMemo((): number => {
+    if (selectedWeek !== currentWeekNumber) return -1;
+    const weekRows = weeks[selectedWeek - 1]?.rows ?? [];
+    return weekRows.findIndex((r) => r.slots.some((s) => s.result === undefined));
+  }, [selectedWeek, currentWeekNumber, weeks]);
+
+  const selectedRow = weeks[selectedWeek - 1]?.rows[selectedDay];
 
   const recordAndToast = useCallback(
     (workoutIndex: number, slotId: string, value: ResultValue): void => {
@@ -218,8 +268,19 @@ export function GenericProgramApp({
     setRpeReminder(null);
   }, [rpeReminder, recordAndToast, scrollToRpeInput]);
 
+  const handleFinishProgram = useCallback((): void => {
+    finishProgram();
+    onBackToDashboard?.();
+  }, [finishProgram, onBackToDashboard]);
+
+  const weeksRef = useRef(weeks);
+  weeksRef.current = weeks;
+
   const jumpToCurrent = useCallback(() => {
     setSelectedWeek(currentWeekNumber);
+    const weekRows = weeksRef.current[currentWeekNumber - 1]?.rows ?? [];
+    const pendingDay = weekRows.findIndex((r) => r.slots.some((s) => s.result === undefined));
+    setSelectedDay(pendingDay >= 0 ? pendingDay : 0);
     requestAnimationFrame(() => {
       requestAnimationFrame(() => {
         const el = document.querySelector('[data-current-row]');
@@ -279,6 +340,7 @@ export function GenericProgramApp({
             undoCount={undoHistory.length}
             onUndo={undoLast}
             onJumpToCurrent={jumpToCurrent}
+            onFinish={handleFinishProgram}
             onReset={resetAll}
           />
         )}
@@ -353,17 +415,24 @@ export function GenericProgramApp({
                   onNext={() => setSelectedWeek((w) => Math.min(weeks.length, w + 1))}
                   onGoToCurrent={jumpToCurrent}
                 />
-                {weeks[selectedWeek - 1] && (
-                  <GenericWeekSection
-                    key={selectedWeek}
-                    week={selectedWeek}
-                    rows={weeks[selectedWeek - 1].rows}
-                    firstPendingIdx={firstPendingIdx}
-                    forceExpanded
+                <DayNavigator
+                  days={dayTabs}
+                  selectedDay={selectedDay}
+                  currentDay={currentDayInWeek}
+                  onSelectDay={setSelectedDay}
+                />
+                {selectedRow && (
+                  <DayView
+                    key={`${selectedWeek}-${selectedDay}`}
+                    workoutIndex={selectedRow.index}
+                    workoutNumber={selectedRow.index + 1}
+                    dayName={selectedRow.dayName}
+                    isCurrent={selectedRow.index === firstPendingIdx}
+                    slots={genericRowToSlots(selectedRow)}
                     onMark={handleMarkResult}
+                    onUndo={undoSpecific}
                     onSetAmrapReps={setAmrapReps}
                     onSetRpe={setRpe}
-                    onUndo={undoSpecific}
                   />
                 )}
               </>

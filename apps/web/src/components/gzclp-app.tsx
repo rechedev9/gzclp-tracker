@@ -10,7 +10,7 @@ import {
 } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
-import type { Tier, ResultValue } from '@gzclp/shared/types';
+import type { Tier, ResultValue, WorkoutRow as WorkoutRowType } from '@gzclp/shared/types';
 import { computeProgram } from '@gzclp/shared/engine';
 import { TOTAL_WORKOUTS, NAMES } from '@gzclp/shared/program';
 import { useProgram } from '@/hooks/use-program';
@@ -20,12 +20,15 @@ import { useWebMcp } from '@/hooks/use-webmcp';
 import { detectT1PersonalRecord } from '@/lib/pr-detection';
 import { AppHeader } from './app-header';
 import { ConfirmDialog } from './confirm-dialog';
+import { DayNavigator } from './day-navigator';
+import type { DayTab } from './day-navigator';
+import { DayView } from './day-view';
+import type { DayViewSlot } from './day-view';
 import { ErrorBoundary } from './error-boundary';
 import { ToastContainer } from './toast';
 import { SetupForm } from './setup-form';
 import { Toolbar } from './toolbar';
 import { WeekNavigator } from './week-navigator';
-import { WeekSection } from './week-section';
 import { StatsSkeleton } from './stats-skeleton';
 import { StageTag } from './stage-tag';
 import { TabButton } from './tab-button';
@@ -34,6 +37,59 @@ const StatsPanel = lazy(() => import('./stats-panel'));
 const preloadStatsPanel = (): void => {
   void import('./stats-panel');
 };
+
+function gzclpRowToSlots(row: WorkoutRowType): readonly DayViewSlot[] {
+  return [
+    {
+      key: 't1',
+      exerciseName: NAMES[row.t1Exercise],
+      tierLabel: 'T1',
+      role: 'primary',
+      weight: row.t1Weight,
+      scheme: `${row.t1Sets}\u00d7${row.t1Reps}`,
+      stage: row.t1Stage,
+      showStage: true,
+      isAmrap: true,
+      result: row.result.t1,
+      amrapReps: row.result.t1Reps,
+      rpe: row.result.rpe,
+      showRpe: true,
+      isChanged: row.isChanged,
+    },
+    {
+      key: 't2',
+      exerciseName: NAMES[row.t2Exercise],
+      tierLabel: 'T2',
+      role: 'secondary',
+      weight: row.t2Weight,
+      scheme: `${row.t2Sets}\u00d7${row.t2Reps}`,
+      stage: row.t2Stage,
+      showStage: true,
+      isAmrap: false,
+      result: row.result.t2,
+      amrapReps: undefined,
+      rpe: undefined,
+      showRpe: false,
+      isChanged: row.isChanged,
+    },
+    {
+      key: 't3',
+      exerciseName: NAMES[row.t3Exercise],
+      tierLabel: 'T3',
+      role: 'accessory',
+      weight: row.t3Weight,
+      scheme: '3\u00d715',
+      stage: 0,
+      showStage: false,
+      isAmrap: true,
+      result: row.result.t3,
+      amrapReps: row.result.t3Reps,
+      rpe: row.result.t3Rpe,
+      showRpe: true,
+      isChanged: row.isChanged,
+    },
+  ];
+}
 
 interface GZCLPAppProps {
   readonly instanceId?: string;
@@ -67,6 +123,7 @@ export function GZCLPApp({
     setRpe,
     undoSpecific,
     undoLast,
+    finishProgram,
     resetAll,
   } = useProgram(instanceId);
   const queryClient = useQueryClient();
@@ -136,6 +193,50 @@ export function GZCLPApp({
   );
   const weekTotalCount = weeks[selectedWeek - 1]?.rows.length ?? 3;
 
+  // Day-level navigation within the selected week
+  const [selectedDay, setSelectedDay] = useState(0);
+  const [prevSelectedWeek, setPrevSelectedWeek] = useState(selectedWeek);
+
+  if (prevSelectedWeek !== selectedWeek) {
+    setPrevSelectedWeek(selectedWeek);
+    const weekRows = weeks[selectedWeek - 1]?.rows ?? [];
+    const pending = weekRows.findIndex((r) => !r.result.t1 || !r.result.t2 || !r.result.t3);
+    setSelectedDay(pending >= 0 ? pending : 0);
+  }
+
+  const dayTabs = useMemo((): readonly DayTab[] => {
+    const weekRows = weeks[selectedWeek - 1]?.rows ?? [];
+    return weekRows.map((row) => ({
+      label: row.dayName,
+      isComplete: Boolean(row.result.t1 && row.result.t2 && row.result.t3),
+    }));
+  }, [weeks, selectedWeek]);
+
+  const currentDayInWeek = useMemo((): number => {
+    if (selectedWeek !== currentWeekNumber) return -1;
+    const weekRows = weeks[selectedWeek - 1]?.rows ?? [];
+    return weekRows.findIndex((r) => !r.result.t1 || !r.result.t2 || !r.result.t3);
+  }, [selectedWeek, currentWeekNumber, weeks]);
+
+  const selectedRow = weeks[selectedWeek - 1]?.rows[selectedDay];
+
+  // Adapters: DayView uses (index, slotKey: string, ...) but GZCLP uses narrow types
+  const handleDayAmrapReps = useCallback(
+    (workoutIndex: number, slotKey: string, reps: number | undefined): void => {
+      const field = slotKey === 't1' ? 't1Reps' : 't3Reps';
+      setAmrapReps(workoutIndex, field, reps);
+    },
+    [setAmrapReps]
+  );
+
+  const handleDayRpe = useCallback(
+    (workoutIndex: number, slotKey: string, rpe: number | undefined): void => {
+      if (slotKey !== 't1' && slotKey !== 't3') return;
+      setRpe(workoutIndex, slotKey, rpe);
+    },
+    [setRpe]
+  );
+
   const recordAndToast = useCallback(
     (index: number, tier: Tier, value: ResultValue): void => {
       markResult(index, tier, value);
@@ -168,10 +269,10 @@ export function GZCLPApp({
     [markResult, toast, undoSpecific]
   );
 
-  const scrollToRpeInput = useCallback((index: number): void => {
+  const scrollToRpeInput = useCallback((selector: string): void => {
     requestAnimationFrame(() => {
       requestAnimationFrame(() => {
-        const el = document.querySelector(`[data-rpe-input="${index}"]`);
+        const el = document.querySelector(`[data-rpe-input="${selector}"]`);
         if (el) {
           el.scrollIntoView({ behavior: 'smooth', block: 'center' });
         }
@@ -217,13 +318,25 @@ export function GZCLPApp({
   const handleRpeReminderAdd = useCallback((): void => {
     if (!rpeReminder) return;
     recordAndToast(rpeReminder.index, rpeReminder.tier, rpeReminder.value);
-    scrollToRpeInput(rpeReminder.index);
+    scrollToRpeInput(`${rpeReminder.index}-t1`);
     setRpeReminder(null);
   }, [rpeReminder, recordAndToast, scrollToRpeInput]);
 
+  const handleFinishProgram = useCallback((): void => {
+    finishProgram();
+    onBackToDashboard?.();
+  }, [finishProgram, onBackToDashboard]);
+
+  const weeksRef = useRef(weeks);
+  weeksRef.current = weeks;
+
   const jumpToCurrent = useCallback(() => {
     setSelectedWeek(currentWeekNumber);
-    // Double rAF ensures the new week's DOM is fully painted before scrolling
+    const weekRows = weeksRef.current[currentWeekNumber - 1]?.rows ?? [];
+    const pendingDay = weekRows.findIndex(
+      (r: WorkoutRowType) => !r.result.t1 || !r.result.t2 || !r.result.t3
+    );
+    setSelectedDay(pendingDay >= 0 ? pendingDay : 0);
     requestAnimationFrame(() => {
       requestAnimationFrame(() => {
         const el = document.querySelector('[data-current-row]');
@@ -275,6 +388,7 @@ export function GZCLPApp({
             undoCount={undoHistory.length}
             onUndo={undoLast}
             onJumpToCurrent={jumpToCurrent}
+            onFinish={handleFinishProgram}
             onReset={resetAll}
           />
         )}
@@ -383,17 +497,24 @@ export function GZCLPApp({
                   onNext={() => setSelectedWeek((w) => Math.min(weeks.length, w + 1))}
                   onGoToCurrent={jumpToCurrent}
                 />
-                {weeks[selectedWeek - 1] && (
-                  <WeekSection
-                    key={selectedWeek}
-                    week={selectedWeek}
-                    rows={weeks[selectedWeek - 1].rows}
-                    firstPendingIdx={firstPendingIdx}
-                    forceExpanded
+                <DayNavigator
+                  days={dayTabs}
+                  selectedDay={selectedDay}
+                  currentDay={currentDayInWeek}
+                  onSelectDay={setSelectedDay}
+                />
+                {selectedRow && (
+                  <DayView
+                    key={`${selectedWeek}-${selectedDay}`}
+                    workoutIndex={selectedRow.index}
+                    workoutNumber={selectedRow.index + 1}
+                    dayName={selectedRow.dayName}
+                    isCurrent={selectedRow.index === firstPendingIdx}
+                    slots={gzclpRowToSlots(selectedRow)}
                     onMark={handleMarkResult}
-                    onSetAmrapReps={setAmrapReps}
-                    onSetRpe={setRpe}
                     onUndo={undoSpecific}
+                    onSetAmrapReps={handleDayAmrapReps}
+                    onSetRpe={handleDayRpe}
                   />
                 )}
               </>

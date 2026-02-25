@@ -159,20 +159,6 @@ export function ProfilePage({ onBack }: ProfilePageProps): React.ReactNode {
                 </div>
               </div>
             </div>
-
-            {/* Danger zone */}
-            <div className="mt-6 bg-[var(--bg-card)] border border-[var(--border-badge-no)] p-5 sm:p-6">
-              <h3 className="text-xs font-bold text-[var(--text-badge-no)] uppercase tracking-[0.15em] mb-2">
-                Zona de Peligro
-              </h3>
-              <p className="text-xs text-[var(--text-muted)] mb-4 leading-relaxed">
-                Eliminar tu cuenta marcará todos tus datos para borrado permanente tras 30 días.
-                Esta acción no se puede deshacer.
-              </p>
-              <Button variant="danger" size="sm" onClick={() => setDeleteDialogOpen(true)}>
-                Eliminar Cuenta
-              </Button>
-            </div>
           </section>
         )}
 
@@ -341,6 +327,23 @@ export function ProfilePage({ onBack }: ProfilePageProps): React.ReactNode {
               </section>
             )}
           </>
+        )}
+        {/* Danger zone — always at the bottom (authenticated users only) */}
+        {user && (
+          <section className="mt-12 mb-4">
+            <div className="bg-[var(--bg-card)] border border-[var(--border-badge-no)] p-5 sm:p-6">
+              <h3 className="text-xs font-bold text-[var(--text-badge-no)] uppercase tracking-[0.15em] mb-2">
+                Zona de Peligro
+              </h3>
+              <p className="text-xs text-[var(--text-muted)] mb-4 leading-relaxed">
+                Eliminar tu cuenta marcará todos tus datos para borrado permanente tras 30 días.
+                Esta acción no se puede deshacer.
+              </p>
+              <Button variant="danger" size="sm" onClick={() => setDeleteDialogOpen(true)}>
+                Eliminar Cuenta
+              </Button>
+            </div>
+          </section>
         )}
       </div>
 

@@ -279,6 +279,14 @@ export async function updateProgramConfig(
   });
 }
 
+/** Mark a program instance as completed (preserves all data). */
+export async function completeProgram(id: string): Promise<void> {
+  await apiFetch(`/programs/${encodeURIComponent(id)}`, {
+    method: 'PATCH',
+    body: JSON.stringify({ status: 'completed' }),
+  });
+}
+
 /** Delete a program instance. */
 export async function deleteProgram(id: string): Promise<void> {
   await apiFetch(`/programs/${encodeURIComponent(id)}`, { method: 'DELETE' });

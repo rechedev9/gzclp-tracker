@@ -9,6 +9,7 @@ interface ToolbarProps {
   readonly undoCount: number;
   readonly onUndo: () => void;
   readonly onJumpToCurrent: () => void;
+  readonly onFinish: () => void;
   readonly onReset: () => void;
 }
 
@@ -50,9 +51,11 @@ export function Toolbar({
   undoCount,
   onUndo,
   onJumpToCurrent,
+  onFinish,
   onReset,
 }: ToolbarProps) {
   const [confirmOpen, setConfirmOpen] = useState(false);
+  const [finishConfirmOpen, setFinishConfirmOpen] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const closeMenu = useCallback((): void => setMenuOpen(false), []);
 
@@ -108,6 +111,14 @@ export function Toolbar({
             </Button>
             <DropdownMenu open={menuOpen} onClose={closeMenu} align="right">
               <DropdownItem
+                onClick={() => {
+                  closeMenu();
+                  setFinishConfirmOpen(true);
+                }}
+              >
+                Finalizar Programa
+              </DropdownItem>
+              <DropdownItem
                 variant="danger"
                 onClick={() => {
                   closeMenu();
@@ -120,6 +131,18 @@ export function Toolbar({
           </div>
         </div>
       </div>
+
+      <ConfirmDialog
+        open={finishConfirmOpen}
+        title="Finalizar Programa"
+        message="Tu progreso y estadísticas se guardarán. Podrás consultarlos en cualquier momento desde el dashboard."
+        confirmLabel="Finalizar"
+        onConfirm={() => {
+          onFinish();
+          setFinishConfirmOpen(false);
+        }}
+        onCancel={() => setFinishConfirmOpen(false)}
+      />
 
       <ConfirmDialog
         open={confirmOpen}

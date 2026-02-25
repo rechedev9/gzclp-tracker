@@ -13,6 +13,7 @@ function buildToolbarProps(overrides?: Partial<Parameters<typeof Toolbar>[0]>) {
     undoCount: 0,
     onUndo: mock(),
     onJumpToCurrent: mock(),
+    onFinish: mock(),
     onReset: mock(),
     ...overrides,
   };

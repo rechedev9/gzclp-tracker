@@ -7,6 +7,7 @@ import {
   fetchProgram,
   createProgram,
   updateProgramConfig,
+  completeProgram,
   deleteProgram,
   recordResult,
   deleteResult,
@@ -118,6 +119,8 @@ interface UseProgramReturn {
   readonly setRpe: (index: number, tier: 't1' | 't3', rpe: number | undefined) => void;
   readonly undoSpecific: (index: number, tier: Tier) => void;
   readonly undoLast: () => void;
+  readonly finishProgram: () => void;
+  readonly isFinishing: boolean;
   readonly resetAll: () => void;
   readonly exportData: () => void;
   readonly importData: (json: string) => Promise<boolean>;
@@ -313,6 +316,19 @@ export function useProgram(instanceId?: string): UseProgramReturn {
     onSettled: detailOnSettled,
   });
 
+  const finishProgramMutation = useMutation({
+    mutationFn: async () => {
+      if (!activeInstanceId) throw new Error('No active program');
+      await completeProgram(activeInstanceId);
+    },
+    onError: () => {
+      toast({ message: 'No se pudo finalizar el programa. Inténtalo de nuevo.' });
+    },
+    onSettled: () => {
+      void queryClient.invalidateQueries({ queryKey: queryKeys.programs.all });
+    },
+  });
+
   const resetAllMutation = useMutation({
     mutationFn: async () => {
       if (!activeInstanceId) throw new Error('No active program');
@@ -427,6 +443,10 @@ export function useProgram(instanceId?: string): UseProgramReturn {
     [updateWeightsMutation]
   );
 
+  const finishProgramCb = useCallback((): void => {
+    finishProgramMutation.mutate();
+  }, [finishProgramMutation]);
+
   const resetAllCb = useCallback((): void => {
     resetAllMutation.mutate();
   }, [resetAllMutation]);
@@ -480,6 +500,8 @@ export function useProgram(instanceId?: string): UseProgramReturn {
     setRpe: setRpeCb,
     undoSpecific: undoSpecificCb,
     undoLast: undoLastCb,
+    finishProgram: finishProgramCb,
+    isFinishing: finishProgramMutation.isPending,
     resetAll: resetAllCb,
     exportData: exportDataCb,
     importData: importDataCb,
