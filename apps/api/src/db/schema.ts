@@ -10,6 +10,7 @@ import {
   serial,
   index,
   unique,
+  boolean,
 } from 'drizzle-orm/pg-core';
 import { relations } from 'drizzle-orm';
 
@@ -105,6 +106,10 @@ export const programInstances = pgTable(
 
 export const programInstancesRelations = relations(programInstances, ({ one, many }) => ({
   user: one(users, { fields: [programInstances.userId], references: [users.id] }),
+  programTemplate: one(programTemplates, {
+    fields: [programInstances.programId],
+    references: [programTemplates.id],
+  }),
   workoutResults: many(workoutResults),
   undoEntries: many(undoEntries),
 }));
@@ -198,3 +203,70 @@ export const programDefinitions = pgTable(
 export const programDefinitionsRelations = relations(programDefinitions, ({ one }) => ({
   user: one(users, { fields: [programDefinitions.userId], references: [users.id] }),
 }));
+
+// ---------------------------------------------------------------------------
+// muscle_groups — exercise categorization
+// ---------------------------------------------------------------------------
+
+export const muscleGroups = pgTable('muscle_groups', {
+  id: varchar({ length: 50 }).primaryKey(),
+  name: varchar({ length: 100 }).notNull(),
+  createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+});
+
+// ---------------------------------------------------------------------------
+// exercises — canonical exercise catalog
+// ---------------------------------------------------------------------------
+
+export const exercises = pgTable(
+  'exercises',
+  {
+    id: varchar({ length: 50 }).primaryKey(),
+    name: varchar({ length: 100 }).notNull(),
+    muscleGroupId: varchar('muscle_group_id', { length: 50 })
+      .references(() => muscleGroups.id, { onDelete: 'restrict' })
+      .notNull(),
+    equipment: varchar({ length: 50 }),
+    isCompound: boolean('is_compound').notNull().default(false),
+    isPreset: boolean('is_preset').notNull().default(true),
+    createdBy: uuid('created_by').references(() => users.id, { onDelete: 'set null' }),
+    createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+  },
+  (table) => [
+    index('exercises_muscle_group_id_idx').on(table.muscleGroupId),
+    index('exercises_created_by_idx').on(table.createdBy),
+  ]
+);
+
+export const exercisesRelations = relations(exercises, ({ one }) => ({
+  muscleGroup: one(muscleGroups, {
+    fields: [exercises.muscleGroupId],
+    references: [muscleGroups.id],
+  }),
+  creator: one(users, {
+    fields: [exercises.createdBy],
+    references: [users.id],
+  }),
+}));
+
+// ---------------------------------------------------------------------------
+// program_templates — preset and custom program definitions
+// ---------------------------------------------------------------------------
+
+export const programTemplates = pgTable(
+  'program_templates',
+  {
+    id: varchar({ length: 50 }).primaryKey(),
+    name: varchar({ length: 100 }).notNull(),
+    description: text().notNull().default(''),
+    author: varchar({ length: 100 }).notNull().default(''),
+    version: smallint().notNull().default(1),
+    category: varchar({ length: 50 }).notNull().default('strength'),
+    source: varchar({ length: 10 }).notNull().default('preset'),
+    definition: jsonb().notNull(),
+    isActive: boolean('is_active').notNull().default(true),
+    createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
+  },
+  (table) => [index('program_templates_is_active_idx').on(table.isActive)]
+);
