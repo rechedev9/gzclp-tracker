@@ -21,6 +21,12 @@ function deriveQueryType(sql: string): QueryType {
   return 'other';
 }
 
+/** TCP keepalive interval in seconds to detect dead connections. */
+const KEEP_ALIVE_INTERVAL_SECONDS = 60;
+
+/** Recycle connections after 1 hour to prevent stale TCP sockets. */
+const MAX_CONNECTION_LIFETIME_SECONDS = 3600;
+
 let _client: postgres.Sql | undefined;
 let _db: DbInstance | undefined;
 
@@ -47,6 +53,12 @@ export function getDb(): DbInstance {
       ssl: process.env['NODE_ENV'] === 'production' ? 'require' : false,
       // Prevent runaway queries from exhausting the pool
       connection: { statement_timeout: 30_000 },
+      // PgBouncer safety — plain queries instead of prepared statements
+      prepare: false,
+      // TCP keepalive to detect dead connections (interval in seconds)
+      keep_alive: KEEP_ALIVE_INTERVAL_SECONDS,
+      // Recycle connections after 1 hour
+      max_lifetime: MAX_CONNECTION_LIFETIME_SECONDS,
     });
     _db = drizzle(_client, { schema, logger: devQueryLogger });
   }
