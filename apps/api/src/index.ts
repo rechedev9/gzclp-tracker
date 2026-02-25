@@ -15,11 +15,15 @@ import { cleanupExpiredTokens } from './services/auth';
 import { authRoutes } from './routes/auth';
 import { programRoutes } from './routes/programs';
 import { catalogRoutes } from './routes/catalog';
+import { exerciseRoutes } from './routes/exercises';
 import { resultRoutes } from './routes/results';
 import { programDefinitionRoutes } from './routes/program-definitions';
 import { getDb } from './db';
 import { getRedis } from './lib/redis';
 import { logger } from './lib/logger';
+import { seedMuscleGroups } from './db/seeds/muscle-groups-seed';
+import { seedExercises } from './db/seeds/exercises-seed';
+import { seedProgramTemplates } from './db/seeds/program-templates-seed';
 
 function parseCorsOrigins(raw: string | undefined): string | string[] {
   if (!raw) {
@@ -73,6 +77,21 @@ async function runMigrations(): Promise<void> {
 }
 
 await runMigrations();
+
+// ---------------------------------------------------------------------------
+// Reference data seeds — idempotent, safe to run on every startup
+// ---------------------------------------------------------------------------
+
+async function runSeeds(): Promise<void> {
+  const db = getDb();
+  logger.info('running reference data seeds');
+  await seedMuscleGroups(db);
+  await seedExercises(db);
+  await seedProgramTemplates(db);
+  logger.info('reference data seeds complete');
+}
+
+await runSeeds();
 
 // ---------------------------------------------------------------------------
 // Content-Security-Policy — applied to all responses
@@ -140,6 +159,7 @@ export const app = new Elysia()
   .use(authRoutes)
   .use(programRoutes)
   .use(catalogRoutes)
+  .use(exerciseRoutes)
   .use(resultRoutes)
   .use(programDefinitionRoutes)
   .get(

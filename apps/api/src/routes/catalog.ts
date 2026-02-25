@@ -1,35 +1,38 @@
 /**
- * Catalog routes — public endpoints serving program definitions.
+ * Catalog routes — public endpoints serving program definitions from the database.
  * No auth required — these are read-only reference data.
  */
 import { Elysia, t } from 'elysia';
-import { getAllPresetPrograms, getProgramDefinition } from '@gzclp/shared/programs/registry';
+import { listPrograms, getProgramDefinition } from '../services/catalog';
 import { ApiError } from '../middleware/error-handler';
 
 export const catalogRoutes = new Elysia({ prefix: '/catalog' })
 
   // GET /catalog — list all available program definitions
-  .get('/', () => getAllPresetPrograms(), {
+  .get('/', () => listPrograms(), {
     detail: {
       tags: ['Catalog'],
       summary: 'List program definitions',
       description:
-        'Returns all available preset program definitions (e.g. GZCLP). No authentication required.',
+        'Returns all available preset program definitions from the database. No authentication required.',
       responses: {
-        200: { description: 'Array of program definitions' },
+        200: { description: 'Array of catalog entries' },
       },
     },
   })
 
-  // GET /catalog/:programId — get a specific program definition
+  // GET /catalog/:programId — get a specific hydrated program definition
   .get(
     '/:programId',
-    ({ params }) => {
-      const definition = getProgramDefinition(params.programId);
-      if (!definition) {
+    async ({ params }) => {
+      const result = await getProgramDefinition(params.programId);
+      if (result.status === 'not_found') {
         throw new ApiError(404, 'Program not found', 'PROGRAM_NOT_FOUND');
       }
-      return definition;
+      if (result.status === 'hydration_failed') {
+        throw new ApiError(500, 'Program definition hydration failed', 'HYDRATION_FAILED');
+      }
+      return result.definition;
     },
     {
       params: t.Object({ programId: t.String() }),
@@ -37,10 +40,11 @@ export const catalogRoutes = new Elysia({ prefix: '/catalog' })
         tags: ['Catalog'],
         summary: 'Get program definition',
         description:
-          'Returns a single program definition by ID (e.g. `"gzclp"`). No authentication required.',
+          'Returns a single hydrated program definition by ID (e.g. `"gzclp"`). No authentication required.',
         responses: {
-          200: { description: 'Program definition' },
+          200: { description: 'Hydrated program definition' },
           404: { description: 'Unknown program ID' },
+          500: { description: 'Hydration failure — corrupted program data' },
         },
       },
     }

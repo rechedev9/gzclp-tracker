@@ -1,0 +1,160 @@
+/**
+ * Exercise routes — CRUD for exercises and muscle groups.
+ * GET /exercises — optional auth (preset-only for unauthenticated, preset+own for authenticated)
+ * GET /muscle-groups — no auth required
+ * POST /exercises — auth required (creates a user-scoped exercise)
+ */
+import { Elysia, t } from 'elysia';
+import { jwtPlugin, resolveUserId } from '../middleware/auth-guard';
+import { rateLimit } from '../middleware/rate-limit';
+import { requestLogger } from '../middleware/request-logger';
+import { listExercises, listMuscleGroups, createExercise } from '../services/exercises';
+import { ApiError } from '../middleware/error-handler';
+
+const security = [{ bearerAuth: [] }];
+
+// ---------------------------------------------------------------------------
+// Helper: optional auth — extracts userId from JWT if present, undefined otherwise
+// ---------------------------------------------------------------------------
+
+const BEARER_PREFIX = 'Bearer ';
+
+async function resolveOptionalUserId({
+  jwt: jwtCtx,
+  headers,
+}: {
+  jwt: { verify: (token?: string) => Promise<Record<string, unknown> | false> };
+  headers: Record<string, string | undefined>;
+}): Promise<{ userId: string | undefined }> {
+  const authorization = headers['authorization'];
+  if (!authorization?.startsWith(BEARER_PREFIX)) {
+    return { userId: undefined };
+  }
+
+  const token = authorization.slice(BEARER_PREFIX.length);
+  if (!token) {
+    return { userId: undefined };
+  }
+
+  const payload = await jwtCtx.verify(token);
+  if (!payload) {
+    return { userId: undefined };
+  }
+
+  const userId = payload['sub'];
+  if (typeof userId !== 'string') {
+    return { userId: undefined };
+  }
+
+  return { userId };
+}
+
+// ---------------------------------------------------------------------------
+// Public routes (optional auth or no auth)
+// ---------------------------------------------------------------------------
+
+const publicExerciseRoutes = new Elysia()
+  .use(requestLogger)
+  .use(jwtPlugin)
+
+  // GET /exercises — optional auth: preset-only for unauthenticated, preset+own for authenticated
+  .get(
+    '/exercises',
+    async ({ jwt: jwtCtx, headers }) => {
+      const { userId } = await resolveOptionalUserId({ jwt: jwtCtx, headers });
+      return listExercises(userId);
+    },
+    {
+      detail: {
+        tags: ['Exercises'],
+        summary: 'List exercises',
+        description:
+          'Returns preset exercises for unauthenticated requests, or preset + user-created exercises when authenticated.',
+        responses: {
+          200: { description: 'Array of exercises' },
+        },
+      },
+    }
+  )
+
+  // GET /muscle-groups — no auth required
+  .get('/muscle-groups', () => listMuscleGroups(), {
+    detail: {
+      tags: ['Exercises'],
+      summary: 'List muscle groups',
+      description: 'Returns all muscle groups. No authentication required.',
+      responses: {
+        200: { description: 'Array of muscle groups' },
+      },
+    },
+  });
+
+// ---------------------------------------------------------------------------
+// Protected routes (auth required)
+// ---------------------------------------------------------------------------
+
+const protectedExerciseRoutes = new Elysia()
+  .use(requestLogger)
+  .use(jwtPlugin)
+  .resolve(resolveUserId)
+
+  // POST /exercises — auth required: create a user-scoped exercise
+  .post(
+    '/exercises',
+    async ({ userId, body, set, reqLogger }) => {
+      reqLogger.info({ event: 'exercise.create', userId }, 'creating exercise');
+      await rateLimit(userId, 'POST /exercises');
+
+      const slug = body.name
+        .toLowerCase()
+        .replace(/\s+/g, '_')
+        .replace(/[^a-z0-9_]/g, '')
+        .slice(0, 50);
+
+      const result = await createExercise(userId, {
+        id: slug,
+        name: body.name,
+        muscleGroupId: body.muscleGroupId,
+        equipment: body.equipment,
+        isCompound: body.isCompound,
+      });
+
+      if (!result.ok) {
+        if (result.error.code === 'EXERCISE_ID_CONFLICT') {
+          throw new ApiError(409, 'Exercise ID already exists', 'DUPLICATE');
+        }
+        throw new ApiError(400, 'Invalid muscle group', 'VALIDATION_ERROR');
+      }
+
+      set.status = 201;
+      return result.value;
+    },
+    {
+      body: t.Object({
+        name: t.String({ minLength: 1, maxLength: 100 }),
+        muscleGroupId: t.String({ minLength: 1, maxLength: 50 }),
+        equipment: t.Optional(t.String({ maxLength: 50 })),
+        isCompound: t.Optional(t.Boolean()),
+      }),
+      detail: {
+        tags: ['Exercises'],
+        summary: 'Create exercise',
+        description:
+          'Creates a user-scoped exercise. The exercise ID is derived from the name (lowercase, underscored). Returns 409 if the generated ID conflicts with an existing exercise.',
+        security,
+        responses: {
+          201: { description: 'Exercise created' },
+          400: { description: 'Invalid muscle group ID' },
+          401: { description: 'Missing or invalid token' },
+          409: { description: 'Exercise ID already exists' },
+          429: { description: 'Rate limited' },
+        },
+      },
+    }
+  );
+
+// ---------------------------------------------------------------------------
+// Combined export
+// ---------------------------------------------------------------------------
+
+export const exerciseRoutes = new Elysia().use(publicExerciseRoutes).use(protectedExerciseRoutes);

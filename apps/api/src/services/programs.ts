@@ -4,8 +4,8 @@
  */
 import { eq, and, lt, desc } from 'drizzle-orm';
 import { getDb } from '../db';
-import { programInstances, workoutResults, undoEntries } from '../db/schema';
-import { getProgramDefinition } from '@gzclp/shared/programs/registry';
+import { programInstances, programTemplates, workoutResults, undoEntries } from '../db/schema';
+import { getProgramDefinition } from '../services/catalog';
 import { ProgramInstanceSchema } from '@gzclp/shared/schemas/instance';
 import type { GenericResults, GenericUndoHistory } from '@gzclp/shared/types/program';
 import { ApiError } from '../middleware/error-handler';
@@ -121,9 +121,14 @@ export async function createInstance(
   name: string,
   config: Record<string, number>
 ): Promise<ProgramInstanceResponse> {
-  // Validate program exists
-  const definition = getProgramDefinition(programId);
-  if (!definition) {
+  // Validate program exists in DB
+  const [template] = await getDb()
+    .select({ id: programTemplates.id })
+    .from(programTemplates)
+    .where(and(eq(programTemplates.id, programId), eq(programTemplates.isActive, true)))
+    .limit(1);
+
+  if (!template) {
     throw new ApiError(400, `Unknown program: ${programId}`, 'INVALID_PROGRAM');
   }
 
@@ -303,11 +308,15 @@ export async function importInstance(
   userId: string,
   data: ExportedProgram
 ): Promise<ProgramInstanceResponse> {
-  // Validate program exists
-  const definition = getProgramDefinition(data.programId);
-  if (!definition) {
+  // Validate program exists in DB and get its hydrated definition for validation
+  const defResult = await getProgramDefinition(data.programId);
+  if (defResult.status === 'not_found') {
     throw new ApiError(400, `Unknown program: ${data.programId}`, 'INVALID_PROGRAM');
   }
+  if (defResult.status === 'hydration_failed') {
+    throw new ApiError(500, 'Program definition hydration failed', 'HYDRATION_FAILED');
+  }
+  const definition = defResult.definition;
 
   // Validate and parse config
   const configResult = ProgramInstanceSchema.shape.config.safeParse(data.config);
