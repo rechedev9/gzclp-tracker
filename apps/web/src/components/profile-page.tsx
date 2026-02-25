@@ -147,7 +147,7 @@ export function ProfilePage({ onBack }: ProfilePageProps): React.ReactNode {
                   type="button"
                   onClick={handleAvatarClick}
                   disabled={avatarUploading}
-                  className="relative w-16 h-16 sm:w-20 sm:h-20 rounded-full bg-[var(--btn-hover-bg)] text-[var(--btn-hover-text)] text-xl sm:text-2xl font-extrabold cursor-pointer transition-opacity hover:opacity-80 flex items-center justify-center overflow-hidden shrink-0 focus-visible:ring-2 focus-visible:ring-[var(--fill-progress)] focus-visible:outline-none disabled:opacity-50"
+                  className="group relative w-16 h-16 sm:w-20 sm:h-20 rounded-full bg-[var(--btn-hover-bg)] text-[var(--btn-hover-text)] text-xl sm:text-2xl font-extrabold cursor-pointer transition-opacity flex items-center justify-center overflow-hidden shrink-0 focus-visible:ring-2 focus-visible:ring-[var(--fill-progress)] focus-visible:outline-none disabled:opacity-50"
                   aria-label="Cambiar avatar"
                 >
                   {user.avatarUrl ? (
@@ -155,8 +155,8 @@ export function ProfilePage({ onBack }: ProfilePageProps): React.ReactNode {
                   ) : (
                     initial
                   )}
-                  <div className="absolute inset-0 bg-black/0 hover:bg-black/30 flex items-center justify-center transition-colors">
-                    <span className="text-white text-[10px] font-bold uppercase opacity-0 hover:opacity-100 transition-opacity pointer-events-none">
+                  <div className="absolute inset-0 bg-black/0 group-hover:bg-black/30 flex items-center justify-center transition-colors pointer-events-none">
+                    <span className="text-white text-[10px] font-bold uppercase opacity-0 group-hover:opacity-100 transition-opacity">
                       Cambiar
                     </span>
                   </div>

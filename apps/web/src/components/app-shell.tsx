@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/auth-context';
 import { Dashboard } from './dashboard';
@@ -53,8 +53,10 @@ export function AppShell(): React.ReactNode {
     setView('tracker');
   };
 
-  const handleContinueProgram = (): void => {
-    clearSelection();
+  const handleContinueProgram = (instanceId: string, programId: string): void => {
+    setSelectedInstanceId(instanceId);
+    setSelectedProgramId(programId);
+    setPendingProgramId(undefined);
     setView('tracker');
   };
 
@@ -66,6 +68,13 @@ export function AppShell(): React.ReactNode {
   const handleGoToProfile = (): void => {
     setView('profile');
   };
+
+  // URL guard: redirect to dashboard if tracker view is reached with no program selected
+  useEffect(() => {
+    if (view === 'tracker' && !pendingProgramId && !selectedProgramId) {
+      setView('dashboard');
+    }
+  }, [view, pendingProgramId, selectedProgramId]);
 
   if (authLoading) return <AppSkeleton />;
 

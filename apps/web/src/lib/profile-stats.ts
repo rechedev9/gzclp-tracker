@@ -391,6 +391,34 @@ export function computeProfileData(
   const t3Constants = deriveT3Constants(definition);
   const totalWorkouts = definition.totalWorkouts;
 
+  // Guard: if no workout results exist, return zeroed stats immediately
+  const hasAnyResult = Object.keys(results).length > 0;
+  if (!hasAnyResult) {
+    const personalRecords = t1Exercises.map((ex) => {
+      const sw: Readonly<Record<string, number>> = startWeights;
+      return {
+        exercise: ex,
+        displayName: names[ex] ?? ex,
+        weight: sw[ex] ?? 0,
+        startWeight: sw[ex] ?? 0,
+        workoutIndex: -1,
+      };
+    });
+    return {
+      personalRecords,
+      streak: { current: 0, longest: 0 },
+      volume: { totalVolume: 0, totalSets: 0, totalReps: 0 },
+      completion: {
+        workoutsCompleted: 0,
+        totalWorkouts,
+        completionPct: 0,
+        overallSuccessRate: 0,
+        totalWeightGained: 0,
+      },
+      monthlyReport: null,
+    };
+  }
+
   const rows = computeProgram(startWeights, results);
   const personalRecords = computePersonalRecords(rows, startWeights, t1Exercises, names);
   const streak = computeStreak(results, totalWorkouts);
