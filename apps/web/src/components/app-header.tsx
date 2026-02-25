@@ -1,3 +1,4 @@
+import { Link } from 'react-router-dom';
 import { useAuth } from '@/contexts/auth-context';
 import type { SyncStatus } from '@/types/sync-status';
 import { AvatarDropdown } from './avatar-dropdown';
@@ -39,10 +40,15 @@ export function AppHeader({
             ← {backLabel ?? 'Volver'}
           </button>
         )}
-        <img src="/logo.webp" alt="Logo" width={32} height={32} className="rounded-full" />
-        <span className="text-sm font-bold tracking-tight" style={{ color: 'var(--text-header)' }}>
-          Gravity Room
-        </span>
+        <Link to="/app" className="flex items-center gap-4">
+          <img src="/logo.webp" alt="Logo" width={32} height={32} className="rounded-sm" />
+          <span
+            className="text-sm font-bold tracking-tight"
+            style={{ color: 'var(--text-header)' }}
+          >
+            Gravity Room
+          </span>
+        </Link>
       </div>
 
       <AvatarDropdown

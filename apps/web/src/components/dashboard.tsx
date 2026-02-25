@@ -13,7 +13,7 @@ import type { ProgramSummary } from '@/lib/api-functions';
 
 interface DashboardProps {
   readonly onStartNewProgram: (programId: string) => void;
-  readonly onContinueProgram: () => void;
+  readonly onContinueProgram: (instanceId: string, programId: string) => void;
   readonly onGoToProfile?: () => void;
 }
 
@@ -23,7 +23,7 @@ interface DashboardProps {
 
 interface ActiveProgramCardProps {
   readonly program: ProgramSummary;
-  readonly onContinue: () => void;
+  readonly onContinue: (instanceId: string, programId: string) => void;
   readonly onGoToProfile?: () => void;
 }
 
@@ -79,6 +79,12 @@ function ActiveProgramCard({
         </div>
       </div>
 
+      {/* Duration metadata */}
+      <div className="flex flex-wrap gap-x-4 gap-y-1 text-[11px] text-[var(--text-info)] mb-3">
+        <span>{totalWorkouts} entrenamientos</span>
+        {definition.workoutsPerWeek > 0 && <span>{definition.workoutsPerWeek}x / semana</span>}
+      </div>
+
       {/* Progress bar */}
       <div
         className="flex items-center gap-3 mb-5"
@@ -100,7 +106,7 @@ function ActiveProgramCard({
 
       <div className="flex items-center gap-3">
         <button
-          onClick={onContinue}
+          onClick={() => onContinue(program.id, program.programId)}
           className="px-5 py-2.5 text-xs font-bold border-2 border-[var(--btn-border)] bg-[var(--btn-hover-bg)] text-[var(--btn-hover-text)] cursor-pointer transition-all hover:opacity-90"
         >
           Continuar Entrenamiento
@@ -108,7 +114,7 @@ function ActiveProgramCard({
         {onGoToProfile && (
           <button
             onClick={onGoToProfile}
-            className="px-5 py-2.5 text-xs font-bold text-[var(--text-muted)] hover:text-[var(--text-header)] cursor-pointer transition-colors"
+            className="px-5 py-2.5 text-xs font-bold text-[var(--text-muted)] hover:text-[var(--text-header)] cursor-pointer transition-colors border border-[var(--border-color)] hover:border-[var(--border-light)]"
           >
             Ver Perfil de Entrenamiento
           </button>
@@ -191,7 +197,7 @@ export function Dashboard({
 
           {/* Catalog loading skeleton */}
           {catalogQuery.isLoading && (
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
               {[1, 2, 3].map((n) => (
                 <div
                   key={n}
@@ -206,30 +212,28 @@ export function Dashboard({
             </div>
           )}
 
-          {/* Catalog loaded — render program cards */}
-          {catalogQuery.data && (
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              {catalogQuery.data.map((entry) => {
-                const isCurrent = activeProgram?.programId === entry.id;
-                return (
-                  <ProgramCard
-                    key={entry.id}
-                    definition={entry}
-                    isActive={isCurrent}
-                    disabled={activeProgram !== null && !isCurrent}
-                    disabledLabel="Finaliza tu programa actual"
-                    onSelect={() => {
-                      if (isCurrent && activeProgram) {
-                        onContinueProgram();
-                      } else {
-                        onStartNewProgram(entry.id);
-                      }
-                    }}
-                  />
-                );
-              })}
-            </div>
-          )}
+          {/* Catalog loaded — render program cards (exclude active program) */}
+          {catalogQuery.data &&
+            (() => {
+              const filteredCatalog = catalogQuery.data.filter(
+                (entry) => entry.id !== activeProgram?.programId
+              );
+              if (filteredCatalog.length === 0) return null;
+              return (
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {filteredCatalog.map((entry) => (
+                    <ProgramCard
+                      key={entry.id}
+                      definition={entry}
+                      isActive={false}
+                      disabled={activeProgram !== null}
+                      disabledLabel="Finaliza tu programa actual"
+                      onSelect={() => onStartNewProgram(entry.id)}
+                    />
+                  ))}
+                </div>
+              );
+            })()}
         </section>
       </div>
     </div>
