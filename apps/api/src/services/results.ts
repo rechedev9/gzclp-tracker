@@ -53,8 +53,12 @@ async function trimUndoStack(tx: Tx, instanceId: string): Promise<void> {
   }
 }
 
-async function verifyInstanceOwnership(userId: string, instanceId: string): Promise<void> {
-  const [instance] = await getDb()
+async function verifyInstanceOwnership(
+  db: Tx | ReturnType<typeof getDb>,
+  userId: string,
+  instanceId: string
+): Promise<void> {
+  const [instance] = await db
     .select({ id: programInstances.id })
     .from(programInstances)
     .where(and(eq(programInstances.id, instanceId), eq(programInstances.userId, userId)))
@@ -82,9 +86,9 @@ export async function recordResult(
   if (input.rpe !== undefined && (input.rpe < 1 || input.rpe > 10)) {
     throw new ApiError(400, 'rpe must be between 1 and 10', 'INVALID_DATA');
   }
-  await verifyInstanceOwnership(userId, instanceId);
 
   return await getDb().transaction(async (tx) => {
+    await verifyInstanceOwnership(tx, userId, instanceId);
     // Capture existing state for undo (must happen before upsert)
     const [existing] = await tx
       .select()
@@ -147,9 +151,9 @@ export async function deleteResult(
   workoutIndex: number,
   slotId: string
 ): Promise<void> {
-  await verifyInstanceOwnership(userId, instanceId);
-
   await getDb().transaction(async (tx) => {
+    await verifyInstanceOwnership(tx, userId, instanceId);
+
     const [existing] = await tx
       .select()
       .from(workoutResults)
@@ -192,9 +196,8 @@ export async function deleteResult(
 // ---------------------------------------------------------------------------
 
 export async function undoLast(userId: string, instanceId: string): Promise<UndoEntryRow | null> {
-  await verifyInstanceOwnership(userId, instanceId);
-
   return await getDb().transaction(async (tx) => {
+    await verifyInstanceOwnership(tx, userId, instanceId);
     // Pop the most recent undo entry (LIFO — highest id)
     const [entry] = await tx
       .select()

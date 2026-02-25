@@ -22,13 +22,17 @@ const security = [{ bearerAuth: [] }];
 // Helpers: query param parsing
 // ---------------------------------------------------------------------------
 
-/** Split a comma-separated string into a trimmed non-empty array, or undefined. */
+/** Maximum number of values allowed in a comma-separated filter parameter. */
+const MAX_FILTER_VALUES = 20;
+
+/** Split a comma-separated string into a trimmed non-empty array, or undefined. Capped at MAX_FILTER_VALUES. */
 function parseCommaSeparated(value: string | undefined): readonly string[] | undefined {
   if (!value) return undefined;
   const parts = value
     .split(',')
     .map((s) => s.trim())
-    .filter(Boolean);
+    .filter(Boolean)
+    .slice(0, MAX_FILTER_VALUES);
   return parts.length > 0 ? parts : undefined;
 }
 
@@ -168,6 +172,14 @@ const protectedExerciseRoutes = new Elysia()
         .replace(/\s+/g, '_')
         .replace(/[^a-z0-9_]/g, '')
         .slice(0, 50);
+
+      if (!slug) {
+        throw new ApiError(
+          422,
+          'Exercise name must contain at least one alphanumeric character',
+          'INVALID_SLUG'
+        );
+      }
 
       const result = await createExercise(userId, {
         id: slug,
