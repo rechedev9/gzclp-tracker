@@ -22,6 +22,11 @@ interface ExerciseRow {
   readonly isPreset: boolean;
   readonly createdBy: string | null;
   readonly createdAt: Date;
+  readonly force: string | null;
+  readonly level: string | null;
+  readonly mechanic: string | null;
+  readonly category: string | null;
+  readonly secondaryMuscles: readonly string[] | null;
 }
 
 const NOW = new Date();
@@ -35,6 +40,11 @@ const PRESET_EXERCISE: ExerciseRow = {
   isPreset: true,
   createdBy: null,
   createdAt: NOW,
+  force: 'push',
+  level: 'beginner',
+  mechanic: 'compound',
+  category: 'strength',
+  secondaryMuscles: ['back', 'core'],
 };
 
 const USER_EXERCISE: ExerciseRow = {
@@ -46,6 +56,11 @@ const USER_EXERCISE: ExerciseRow = {
   isPreset: false,
   createdBy: 'user-1',
   createdAt: NOW,
+  force: 'pull',
+  level: 'beginner',
+  mechanic: 'isolation',
+  category: 'strength',
+  secondaryMuscles: null,
 };
 
 /**
@@ -59,6 +74,7 @@ let insertResult: unknown[] = [];
 function chainable(result: unknown[]): Record<string, unknown> {
   const obj: Record<string, unknown> = {};
   obj['where'] = mock(() => chainable(result));
+  obj['orderBy'] = mock(() => chainable(result));
   obj['limit'] = mock(() => Promise.resolve(result.slice(0, 1)));
   // Make thenable so `await db.select().from(table).where(...)` works
   obj['then'] = (fn: (val: unknown[]) => unknown, reject?: (err: unknown) => unknown): unknown => {
@@ -149,6 +165,50 @@ describe('listExercises', () => {
 
     expect(result).toHaveLength(2);
   });
+
+  it('should accept a text search filter', async () => {
+    selectQueue = [[PRESET_EXERCISE]];
+
+    const result = await listExercises(undefined, { q: 'Sent' });
+
+    expect(result).toHaveLength(1);
+    expect(result[0]?.name).toBe('Sentadilla');
+  });
+
+  it('should accept an empty filter and return all exercises', async () => {
+    selectQueue = [[PRESET_EXERCISE, USER_EXERCISE]];
+
+    const result = await listExercises('user-1', {});
+
+    expect(result).toHaveLength(2);
+  });
+
+  it('should accept a muscleGroupId array filter', async () => {
+    selectQueue = [[PRESET_EXERCISE]];
+
+    const result = await listExercises(undefined, { muscleGroupId: ['legs'] });
+
+    expect(result).toHaveLength(1);
+    expect(result[0]?.muscleGroupId).toBe('legs');
+  });
+
+  it('should accept an isCompound boolean filter', async () => {
+    selectQueue = [[PRESET_EXERCISE]];
+
+    const result = await listExercises(undefined, { isCompound: true });
+
+    expect(result).toHaveLength(1);
+    expect(result[0]?.isCompound).toBe(true);
+  });
+
+  it('should propagate new fields (force, secondaryMuscles)', async () => {
+    selectQueue = [[PRESET_EXERCISE]];
+
+    const result = await listExercises(undefined);
+
+    expect(result[0]?.force).toBe('push');
+    expect(result[0]?.secondaryMuscles).toEqual(['back', 'core']);
+  });
 });
 
 describe('listMuscleGroups', () => {
@@ -175,6 +235,11 @@ describe('createExercise', () => {
       isPreset: false,
       createdBy: 'user-1',
       createdAt: NOW,
+      force: null,
+      level: null,
+      mechanic: null,
+      category: null,
+      secondaryMuscles: null,
     };
     // createExercise does: 1) select muscle group, 2) insert exercise
     selectQueue = [[{ id: 'chest' }]]; // muscle group validation

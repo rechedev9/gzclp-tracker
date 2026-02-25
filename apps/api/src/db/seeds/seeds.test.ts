@@ -38,6 +38,15 @@ describe.skipIf(!hasDb)('seeds idempotency (integration)', () => {
     await expect(seedExercises(db)).resolves.toBeUndefined();
   });
 
+  it('should run exercises-expanded seed twice without error', async () => {
+    const { getDb } = await import('../index');
+    const { seedExercisesExpanded } = await import('./exercises-seed-expanded');
+    const db = getDb();
+
+    await seedExercisesExpanded(db);
+    await expect(seedExercisesExpanded(db)).resolves.toBeUndefined();
+  });
+
   it('should run program-templates seed twice without error', async () => {
     const { getDb } = await import('../index');
     const { seedProgramTemplates } = await import('./program-templates-seed');
@@ -51,6 +60,7 @@ describe.skipIf(!hasDb)('seeds idempotency (integration)', () => {
     const { getDb } = await import('../index');
     const { seedMuscleGroups } = await import('./muscle-groups-seed');
     const { seedExercises } = await import('./exercises-seed');
+    const { seedExercisesExpanded } = await import('./exercises-seed-expanded');
     const { seedProgramTemplates } = await import('./program-templates-seed');
     const { muscleGroups, exercises, programTemplates } = await import('../schema');
     const { count } = await import('drizzle-orm');
@@ -59,6 +69,7 @@ describe.skipIf(!hasDb)('seeds idempotency (integration)', () => {
     // Run all seeds
     await seedMuscleGroups(db);
     await seedExercises(db);
+    await seedExercisesExpanded(db);
     await seedProgramTemplates(db);
 
     // Count after first run
@@ -69,6 +80,7 @@ describe.skipIf(!hasDb)('seeds idempotency (integration)', () => {
     // Run again
     await seedMuscleGroups(db);
     await seedExercises(db);
+    await seedExercisesExpanded(db);
     await seedProgramTemplates(db);
 
     // Count after second run
