@@ -197,6 +197,8 @@ export const programDefinitions = pgTable(
   (table) => [
     index('program_definitions_user_id_idx').on(table.userId),
     index('program_definitions_status_idx').on(table.status),
+    // Performance index for list query: WHERE user_id = ? AND deleted_at IS NULL ORDER BY updated_at DESC
+    index('program_definitions_list_idx').on(table.userId, table.deletedAt, table.updatedAt),
   ]
 );
 
@@ -240,6 +242,16 @@ export const exercises = pgTable(
   (table) => [
     index('exercises_muscle_group_id_idx').on(table.muscleGroupId),
     index('exercises_created_by_idx').on(table.createdBy),
+    // Performance indexes (migration 0015_add_performance_indexes)
+    index('exercises_filter_composite_idx').on(
+      table.isPreset,
+      table.level,
+      table.equipment,
+      table.category
+    ),
+    index('exercises_is_compound_true_idx').on(table.isCompound),
+    // NOTE: exercises_name_trgm_idx (GIN pg_trgm) is migration-only —
+    // Drizzle's index() builder does not support GIN indexes.
   ]
 );
 
