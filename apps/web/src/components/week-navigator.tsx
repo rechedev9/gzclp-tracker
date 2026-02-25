@@ -28,14 +28,17 @@ export function WeekNavigator({
         onClick={onPrev}
         disabled={selectedWeek <= 1}
         aria-label="Semana anterior"
-        className="font-mono text-[11px] font-bold tracking-widest uppercase px-4 py-2.5 min-h-[44px] border-2 border-[var(--border-color)] bg-[var(--bg-card)] text-[var(--text-muted)] disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer transition-colors hover:bg-[var(--bg-hover-row)] hover:text-[var(--text-main)]"
+        className="font-mono text-[11px] font-bold tracking-widest uppercase px-4 py-2.5 min-h-[44px] border-2 border-[var(--border-color)] bg-[var(--bg-card)] text-[var(--text-muted)] disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer transition-all duration-150 hover:bg-[var(--bg-hover-row)] hover:text-[var(--text-main)] hover:border-[var(--border-light)] active:scale-95"
       >
         &larr; Anterior
       </button>
 
       <div className="flex-1 flex flex-col items-center gap-2">
         <div className="flex items-center gap-2">
-          <span className="font-display" style={{ fontSize: '20px', letterSpacing: '0.05em' }}>
+          <span
+            className="font-display text-[var(--text-main)]"
+            style={{ fontSize: '22px', letterSpacing: '0.05em' }}
+          >
             Semana {selectedWeek}
           </span>
           <span
@@ -72,7 +75,7 @@ export function WeekNavigator({
         onClick={onNext}
         disabled={selectedWeek >= totalWeeks}
         aria-label="Siguiente semana"
-        className="font-mono text-[11px] font-bold tracking-widest uppercase px-4 py-2.5 min-h-[44px] border-2 border-[var(--border-color)] bg-[var(--bg-card)] text-[var(--text-muted)] disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer transition-colors hover:bg-[var(--bg-hover-row)] hover:text-[var(--text-main)]"
+        className="font-mono text-[11px] font-bold tracking-widest uppercase px-4 py-2.5 min-h-[44px] border-2 border-[var(--border-color)] bg-[var(--bg-card)] text-[var(--text-muted)] disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer transition-all duration-150 hover:bg-[var(--bg-hover-row)] hover:text-[var(--text-main)] hover:border-[var(--border-light)] active:scale-95"
       >
         Siguiente &rarr;
       </button>

@@ -1,4 +1,3 @@
-import { memo } from 'react';
 import type { ResultValue } from '@gzclp/shared/types';
 import { StageTag } from './stage-tag';
 import { ResultCell } from './result-cell';
@@ -49,20 +48,7 @@ const ROLE_STYLES = {
   },
 } as const;
 
-function areCardsEqual(prev: ExerciseCardProps, next: ExerciseCardProps): boolean {
-  return (
-    prev.workoutIndex === next.workoutIndex &&
-    prev.slotKey === next.slotKey &&
-    prev.weight === next.weight &&
-    prev.stage === next.stage &&
-    prev.result === next.result &&
-    prev.amrapReps === next.amrapReps &&
-    prev.rpe === next.rpe &&
-    prev.isChanged === next.isChanged
-  );
-}
-
-export const ExerciseCard = memo(function ExerciseCard({
+export function ExerciseCard({
   workoutIndex,
   slotKey,
   exerciseName,
@@ -87,8 +73,10 @@ export const ExerciseCard = memo(function ExerciseCard({
 
   return (
     <div
-      className={`bg-[var(--bg-card)] border border-[var(--border-color)] p-4 ${
-        result !== undefined ? 'opacity-40' : ''
+      className={`bg-[var(--bg-card)] border border-[var(--border-color)] p-4 card transition-all duration-200 ${
+        role === 'primary' ? 'accent-left-gold' : role === 'secondary' ? 'accent-left-muted' : ''
+      } ${
+        result !== undefined ? 'opacity-35 saturate-50' : ''
       } ${isChanged && result === undefined ? 'bg-[var(--bg-changed)]' : ''}`}
     >
       {/* Tier · Exercise name */}
@@ -144,4 +132,4 @@ export const ExerciseCard = memo(function ExerciseCard({
       )}
     </div>
   );
-}, areCardsEqual);
+}

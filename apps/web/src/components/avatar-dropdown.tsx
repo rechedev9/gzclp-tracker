@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import type { UserInfo } from '@/contexts/auth-context';
 import type { SyncStatus } from '@/types/sync-status';
@@ -21,7 +21,7 @@ export function AvatarDropdown({
   onGoToProfile,
 }: AvatarDropdownProps): React.ReactNode {
   const [open, setOpen] = useState(false);
-  const close = useCallback((): void => setOpen(false), []);
+  const close = (): void => setOpen(false);
 
   if (!configured) return null;
 
@@ -43,7 +43,7 @@ export function AvatarDropdown({
     <div className="relative">
       <button
         onClick={() => setOpen((prev) => !prev)}
-        className="w-11 h-11 rounded-full bg-[var(--btn-hover-bg)] text-[var(--btn-hover-text)] text-sm font-extrabold cursor-pointer transition-opacity hover:opacity-80 flex items-center justify-center focus-visible:ring-2 focus-visible:ring-[var(--fill-progress)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--bg-body)] focus-visible:outline-none overflow-hidden"
+        className="w-11 h-11 rounded-full bg-[var(--btn-hover-bg)] text-[var(--btn-hover-text)] text-sm font-extrabold cursor-pointer transition-all duration-150 hover:opacity-80 hover:shadow-[0_0_12px_rgba(232,170,32,0.2)] active:scale-95 flex items-center justify-center focus-visible:ring-2 focus-visible:ring-[var(--fill-progress)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--bg-body)] focus-visible:outline-none overflow-hidden"
         aria-label="Menú de usuario"
         aria-haspopup="true"
         aria-expanded={open}

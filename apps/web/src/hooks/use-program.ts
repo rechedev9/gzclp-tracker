@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useRef } from 'react';
+import { useRef } from 'react';
 import { useQuery, useMutation, useQueryClient, type QueryClient } from '@tanstack/react-query';
 import type { StartWeights, Results, UndoHistory, Tier, ResultValue } from '@gzclp/shared/types';
 import { queryKeys } from '@/lib/query-keys';
@@ -143,11 +143,11 @@ export function useProgram(instanceId?: string): UseProgramReturn {
   });
 
   // Use provided instanceId directly, or fall back to first active program
-  const activeInstanceId = useMemo(() => {
+  const activeInstanceId = (() => {
     if (instanceId) return instanceId;
     if (!programsQuery.data) return null;
     return programsQuery.data.find((p) => p.status === 'active')?.id ?? null;
-  }, [instanceId, programsQuery.data]);
+  })();
 
   // Fetch the full program detail (results + undo)
   const detailQuery = useQuery({
@@ -346,112 +346,98 @@ export function useProgram(instanceId?: string): UseProgramReturn {
   // Stable callbacks
   // -------------------------------------------------------------------------
 
-  const markResultCb = useCallback(
-    (index: number, tier: Tier, value: ResultValue): void => {
-      markResultMutation.mutate({ index, tier, value });
-    },
-    [markResultMutation]
-  );
+  const markResultCb = (index: number, tier: Tier, value: ResultValue): void => {
+    markResultMutation.mutate({ index, tier, value });
+  };
 
-  const setAmrapRepsCb = useCallback(
-    (index: number, field: 't1Reps' | 't3Reps', reps: number | undefined): void => {
-      // Immediately reflect the change in the cache so the UI feels snappy.
-      const detailKey = queryKeys.programs.detail(activeInstanceId ?? '');
-      queryClient.setQueryData<ProgramDetail>(detailKey, (prev) => {
-        if (!prev) return prev;
-        const updatedResults = { ...prev.results };
-        const entry = { ...updatedResults[index] };
-        if (reps === undefined) {
-          delete entry[field];
-        } else {
-          entry[field] = reps;
-        }
-        updatedResults[index] = entry;
-        return { ...prev, results: updatedResults };
-      });
+  const setAmrapRepsCb = (
+    index: number,
+    field: 't1Reps' | 't3Reps',
+    reps: number | undefined
+  ): void => {
+    // Immediately reflect the change in the cache so the UI feels snappy.
+    const detailKey = queryKeys.programs.detail(activeInstanceId ?? '');
+    queryClient.setQueryData<ProgramDetail>(detailKey, (prev) => {
+      if (!prev) return prev;
+      const updatedResults = { ...prev.results };
+      const entry = { ...updatedResults[index] };
+      if (reps === undefined) {
+        delete entry[field];
+      } else {
+        entry[field] = reps;
+      }
+      updatedResults[index] = entry;
+      return { ...prev, results: updatedResults };
+    });
 
-      // Debounce the API call: rapid clicks on +/- coalesce into a single POST.
-      const timerKey = `${index}-${field}`;
-      const existing = amrapTimers.current.get(timerKey);
-      if (existing !== undefined) clearTimeout(existing);
-      amrapTimers.current.set(
-        timerKey,
-        setTimeout(() => {
-          amrapTimers.current.delete(timerKey);
-          setAmrapMutation.mutate({ index, field, reps });
-        }, 400)
-      );
-    },
-    [queryClient, activeInstanceId, setAmrapMutation]
-  );
+    // Debounce the API call: rapid clicks on +/- coalesce into a single POST.
+    const timerKey = `${index}-${field}`;
+    const existing = amrapTimers.current.get(timerKey);
+    if (existing !== undefined) clearTimeout(existing);
+    amrapTimers.current.set(
+      timerKey,
+      setTimeout(() => {
+        amrapTimers.current.delete(timerKey);
+        setAmrapMutation.mutate({ index, field, reps });
+      }, 400)
+    );
+  };
 
-  const setRpeCb = useCallback(
-    (index: number, tier: 't1' | 't3', rpe: number | undefined): void => {
-      // Immediately reflect the change in the cache.
-      const detailKey = queryKeys.programs.detail(activeInstanceId ?? '');
-      queryClient.setQueryData<ProgramDetail>(detailKey, (prev) => {
-        if (!prev) return prev;
-        const updatedResults = { ...prev.results };
-        const entry = { ...updatedResults[index] };
-        const field = tier === 't1' ? ('rpe' as const) : ('t3Rpe' as const);
-        if (rpe === undefined) {
-          delete entry[field];
-        } else {
-          entry[field] = rpe;
-        }
-        updatedResults[index] = entry;
-        return { ...prev, results: updatedResults };
-      });
+  const setRpeCb = (index: number, tier: 't1' | 't3', rpe: number | undefined): void => {
+    // Immediately reflect the change in the cache.
+    const detailKey = queryKeys.programs.detail(activeInstanceId ?? '');
+    queryClient.setQueryData<ProgramDetail>(detailKey, (prev) => {
+      if (!prev) return prev;
+      const updatedResults = { ...prev.results };
+      const entry = { ...updatedResults[index] };
+      const field = tier === 't1' ? ('rpe' as const) : ('t3Rpe' as const);
+      if (rpe === undefined) {
+        delete entry[field];
+      } else {
+        entry[field] = rpe;
+      }
+      updatedResults[index] = entry;
+      return { ...prev, results: updatedResults };
+    });
 
-      // Debounce: switching RPE values rapidly fires one POST after 300ms.
-      const timerKey = `${index}-${tier}-rpe`;
-      const existing = rpeTimers.current.get(timerKey);
-      if (existing !== undefined) clearTimeout(existing);
-      rpeTimers.current.set(
-        timerKey,
-        setTimeout(() => {
-          rpeTimers.current.delete(timerKey);
-          setRpeMutation.mutate({ index, tier, rpe });
-        }, 300)
-      );
-    },
-    [queryClient, activeInstanceId, setRpeMutation]
-  );
+    // Debounce: switching RPE values rapidly fires one POST after 300ms.
+    const timerKey = `${index}-${tier}-rpe`;
+    const existing = rpeTimers.current.get(timerKey);
+    if (existing !== undefined) clearTimeout(existing);
+    rpeTimers.current.set(
+      timerKey,
+      setTimeout(() => {
+        rpeTimers.current.delete(timerKey);
+        setRpeMutation.mutate({ index, tier, rpe });
+      }, 300)
+    );
+  };
 
-  const undoSpecificCb = useCallback(
-    (index: number, tier: Tier): void => {
-      undoSpecificMutation.mutate({ index, tier });
-    },
-    [undoSpecificMutation]
-  );
+  const undoSpecificCb = (index: number, tier: Tier): void => {
+    undoSpecificMutation.mutate({ index, tier });
+  };
 
-  const undoLastCb = useCallback((): void => {
+  const undoLastCb = (): void => {
     undoLastMutation.mutate();
-  }, [undoLastMutation]);
+  };
 
-  const generateProgramCb = useCallback(
-    async (weights: StartWeights): Promise<void> => {
-      await generateProgramMutation.mutateAsync(weights);
-    },
-    [generateProgramMutation]
-  );
+  const generateProgramCb = async (weights: StartWeights): Promise<void> => {
+    await generateProgramMutation.mutateAsync(weights);
+  };
 
-  const updateWeightsCb = useCallback(
-    (weights: StartWeights): void => {
-      updateWeightsMutation.mutate(weights);
-    },
-    [updateWeightsMutation]
-  );
+  const updateWeightsCb = (weights: StartWeights): void => {
+    updateWeightsMutation.mutate(weights);
+  };
 
-  const finishProgramCb = useCallback((): void => {
+  const finishProgramCb = (): void => {
     finishProgramMutation.mutate();
-  }, [finishProgramMutation]);
+  };
 
-  const resetAllCb = useCallback((): void => {
+  const resetAllCb = (): void => {
     resetAllMutation.mutate();
-  }, [resetAllMutation]);
+  };
 
-  const exportDataCb = useCallback((): void => {
+  const exportDataCb = (): void => {
     if (!activeInstanceId) return;
     void exportProgram(activeInstanceId).then((data) => {
       const blob = new Blob([JSON.stringify(data, null, 2)], {
@@ -466,24 +452,21 @@ export function useProgram(instanceId?: string): UseProgramReturn {
       document.body.removeChild(a);
       URL.revokeObjectURL(url);
     });
-  }, [activeInstanceId]);
+  };
 
-  const importDataCb = useCallback(
-    async (json: string): Promise<boolean> => {
-      try {
-        const parsed: unknown = JSON.parse(json);
-        await importProgram(parsed);
-        void queryClient.invalidateQueries({ queryKey: queryKeys.programs.all });
-        return true;
-      } catch {
-        toast({
-          message: 'No se pudo importar el programa. Verifica el archivo e inténtalo de nuevo.',
-        });
-        return false;
-      }
-    },
-    [queryClient, toast]
-  );
+  const importDataCb = async (json: string): Promise<boolean> => {
+    try {
+      const parsed: unknown = JSON.parse(json);
+      await importProgram(parsed);
+      void queryClient.invalidateQueries({ queryKey: queryKeys.programs.all });
+      return true;
+    } catch {
+      toast({
+        message: 'No se pudo importar el programa. Verifica el archivo e inténtalo de nuevo.',
+      });
+      return false;
+    }
+  };
 
   return {
     startWeights,

@@ -23,9 +23,10 @@ export function DropdownMenu({
     <div
       ref={ref}
       role="menu"
-      className={`absolute top-full mt-1.5 z-50 min-w-[180px] bg-[var(--bg-card)] border border-[var(--border-color)] shadow-lg py-1 ${
+      className={`absolute top-full mt-1.5 z-50 min-w-[180px] bg-[var(--bg-card)] border border-[var(--border-color)] py-1 animate-[dropdown-enter_0.15s_ease-out] ${
         align === 'right' ? 'right-0' : 'left-0'
       }`}
+      style={{ boxShadow: 'var(--shadow-elevated)' }}
     >
       {children}
     </div>

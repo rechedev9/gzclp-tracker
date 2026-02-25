@@ -1,4 +1,4 @@
-import { memo, useMemo, useState, type ReactNode } from 'react';
+import { useState, type ReactNode } from 'react';
 import { extractGenericChartData } from '@gzclp/shared/generic-stats';
 import { calculateStats } from '@gzclp/shared/stats';
 import type { ProgramDefinition } from '@gzclp/shared/types/program';
@@ -59,11 +59,13 @@ function StatCard({
   readonly total: number;
 }): ReactNode {
   return (
-    <div className="bg-[var(--bg-th)] border border-[var(--border-color)] p-4">
-      <h4 className="text-[13px] font-bold uppercase tracking-wide text-[var(--text-muted)] mb-2">
+    <div className="bg-[var(--bg-th)] border border-[var(--border-color)] p-4 card edge-glow-top">
+      <h4 className="font-mono text-[11px] font-bold uppercase tracking-widest text-[var(--text-muted)] mb-2">
         {name}
       </h4>
-      <div className="text-2xl font-extrabold mb-1">{currentWeight} kg</div>
+      <div className="font-display-data text-3xl mb-1 text-[var(--text-header)]">
+        {currentWeight} kg
+      </div>
       <div className="text-xs text-[var(--text-muted)]">
         Inicio: {startWeight} kg | {gained >= 0 ? '+' : ''}
         {gained} kg ganados
@@ -74,17 +76,13 @@ function StatCard({
   );
 }
 
-const GenericStatsPanel = memo(function GenericStatsPanel({
-  definition,
-  rows,
-}: GenericStatsPanelProps): ReactNode {
-  const chartData = useMemo(() => extractGenericChartData(definition, rows), [definition, rows]);
+function GenericStatsPanel({ definition, rows }: GenericStatsPanelProps): ReactNode {
+  const chartData = extractGenericChartData(definition, rows);
 
-  const groups = useMemo(() => groupExercises(definition), [definition]);
+  const groups = groupExercises(definition);
 
-  const hasAnyResults = useMemo(
-    () => Object.values(chartData).some((series) => series.some((d) => d.result !== null)),
-    [chartData]
+  const hasAnyResults = Object.values(chartData).some((series) =>
+    series.some((d) => d.result !== null)
   );
 
   const [openSections, setOpenSections] = useState<Record<string, boolean>>({});
@@ -120,7 +118,7 @@ const GenericStatsPanel = memo(function GenericStatsPanel({
             key={sectionKey}
             open={isOpen}
             onToggle={() => toggleSection(sectionKey)}
-            className="bg-[var(--bg-card)] border border-[var(--border-color)] overflow-hidden"
+            className="bg-[var(--bg-card)] border border-[var(--border-color)] overflow-hidden card"
           >
             <summary className="font-mono px-5 py-3.5 font-bold cursor-pointer select-none flex justify-between items-center [&::marker]:hidden list-none text-[11px] tracking-widest uppercase">
               {group.label ?? 'Ejercicios'}
@@ -163,9 +161,11 @@ const GenericStatsPanel = memo(function GenericStatsPanel({
                     return (
                       <div
                         key={id}
-                        className="bg-[var(--bg-th)] border border-[var(--border-color)] p-4"
+                        className="bg-[var(--bg-th)] border border-[var(--border-color)] p-4 card"
                       >
-                        <h4 className="text-sm font-bold mb-3">{name} — Progresión de Peso</h4>
+                        <h4 className="font-mono text-[11px] font-bold uppercase tracking-widest text-[var(--text-muted)] mb-3">
+                          {name} — Progresión
+                        </h4>
                         <LineChart data={chartData[id]} label={name} />
                       </div>
                     );
@@ -178,7 +178,7 @@ const GenericStatsPanel = memo(function GenericStatsPanel({
       })}
     </div>
   );
-});
+}
 
 export { GenericStatsPanel };
 export default GenericStatsPanel;

@@ -1,5 +1,3 @@
-import { memo } from 'react';
-
 interface WeightFieldProps {
   readonly fieldKey: string;
   readonly label: string;
@@ -13,7 +11,7 @@ interface WeightFieldProps {
   readonly onSubmit: () => void;
 }
 
-export const WeightField = memo(function WeightField({
+export function WeightField({
   fieldKey,
   label,
   value,
@@ -41,7 +39,7 @@ export const WeightField = memo(function WeightField({
         <button
           type="button"
           onClick={() => onAdjust(fieldKey, -step)}
-          className="px-3 min-h-[44px] border-2 border-r-0 border-[var(--border-color)] bg-[var(--bg-card)] text-[var(--btn-text)] text-lg font-bold cursor-pointer hover:bg-[var(--bg-hover-row)] transition-colors focus-visible:ring-2 focus-visible:ring-[var(--fill-progress)] focus-visible:outline-none"
+          className="px-3 min-h-[44px] border-2 border-r-0 border-[var(--border-color)] bg-[var(--bg-card)] text-[var(--btn-text)] text-lg font-bold cursor-pointer hover:bg-[var(--bg-hover-row)] hover:text-[var(--text-header)] transition-all duration-150 active:scale-95 focus-visible:ring-2 focus-visible:ring-[var(--fill-progress)] focus-visible:outline-none"
           aria-label={`Disminuir ${label}`}
         >
           &minus;
@@ -70,7 +68,7 @@ export const WeightField = memo(function WeightField({
         <button
           type="button"
           onClick={() => onAdjust(fieldKey, step)}
-          className="px-3 min-h-[44px] border-2 border-l-0 border-[var(--border-color)] bg-[var(--bg-card)] text-[var(--btn-text)] text-lg font-bold cursor-pointer hover:bg-[var(--bg-hover-row)] transition-colors focus-visible:ring-2 focus-visible:ring-[var(--fill-progress)] focus-visible:outline-none"
+          className="px-3 min-h-[44px] border-2 border-l-0 border-[var(--border-color)] bg-[var(--bg-card)] text-[var(--btn-text)] text-lg font-bold cursor-pointer hover:bg-[var(--bg-hover-row)] hover:text-[var(--text-header)] transition-all duration-150 active:scale-95 focus-visible:ring-2 focus-visible:ring-[var(--fill-progress)] focus-visible:outline-none"
           aria-label={`Aumentar ${label}`}
         >
           +
@@ -93,4 +91,4 @@ export const WeightField = memo(function WeightField({
       )}
     </div>
   );
-});
+}

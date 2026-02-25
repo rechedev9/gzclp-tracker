@@ -1,8 +1,11 @@
-import { useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { getAllPresetPrograms, getProgramDefinition } from '@gzclp/shared/programs/registry';
 import { queryKeys } from '@/lib/query-keys';
-import { fetchPrograms, fetchGenericProgramDetail } from '@/lib/api-functions';
+import {
+  fetchPrograms,
+  fetchGenericProgramDetail,
+  fetchCatalogList,
+  fetchCatalogDetail,
+} from '@/lib/api-functions';
 import { useAuth } from '@/contexts/auth-context';
 import { ProgramCard } from './program-card';
 import { AppHeader } from './app-header';
@@ -30,7 +33,13 @@ function ActiveProgramCard({
   onContinue,
   onGoToProfile,
 }: ActiveProgramCardProps): React.ReactNode {
-  const definition = getProgramDefinition(program.programId);
+  const catalogQuery = useQuery({
+    queryKey: queryKeys.catalog.detail(program.programId),
+    queryFn: () => fetchCatalogDetail(program.programId),
+    staleTime: 5 * 60 * 1000,
+  });
+
+  const definition = catalogQuery.data;
 
   const detailQuery = useQuery({
     queryKey: queryKeys.programs.detail(program.id),
@@ -38,7 +47,7 @@ function ActiveProgramCard({
   });
 
   // Count workouts where ALL slots have a result (program-agnostic)
-  const completedWorkouts = useMemo(() => {
+  const completedWorkouts = (() => {
     if (!detailQuery.data || !definition) return 0;
     const results = detailQuery.data.results;
     let count = 0;
@@ -51,7 +60,7 @@ function ActiveProgramCard({
       if (allDone) count++;
     }
     return count;
-  }, [detailQuery.data, definition]);
+  })();
 
   const totalWorkouts = definition?.totalWorkouts ?? 0;
   const progressPct = totalWorkouts > 0 ? Math.round((completedWorkouts / totalWorkouts) * 100) : 0;
@@ -59,13 +68,13 @@ function ActiveProgramCard({
   if (!definition) return null;
 
   return (
-    <div className="bg-[var(--bg-card)] border border-[var(--border-color)] p-6 sm:p-8 hover:border-[var(--border-light)] transition-colors">
+    <div className="bg-[var(--bg-card)] border border-[var(--border-color)] p-6 sm:p-8 card card-glow-gold accent-left-gold edge-glow-top">
       <div className="flex items-start justify-between gap-3 mb-3">
         <div>
           <h3 className="text-base sm:text-lg font-extrabold text-[var(--text-header)] leading-tight">
             {definition.name}
           </h3>
-          <p className="text-xs text-[var(--text-muted)] mt-0.5">
+          <p className="text-xs text-[var(--text-muted)] mt-1">
             {definition.description.split('.')[0]}.
           </p>
         </div>
@@ -73,20 +82,20 @@ function ActiveProgramCard({
 
       {/* Progress bar */}
       <div
-        className="flex items-center gap-3 mb-4"
+        className="flex items-center gap-3 mb-5"
         role="progressbar"
         aria-valuenow={progressPct}
         aria-valuemin={0}
         aria-valuemax={100}
       >
-        <div className="flex-1 h-2 bg-[var(--bg-progress)] overflow-hidden">
+        <div className="flex-1 h-2.5 bg-[var(--bg-progress)] overflow-hidden rounded-full">
           <div
-            className="h-full bg-[var(--fill-progress)] transition-[width] duration-300 ease-out"
+            className="h-full bg-[var(--fill-progress)] transition-[width] duration-300 ease-out progress-fill rounded-full"
             style={{ width: `${progressPct}%` }}
           />
         </div>
-        <span className="text-xs font-bold text-[var(--text-muted)] whitespace-nowrap">
-          {completedWorkouts}/{totalWorkouts} entrenamientos
+        <span className="font-mono text-xs font-bold text-[var(--text-muted)] whitespace-nowrap tabular-nums">
+          {completedWorkouts}/{totalWorkouts}
         </span>
       </div>
 
@@ -120,14 +129,20 @@ interface OtherProgramCardProps {
 }
 
 function OtherProgramCard({ program, onContinue }: OtherProgramCardProps): React.ReactNode {
-  const definition = getProgramDefinition(program.programId);
+  const catalogQuery = useQuery({
+    queryKey: queryKeys.catalog.detail(program.programId),
+    queryFn: () => fetchCatalogDetail(program.programId),
+    staleTime: 5 * 60 * 1000,
+  });
+
+  const definition = catalogQuery.data;
   if (!definition) return null;
 
   const statusLabel = program.status === 'completed' ? 'completado' : program.status;
   const buttonLabel = program.status === 'completed' ? 'Ver Historial' : 'Continuar';
 
   return (
-    <div className="bg-[var(--bg-card)] border border-[var(--border-color)] p-4 sm:p-5 flex items-center justify-between gap-3">
+    <div className="bg-[var(--bg-card)] border border-[var(--border-color)] p-4 sm:p-5 flex items-center justify-between gap-3 card">
       <div>
         <span className="text-xs font-bold text-[var(--text-header)]">{program.name}</span>
         <span className="ml-2 text-[10px] text-[var(--text-muted)] uppercase tracking-wider">
@@ -155,24 +170,30 @@ export function Dashboard({
   onGoToProfile,
 }: DashboardProps): React.ReactNode {
   const { user } = useAuth();
-  const presets = getAllPresetPrograms();
 
-  // Fetch programs from API
+  // Fetch catalog of preset programs from API
+  const catalogQuery = useQuery({
+    queryKey: queryKeys.catalog.list(),
+    queryFn: fetchCatalogList,
+    staleTime: 5 * 60 * 1000,
+  });
+
+  // Fetch user's program instances from API
   const programsQuery = useQuery({
     queryKey: queryKeys.programs.all,
     queryFn: fetchPrograms,
     enabled: user !== null,
   });
 
-  const activeProgram = useMemo(() => {
+  const activeProgram = (() => {
     if (!programsQuery.data) return null;
     return programsQuery.data.find((p) => p.status === 'active') ?? null;
-  }, [programsQuery.data]);
+  })();
 
-  const otherPrograms = useMemo(() => {
+  const otherPrograms = (() => {
     if (!programsQuery.data) return [];
     return programsQuery.data.filter((p) => p.status !== 'active');
-  }, [programsQuery.data]);
+  })();
 
   return (
     <div className="min-h-dvh bg-[var(--bg-body)]">
@@ -195,9 +216,7 @@ export function Dashboard({
         {/* Active program card */}
         {activeProgram && (
           <section className="mb-12">
-            <h2 className="text-xs font-bold uppercase tracking-[0.15em] text-[var(--text-muted)] mb-4">
-              Tu Programa
-            </h2>
+            <h2 className="section-label mb-4">Tu Programa</h2>
             <ActiveProgramCard
               program={activeProgram}
               onContinue={onContinueProgram}
@@ -209,9 +228,7 @@ export function Dashboard({
         {/* Other programs (archived / completed) */}
         {otherPrograms.length > 0 && (
           <section className="mb-12">
-            <h2 className="text-xs font-bold uppercase tracking-[0.15em] text-[var(--text-muted)] mb-4">
-              Otros Programas
-            </h2>
+            <h2 className="section-label mb-4">Otros Programas</h2>
             <div className="flex flex-col gap-2">
               {otherPrograms.map((p) => (
                 <OtherProgramCard key={p.id} program={p} onContinue={onSelectProgram} />
@@ -220,9 +237,9 @@ export function Dashboard({
           </section>
         )}
 
-        {/* Program catalog — all real programs from registry */}
+        {/* Program catalog — all real programs from API */}
         <section>
-          <h2 className="text-xs font-bold uppercase tracking-[0.15em] text-[var(--text-muted)] mb-4">
+          <h2 className="section-label mb-4">
             {activeProgram ? 'Otros Programas Disponibles' : 'Elegir un Programa'}
           </h2>
           {activeProgram && (
@@ -230,27 +247,48 @@ export function Dashboard({
               Finaliza tu programa actual para iniciar uno nuevo.
             </p>
           )}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            {presets.map((def) => {
-              const isCurrent = activeProgram?.programId === def.id;
-              return (
-                <ProgramCard
-                  key={def.id}
-                  definition={def}
-                  isActive={isCurrent}
-                  disabled={activeProgram !== null && !isCurrent}
-                  disabledLabel="Finaliza tu programa actual"
-                  onSelect={() => {
-                    if (isCurrent && activeProgram) {
-                      onSelectProgram(activeProgram.id, activeProgram.programId);
-                    } else {
-                      onStartNewProgram(def.id);
-                    }
-                  }}
-                />
-              );
-            })}
-          </div>
+
+          {/* Catalog loading skeleton */}
+          {catalogQuery.isLoading && (
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              {[1, 2, 3].map((n) => (
+                <div
+                  key={n}
+                  className="bg-[var(--bg-card)] border border-[var(--border-color)] p-5 sm:p-6 animate-pulse"
+                >
+                  <div className="h-4 w-32 bg-[var(--border-color)] rounded mb-2" />
+                  <div className="h-3 w-56 bg-[var(--border-color)] rounded mb-4" />
+                  <div className="h-3 w-24 bg-[var(--border-color)] rounded mb-4" />
+                  <div className="h-10 w-36 bg-[var(--border-color)] rounded" />
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* Catalog loaded — render program cards */}
+          {catalogQuery.data && (
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              {catalogQuery.data.map((entry) => {
+                const isCurrent = activeProgram?.programId === entry.id;
+                return (
+                  <ProgramCard
+                    key={entry.id}
+                    definition={entry}
+                    isActive={isCurrent}
+                    disabled={activeProgram !== null && !isCurrent}
+                    disabledLabel="Finaliza tu programa actual"
+                    onSelect={() => {
+                      if (isCurrent && activeProgram) {
+                        onSelectProgram(activeProgram.id, activeProgram.programId);
+                      } else {
+                        onStartNewProgram(entry.id);
+                      }
+                    }}
+                  />
+                );
+              })}
+            </div>
+          )}
         </section>
       </div>
     </div>

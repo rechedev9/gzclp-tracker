@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { GoogleLogin } from '@react-oauth/google';
 import { useAuth } from '@/contexts/auth-context';
@@ -15,10 +15,10 @@ export function LoginPage(): React.ReactNode {
     }
   }, [user, navigate]);
 
-  const handleGuestMode = useCallback((): void => {
+  const handleGuestMode = (): void => {
     startGuestSession();
     void navigate('/app');
-  }, [startGuestSession, navigate]);
+  };
 
   const handleGoogleSuccess = async (credential: string): Promise<void> => {
     setError(null);

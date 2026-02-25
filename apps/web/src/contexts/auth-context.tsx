@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useState, useCallback, useMemo } from 'react';
+import { createContext, useContext, useEffect, useState } from 'react';
 import { setAccessToken, refreshAccessToken } from '@/lib/api';
 import { apiFetch, importProgram } from '@/lib/api-functions';
 import { isRecord } from '@gzclp/shared/type-guards';
@@ -129,12 +129,12 @@ export function AuthProvider({
     void restore();
   }, []);
 
-  const startGuestSession = useCallback((): void => {
+  const startGuestSession = (): void => {
     writeGuestData(createEmptyGuestMap());
     setIsGuest(true);
-  }, []);
+  };
 
-  const signInWithGoogle = useCallback(async (credential: string): Promise<AuthResult | null> => {
+  const signInWithGoogle = async (credential: string): Promise<AuthResult | null> => {
     try {
       const data = await apiFetch('/auth/google', {
         method: 'POST',
@@ -155,20 +155,20 @@ export function AuthProvider({
     } catch (err: unknown) {
       return { message: err instanceof Error ? err.message : 'Something went wrong' };
     }
-  }, []);
+  };
 
-  const updateUser = useCallback((info: Partial<Pick<UserInfo, 'name' | 'avatarUrl'>>): void => {
+  const updateUser = (info: Partial<Pick<UserInfo, 'name' | 'avatarUrl'>>): void => {
     setUser((prev) => (prev ? { ...prev, ...info } : prev));
-  }, []);
+  };
 
-  const deleteAccount = useCallback(async (): Promise<void> => {
+  const deleteAccount = async (): Promise<void> => {
     await apiFetch('/auth/me', { method: 'DELETE' });
     setAccessToken(null);
     setUser(null);
     setIsGuest(false);
-  }, []);
+  };
 
-  const signOut = useCallback(async (): Promise<void> => {
+  const signOut = async (): Promise<void> => {
     try {
       await apiFetch('/auth/signout', { method: 'POST' });
     } catch (err: unknown) {
@@ -181,31 +181,19 @@ export function AuthProvider({
     setAccessToken(null);
     setUser(null);
     setIsGuest(false);
-  }, []);
+  };
 
-  const value = useMemo<AuthContextValue>(
-    () => ({
-      user,
-      loading,
-      configured: true,
-      isGuest,
-      signInWithGoogle,
-      signOut,
-      startGuestSession,
-      updateUser,
-      deleteAccount,
-    }),
-    [
-      user,
-      loading,
-      isGuest,
-      signInWithGoogle,
-      signOut,
-      startGuestSession,
-      updateUser,
-      deleteAccount,
-    ]
-  );
+  const value: AuthContextValue = {
+    user,
+    loading,
+    configured: true,
+    isGuest,
+    signInWithGoogle,
+    signOut,
+    startGuestSession,
+    updateUser,
+    deleteAccount,
+  };
 
   return <AuthContext value={value}>{children}</AuthContext>;
 }

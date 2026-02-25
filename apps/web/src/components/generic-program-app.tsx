@@ -1,13 +1,4 @@
-import {
-  lazy,
-  Suspense,
-  useState,
-  useTransition,
-  useMemo,
-  useCallback,
-  useEffect,
-  useRef,
-} from 'react';
+import { lazy, Suspense, useState, useTransition, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
 import type { ResultValue, GenericWorkoutRow } from '@gzclp/shared/types';
@@ -107,32 +98,22 @@ export function GenericProgramApp({
   const workoutsPerWeek = definition?.workoutsPerWeek ?? 4;
   const totalWorkouts = definition?.totalWorkouts ?? 0;
 
-  const completedCount = useMemo(
-    () => rows.filter((r) => r.slots.every((s) => s.result !== undefined)).length,
-    [rows]
-  );
+  const completedCount = rows.filter((r) => r.slots.every((s) => s.result !== undefined)).length;
 
-  const firstPendingIdx = useMemo(() => {
+  const firstPendingIdx = (() => {
     const pending = rows.find((r) => r.slots.some((s) => s.result === undefined));
     return pending ? pending.index : -1;
-  }, [rows]);
+  })();
 
-  const weeks = useMemo(
-    () =>
-      Array.from({ length: Math.ceil(rows.length / workoutsPerWeek) }, (_, i) => ({
-        week: i + 1,
-        rows: rows.slice(i * workoutsPerWeek, (i + 1) * workoutsPerWeek),
-      })),
-    [rows, workoutsPerWeek]
-  );
+  const weeks = Array.from({ length: Math.ceil(rows.length / workoutsPerWeek) }, (_, i) => ({
+    week: i + 1,
+    rows: rows.slice(i * workoutsPerWeek, (i + 1) * workoutsPerWeek),
+  }));
 
-  const currentWeekNumber = useMemo(
-    () =>
-      firstPendingIdx >= 0
-        ? Math.floor(firstPendingIdx / workoutsPerWeek) + 1
-        : Math.max(weeks.length, 1),
-    [firstPendingIdx, workoutsPerWeek, weeks.length]
-  );
+  const currentWeekNumber =
+    firstPendingIdx >= 0
+      ? Math.floor(firstPendingIdx / workoutsPerWeek) + 1
+      : Math.max(weeks.length, 1);
 
   const [selectedWeek, setSelectedWeek] = useState<number>(1);
 
@@ -145,13 +126,9 @@ export function GenericProgramApp({
     }
   }, [config]);
 
-  const weekDoneCount = useMemo(
-    () =>
-      (weeks[selectedWeek - 1]?.rows ?? []).filter((r) =>
-        r.slots.every((s) => s.result !== undefined)
-      ).length,
-    [weeks, selectedWeek]
-  );
+  const weekDoneCount = (weeks[selectedWeek - 1]?.rows ?? []).filter((r) =>
+    r.slots.every((s) => s.result !== undefined)
+  ).length;
   const weekTotalCount = weeks[selectedWeek - 1]?.rows.length ?? workoutsPerWeek;
 
   // Day-level navigation within the selected week
@@ -165,50 +142,47 @@ export function GenericProgramApp({
     setSelectedDay(pending >= 0 ? pending : 0);
   }
 
-  const dayTabs = useMemo((): readonly DayTab[] => {
+  const dayTabs: readonly DayTab[] = (() => {
     const weekRows = weeks[selectedWeek - 1]?.rows ?? [];
     return weekRows.map((row) => ({
       label: row.dayName,
       isComplete: row.slots.every((s) => s.result !== undefined),
     }));
-  }, [weeks, selectedWeek]);
+  })();
 
-  const currentDayInWeek = useMemo((): number => {
+  const currentDayInWeek: number = (() => {
     if (selectedWeek !== currentWeekNumber) return -1;
     const weekRows = weeks[selectedWeek - 1]?.rows ?? [];
     return weekRows.findIndex((r) => r.slots.some((s) => s.result === undefined));
-  }, [selectedWeek, currentWeekNumber, weeks]);
+  })();
 
   const selectedRow = weeks[selectedWeek - 1]?.rows[selectedDay];
 
-  const recordAndToast = useCallback(
-    (workoutIndex: number, slotId: string, value: ResultValue): void => {
-      markResult(workoutIndex, slotId, value);
-      const row = rows[workoutIndex];
-      if (!row) return;
-      const slot = row.slots.find((s) => s.slotId === slotId);
-      if (!slot) return;
-      const isPr = detectGenericPersonalRecord(rows, workoutIndex, slotId, value);
-      if (isPr) {
-        toast({
-          message: `${slot.exerciseName} ${slot.weight} kg`,
-          variant: 'pr',
-        });
-      } else {
-        const resultLabel = value === 'success' ? 'Éxito' : 'Fallo';
-        toast({
-          message: `#${workoutIndex + 1}: ${slot.exerciseName} ${slot.tier.toUpperCase()} — ${resultLabel}`,
-          action: {
-            label: 'Deshacer',
-            onClick: () => undoSpecific(workoutIndex, slotId),
-          },
-        });
-      }
-    },
-    [markResult, rows, toast, undoSpecific]
-  );
+  const recordAndToast = (workoutIndex: number, slotId: string, value: ResultValue): void => {
+    markResult(workoutIndex, slotId, value);
+    const row = rows[workoutIndex];
+    if (!row) return;
+    const slot = row.slots.find((s) => s.slotId === slotId);
+    if (!slot) return;
+    const isPr = detectGenericPersonalRecord(rows, workoutIndex, slotId, value);
+    if (isPr) {
+      toast({
+        message: `${slot.exerciseName} ${slot.weight} kg`,
+        variant: 'pr',
+      });
+    } else {
+      const resultLabel = value === 'success' ? 'Éxito' : 'Fallo';
+      toast({
+        message: `#${workoutIndex + 1}: ${slot.exerciseName} ${slot.tier.toUpperCase()} — ${resultLabel}`,
+        action: {
+          label: 'Deshacer',
+          onClick: () => undoSpecific(workoutIndex, slotId),
+        },
+      });
+    }
+  };
 
-  const scrollToRpeInput = useCallback((selector: string): void => {
+  const scrollToRpeInput = (selector: string): void => {
     requestAnimationFrame(() => {
       requestAnimationFrame(() => {
         const el = document.querySelector(`[data-rpe-input="${selector}"]`);
@@ -217,66 +191,63 @@ export function GenericProgramApp({
         }
       });
     });
-  }, []);
+  };
 
-  const handleMarkResult = useCallback(
-    (workoutIndex: number, slotId: string, value: ResultValue): void => {
-      const row = rows[workoutIndex];
-      if (!row) {
-        recordAndToast(workoutIndex, slotId, value);
+  const handleMarkResult = (workoutIndex: number, slotId: string, value: ResultValue): void => {
+    const row = rows[workoutIndex];
+    if (!row) {
+      recordAndToast(workoutIndex, slotId, value);
+      return;
+    }
+
+    // Would marking this slot complete the workout?
+    const otherSlots = row.slots.filter((s) => s.slotId !== slotId);
+    const wouldComplete = otherSlots.every((s) => s.result !== undefined);
+
+    if (wouldComplete) {
+      // Find first primary slot missing RPE (including the one being marked if it's primary)
+      const primaryMissingRpe = row.slots.find((s) => {
+        if (s.role !== 'primary') return false;
+        const hasResult = s.slotId === slotId || s.result !== undefined;
+        return hasResult && s.rpe === undefined;
+      });
+
+      if (primaryMissingRpe) {
+        setRpeReminder({
+          workoutIndex,
+          slotId,
+          value,
+          rpeTarget: `${workoutIndex}-${primaryMissingRpe.slotId}`,
+        });
         return;
       }
+    }
 
-      // Would marking this slot complete the workout?
-      const otherSlots = row.slots.filter((s) => s.slotId !== slotId);
-      const wouldComplete = otherSlots.every((s) => s.result !== undefined);
+    recordAndToast(workoutIndex, slotId, value);
+  };
 
-      if (wouldComplete) {
-        // Find first primary slot missing RPE (including the one being marked if it's primary)
-        const primaryMissingRpe = row.slots.find((s) => {
-          if (s.role !== 'primary') return false;
-          const hasResult = s.slotId === slotId || s.result !== undefined;
-          return hasResult && s.rpe === undefined;
-        });
-
-        if (primaryMissingRpe) {
-          setRpeReminder({
-            workoutIndex,
-            slotId,
-            value,
-            rpeTarget: `${workoutIndex}-${primaryMissingRpe.slotId}`,
-          });
-          return;
-        }
-      }
-
-      recordAndToast(workoutIndex, slotId, value);
-    },
-    [rows, recordAndToast]
-  );
-
-  const handleRpeReminderContinue = useCallback((): void => {
+  const handleRpeReminderContinue = (): void => {
     if (!rpeReminder) return;
     recordAndToast(rpeReminder.workoutIndex, rpeReminder.slotId, rpeReminder.value);
     setRpeReminder(null);
-  }, [rpeReminder, recordAndToast]);
+  };
 
-  const handleRpeReminderAdd = useCallback((): void => {
+  const handleRpeReminderAdd = (): void => {
     if (!rpeReminder) return;
     recordAndToast(rpeReminder.workoutIndex, rpeReminder.slotId, rpeReminder.value);
     scrollToRpeInput(rpeReminder.rpeTarget);
     setRpeReminder(null);
-  }, [rpeReminder, recordAndToast, scrollToRpeInput]);
+  };
 
-  const handleFinishProgram = useCallback((): void => {
+  const handleFinishProgram = (): void => {
     finishProgram();
     onBackToDashboard?.();
-  }, [finishProgram, onBackToDashboard]);
+  };
 
   const weeksRef = useRef(weeks);
   weeksRef.current = weeks;
 
-  const jumpToCurrent = useCallback(() => {
+  const jumpToCurrent = (): void => {
     setSelectedWeek(currentWeekNumber);
     const weekRows = weeksRef.current[currentWeekNumber - 1]?.rows ?? [];
     const pendingDay = weekRows.findIndex((r) => r.slots.some((s) => s.result === undefined));
@@ -295,7 +266,7 @@ export function GenericProgramApp({
         }
       });
     });
-  }, [currentWeekNumber]);
+  };
 
   useEffect(() => {
     if (activeTab !== 'program' || !config) return;
@@ -308,10 +279,10 @@ export function GenericProgramApp({
     return () => document.removeEventListener('keydown', handleKeyDown);
   }, [activeTab, config, weeks.length]);
 
-  const handleSignOut = useCallback(async (): Promise<void> => {
+  const handleSignOut = async (): Promise<void> => {
     await signOut();
     queryClient.clear();
-  }, [signOut, queryClient]);
+  };
 
   if (authLoading || (user === null && !isGuest)) return null;
 

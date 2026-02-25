@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState } from 'react';
 import { StartWeightsSchema } from '@gzclp/shared/schemas/legacy';
 import type { StartWeights } from '@gzclp/shared/types';
 import { Button } from './button';
@@ -53,22 +53,19 @@ export function SetupForm({
     return init;
   });
 
-  const handleChange = useCallback(
-    (key: string, value: string) => {
-      setValues((prev) => ({ ...prev, [key]: value }));
-      if (touched[key]) {
-        setFieldErrors((prev) => ({ ...prev, [key]: validateField(value) }));
-      }
-    },
-    [touched]
-  );
+  const handleChange = (key: string, value: string): void => {
+    setValues((prev) => ({ ...prev, [key]: value }));
+    if (touched[key]) {
+      setFieldErrors((prev) => ({ ...prev, [key]: validateField(value) }));
+    }
+  };
 
-  const handleBlur = useCallback((key: string, value: string) => {
+  const handleBlur = (key: string, value: string): void => {
     setTouched((prev) => ({ ...prev, [key]: true }));
     setFieldErrors((prev) => ({ ...prev, [key]: validateField(value) }));
-  }, []);
+  };
 
-  const adjustWeight = useCallback((key: string, delta: number) => {
+  const adjustWeight = (key: string, delta: number): void => {
     setValues((prev) => {
       const current = parseFloat(prev[key]) || 0;
       const next = Math.max(STEP, Math.round((current + delta) / STEP) * STEP);
@@ -77,7 +74,7 @@ export function SetupForm({
       setFieldErrors((fe) => ({ ...fe, [key]: validateField(nextStr) }));
       return { ...prev, [key]: nextStr };
     });
-  }, []);
+  };
 
   const validateAndParse = (): StartWeights | null => {
     setError(null);
@@ -218,7 +215,7 @@ export function SetupForm({
     <>
       {isEditMode ? (
         <>
-          <div className="bg-[var(--bg-card)] border border-[var(--border-color)] p-4 sm:p-7 mb-7">
+          <div className="bg-[var(--bg-card)] border border-[var(--border-color)] p-4 sm:p-7 mb-7 card">
             <div className="flex items-center justify-between flex-wrap gap-3">
               <div>
                 <h2
@@ -245,7 +242,8 @@ export function SetupForm({
               onClick={() => setIsExpanded(false)}
             >
               <div
-                className="modal-box bg-[var(--bg-card)] border border-[var(--border-color)] p-6 sm:p-8 max-w-2xl w-[calc(100%-2rem)] max-h-[90vh] overflow-y-auto shadow-lg"
+                className="modal-box bg-[var(--bg-card)] border border-[var(--border-color)] p-6 sm:p-8 max-w-2xl w-[calc(100%-2rem)] max-h-[90vh] overflow-y-auto"
+                style={{ boxShadow: 'var(--shadow-elevated), 0 0 60px rgba(0, 0, 0, 0.5)' }}
                 onClick={(e) => e.stopPropagation()}
               >
                 {formContent}
@@ -254,7 +252,7 @@ export function SetupForm({
           )}
         </>
       ) : (
-        <div className="bg-[var(--bg-card)] border border-[var(--border-color)] p-4 sm:p-7 mb-7 max-w-2xl mx-auto">
+        <div className="bg-[var(--bg-card)] border border-[var(--border-color)] p-4 sm:p-7 mb-7 max-w-2xl mx-auto card edge-glow-top">
           {formContent}
         </div>
       )}

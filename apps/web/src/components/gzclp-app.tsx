@@ -1,23 +1,15 @@
-import {
-  lazy,
-  Suspense,
-  useState,
-  useTransition,
-  useMemo,
-  useCallback,
-  useEffect,
-  useRef,
-} from 'react';
+import { lazy, Suspense, useState, useTransition, useEffect, useRef, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useQueryClient } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import type { Tier, ResultValue, WorkoutRow as WorkoutRowType } from '@gzclp/shared/types';
 import { computeProgram } from '@gzclp/shared/engine';
-import { TOTAL_WORKOUTS, NAMES } from '@gzclp/shared/program';
 import { useProgram } from '@/hooks/use-program';
 import { useAuth } from '@/contexts/auth-context';
 import { useToast } from '@/contexts/toast-context';
 import { useWebMcp } from '@/hooks/use-webmcp';
 import { detectT1PersonalRecord } from '@/lib/pr-detection';
+import { queryKeys } from '@/lib/query-keys';
+import { fetchCatalogDetail } from '@/lib/api-functions';
 import { AppHeader } from './app-header';
 import { ConfirmDialog } from './confirm-dialog';
 import { DayNavigator } from './day-navigator';
@@ -38,11 +30,14 @@ const preloadStatsPanel = (): void => {
   void import('./stats-panel');
 };
 
-function gzclpRowToSlots(row: WorkoutRowType): readonly DayViewSlot[] {
+function gzclpRowToSlots(
+  row: WorkoutRowType,
+  names: Readonly<Record<string, string>>
+): readonly DayViewSlot[] {
   return [
     {
       key: 't1',
-      exerciseName: NAMES[row.t1Exercise],
+      exerciseName: names[row.t1Exercise] ?? row.t1Exercise,
       tierLabel: 'T1',
       role: 'primary',
       weight: row.t1Weight,
@@ -58,7 +53,7 @@ function gzclpRowToSlots(row: WorkoutRowType): readonly DayViewSlot[] {
     },
     {
       key: 't2',
-      exerciseName: NAMES[row.t2Exercise],
+      exerciseName: names[row.t2Exercise] ?? row.t2Exercise,
       tierLabel: 'T2',
       role: 'secondary',
       weight: row.t2Weight,
@@ -74,7 +69,7 @@ function gzclpRowToSlots(row: WorkoutRowType): readonly DayViewSlot[] {
     },
     {
       key: 't3',
-      exerciseName: NAMES[row.t3Exercise],
+      exerciseName: names[row.t3Exercise] ?? row.t3Exercise,
       tierLabel: 'T3',
       role: 'accessory',
       weight: row.t3Weight,
@@ -104,6 +99,27 @@ export function GZCLPApp({
 }: GZCLPAppProps): React.ReactNode {
   const { user, loading: authLoading, isGuest, signOut } = useAuth();
   const navigate = useNavigate();
+
+  // Fetch the GZCLP definition from the catalog API
+  const catalogQuery = useQuery({
+    queryKey: queryKeys.catalog.detail('gzclp'),
+    queryFn: () => fetchCatalogDetail('gzclp'),
+    staleTime: 5 * 60 * 1000,
+  });
+
+  const definition = catalogQuery.data;
+
+  // Derive NAMES and TOTAL_WORKOUTS from the definition
+  const names: Readonly<Record<string, string>> = useMemo(() => {
+    if (!definition) return {};
+    const map: Record<string, string> = {};
+    for (const [id, ex] of Object.entries(definition.exercises)) {
+      map[id] = ex.name;
+    }
+    return map;
+  }, [definition]);
+
+  const totalWorkouts = definition?.totalWorkouts ?? 90;
 
   useEffect(() => {
     if (!authLoading && user === null && !isGuest) {
@@ -137,39 +153,38 @@ export function GZCLPApp({
     value: ResultValue;
   } | null>(null);
 
-  const rows = useMemo(
-    () => (startWeights ? computeProgram(startWeights, results) : []),
-    [startWeights, results]
-  );
+  const rows = startWeights ? computeProgram(startWeights, results) : [];
 
   const rowsRef = useRef(rows);
   rowsRef.current = rows;
 
-  useWebMcp({ startWeights, results, rows, generateProgram, markResult, setAmrapReps, undoLast });
+  useWebMcp({
+    startWeights,
+    results,
+    rows,
+    names,
+    totalWorkouts,
+    definition,
+    generateProgram,
+    markResult,
+    setAmrapReps,
+    undoLast,
+  });
 
-  const completedCount = useMemo(
-    () => rows.filter((r) => r.result.t1 && r.result.t2 && r.result.t3).length,
-    [rows]
-  );
+  const completedCount = rows.filter((r) => r.result.t1 && r.result.t2 && r.result.t3).length;
 
-  const firstPendingIdx = useMemo(() => {
+  const firstPendingIdx = (() => {
     const pending = rows.find((r) => !r.result.t1 || !r.result.t2 || !r.result.t3);
     return pending ? pending.index : -1;
-  }, [rows]);
+  })();
 
-  const weeks = useMemo(
-    () =>
-      Array.from({ length: Math.ceil(rows.length / 3) }, (_, i) => ({
-        week: i + 1,
-        rows: rows.slice(i * 3, i * 3 + 3),
-      })),
-    [rows]
-  );
+  const weeks = Array.from({ length: Math.ceil(rows.length / 3) }, (_, i) => ({
+    week: i + 1,
+    rows: rows.slice(i * 3, i * 3 + 3),
+  }));
 
-  const currentWeekNumber = useMemo(
-    () => (firstPendingIdx >= 0 ? Math.floor(firstPendingIdx / 3) + 1 : Math.max(weeks.length, 1)),
-    [firstPendingIdx, weeks.length]
-  );
+  const currentWeekNumber =
+    firstPendingIdx >= 0 ? Math.floor(firstPendingIdx / 3) + 1 : Math.max(weeks.length, 1);
 
   const [selectedWeek, setSelectedWeek] = useState<number>(1);
 
@@ -185,12 +200,9 @@ export function GZCLPApp({
     }
   }, [startWeights]);
 
-  const weekDoneCount = useMemo(
-    () =>
-      (weeks[selectedWeek - 1]?.rows ?? []).filter((r) => r.result.t1 && r.result.t2 && r.result.t3)
-        .length,
-    [weeks, selectedWeek]
-  );
+  const weekDoneCount = (weeks[selectedWeek - 1]?.rows ?? []).filter(
+    (r) => r.result.t1 && r.result.t2 && r.result.t3
+  ).length;
   const weekTotalCount = weeks[selectedWeek - 1]?.rows.length ?? 3;
 
   // Day-level navigation within the selected week
@@ -204,72 +216,67 @@ export function GZCLPApp({
     setSelectedDay(pending >= 0 ? pending : 0);
   }
 
-  const dayTabs = useMemo((): readonly DayTab[] => {
+  const dayTabs: readonly DayTab[] = (() => {
     const weekRows = weeks[selectedWeek - 1]?.rows ?? [];
     return weekRows.map((row) => ({
       label: row.dayName,
       isComplete: Boolean(row.result.t1 && row.result.t2 && row.result.t3),
     }));
-  }, [weeks, selectedWeek]);
+  })();
 
-  const currentDayInWeek = useMemo((): number => {
+  const currentDayInWeek: number = (() => {
     if (selectedWeek !== currentWeekNumber) return -1;
     const weekRows = weeks[selectedWeek - 1]?.rows ?? [];
     return weekRows.findIndex((r) => !r.result.t1 || !r.result.t2 || !r.result.t3);
-  }, [selectedWeek, currentWeekNumber, weeks]);
+  })();
 
   const selectedRow = weeks[selectedWeek - 1]?.rows[selectedDay];
 
   // Adapters: DayView uses (index, slotKey: string, ...) but GZCLP uses narrow types
-  const handleDayAmrapReps = useCallback(
-    (workoutIndex: number, slotKey: string, reps: number | undefined): void => {
-      const field = slotKey === 't1' ? 't1Reps' : 't3Reps';
-      setAmrapReps(workoutIndex, field, reps);
-    },
-    [setAmrapReps]
-  );
+  const handleDayAmrapReps = (
+    workoutIndex: number,
+    slotKey: string,
+    reps: number | undefined
+  ): void => {
+    const field = slotKey === 't1' ? 't1Reps' : 't3Reps';
+    setAmrapReps(workoutIndex, field, reps);
+  };
 
-  const handleDayRpe = useCallback(
-    (workoutIndex: number, slotKey: string, rpe: number | undefined): void => {
-      if (slotKey !== 't1' && slotKey !== 't3') return;
-      setRpe(workoutIndex, slotKey, rpe);
-    },
-    [setRpe]
-  );
+  const handleDayRpe = (workoutIndex: number, slotKey: string, rpe: number | undefined): void => {
+    if (slotKey !== 't1' && slotKey !== 't3') return;
+    setRpe(workoutIndex, slotKey, rpe);
+  };
 
-  const recordAndToast = useCallback(
-    (index: number, tier: Tier, value: ResultValue): void => {
-      markResult(index, tier, value);
-      const row = rowsRef.current[index];
-      if (!row) return;
-      const exerciseByTier: Record<string, string> = {
-        t1: row.t1Exercise,
-        t2: row.t2Exercise,
-        t3: row.t3Exercise,
-      };
-      const exerciseKey = exerciseByTier[tier] ?? '';
-      const isPr = detectT1PersonalRecord(rowsRef.current, index, tier, value);
-      if (isPr) {
-        toast({
-          message: `${NAMES[exerciseKey]} ${row.t1Weight} kg`,
-          variant: 'pr',
-        });
-      } else {
-        const tierLabel = tier.toUpperCase();
-        const resultLabel = value === 'success' ? 'Éxito' : 'Fallo';
-        toast({
-          message: `#${index + 1}: ${NAMES[exerciseKey]} ${tierLabel} — ${resultLabel}`,
-          action: {
-            label: 'Deshacer',
-            onClick: () => undoSpecific(index, tier),
-          },
-        });
-      }
-    },
-    [markResult, toast, undoSpecific]
-  );
+  const recordAndToast = (index: number, tier: Tier, value: ResultValue): void => {
+    markResult(index, tier, value);
+    const row = rowsRef.current[index];
+    if (!row) return;
+    const exerciseByTier: Record<string, string> = {
+      t1: row.t1Exercise,
+      t2: row.t2Exercise,
+      t3: row.t3Exercise,
+    };
+    const exerciseKey = exerciseByTier[tier] ?? '';
+    const isPr = detectT1PersonalRecord(rowsRef.current, index, tier, value);
+    if (isPr) {
+      toast({
+        message: `${names[exerciseKey] ?? exerciseKey} ${row.t1Weight} kg`,
+        variant: 'pr',
+      });
+    } else {
+      const tierLabel = tier.toUpperCase();
+      const resultLabel = value === 'success' ? 'Éxito' : 'Fallo';
+      toast({
+        message: `#${index + 1}: ${names[exerciseKey] ?? exerciseKey} ${tierLabel} — ${resultLabel}`,
+        action: {
+          label: 'Deshacer',
+          onClick: () => undoSpecific(index, tier),
+        },
+      });
+    }
+  };
 
-  const scrollToRpeInput = useCallback((selector: string): void => {
+  const scrollToRpeInput = (selector: string): void => {
     requestAnimationFrame(() => {
       requestAnimationFrame(() => {
         const el = document.querySelector(`[data-rpe-input="${selector}"]`);
@@ -278,34 +285,31 @@ export function GZCLPApp({
         }
       });
     });
-  }, []);
+  };
 
-  const handleMarkResult = useCallback(
-    (index: number, tier: Tier, value: ResultValue): void => {
-      const row = rowsRef.current[index];
-      if (!row) {
-        recordAndToast(index, tier, value);
+  const handleMarkResult = (index: number, tier: Tier, value: ResultValue): void => {
+    const row = rowsRef.current[index];
+    if (!row) {
+      recordAndToast(index, tier, value);
+      return;
+    }
+
+    const otherTiers = (['t1', 't2', 't3'] as const).filter((t) => t !== tier);
+    const wouldComplete = otherTiers.every((t) => row.result[t] !== undefined);
+
+    if (wouldComplete && row.result.rpe === undefined) {
+      // fix: RPE reminder only when T1 is success (AMRAP/RPE only applies on success)
+      const t1IsSuccess = row.result.t1 === 'success' || (tier === 't1' && value === 'success');
+      if (t1IsSuccess) {
+        setRpeReminder({ index, tier, value });
         return;
       }
+    }
 
-      const otherTiers = (['t1', 't2', 't3'] as const).filter((t) => t !== tier);
-      const wouldComplete = otherTiers.every((t) => row.result[t] !== undefined);
+    recordAndToast(index, tier, value);
+  };
 
-      if (wouldComplete && row.result.rpe === undefined) {
-        // fix: RPE reminder only when T1 is success (AMRAP/RPE only applies on success)
-        const t1IsSuccess = row.result.t1 === 'success' || (tier === 't1' && value === 'success');
-        if (t1IsSuccess) {
-          setRpeReminder({ index, tier, value });
-          return;
-        }
-      }
-
-      recordAndToast(index, tier, value);
-    },
-    [recordAndToast]
-  );
-
-  const handleRpeReminderContinue = useCallback((): void => {
+  const handleRpeReminderContinue = (): void => {
     if (!rpeReminder) return;
     // fix: blur active element to clear any residual RPE button focus/hover state
     if (document.activeElement instanceof HTMLElement) {
@@ -313,24 +317,24 @@ export function GZCLPApp({
     }
     recordAndToast(rpeReminder.index, rpeReminder.tier, rpeReminder.value);
     setRpeReminder(null);
-  }, [rpeReminder, recordAndToast]);
+  };
 
-  const handleRpeReminderAdd = useCallback((): void => {
+  const handleRpeReminderAdd = (): void => {
     if (!rpeReminder) return;
     recordAndToast(rpeReminder.index, rpeReminder.tier, rpeReminder.value);
     scrollToRpeInput(`${rpeReminder.index}-t1`);
     setRpeReminder(null);
-  }, [rpeReminder, recordAndToast, scrollToRpeInput]);
+  };
 
-  const handleFinishProgram = useCallback((): void => {
+  const handleFinishProgram = (): void => {
     finishProgram();
     onBackToDashboard?.();
-  }, [finishProgram, onBackToDashboard]);
+  };
 
   const weeksRef = useRef(weeks);
   weeksRef.current = weeks;
 
-  const jumpToCurrent = useCallback(() => {
+  const jumpToCurrent = (): void => {
     setSelectedWeek(currentWeekNumber);
     const weekRows = weeksRef.current[currentWeekNumber - 1]?.rows ?? [];
     const pendingDay = weekRows.findIndex(
@@ -351,7 +355,7 @@ export function GZCLPApp({
         }
       });
     });
-  }, [currentWeekNumber]);
+  };
 
   useEffect(() => {
     if (activeTab !== 'program' || !startWeights) return;
@@ -364,10 +368,10 @@ export function GZCLPApp({
     return () => document.removeEventListener('keydown', handleKeyDown);
   }, [activeTab, startWeights, weeks.length]);
 
-  const handleSignOut = useCallback(async (): Promise<void> => {
+  const handleSignOut = async (): Promise<void> => {
     await signOut();
     queryClient.clear();
-  }, [signOut, queryClient]);
+  };
 
   if (authLoading || (user === null && !isGuest)) return null;
 
@@ -384,7 +388,7 @@ export function GZCLPApp({
         {startWeights && (
           <Toolbar
             completedCount={completedCount}
-            totalWorkouts={TOTAL_WORKOUTS}
+            totalWorkouts={totalWorkouts}
             undoCount={undoHistory.length}
             onUndo={undoLast}
             onJumpToCurrent={jumpToCurrent}
@@ -510,7 +514,7 @@ export function GZCLPApp({
                     workoutNumber={selectedRow.index + 1}
                     dayName={selectedRow.dayName}
                     isCurrent={selectedRow.index === firstPendingIdx}
-                    slots={gzclpRowToSlots(selectedRow)}
+                    slots={gzclpRowToSlots(selectedRow, names)}
                     onMark={handleMarkResult}
                     onUndo={undoSpecific}
                     onSetAmrapReps={handleDayAmrapReps}
@@ -541,7 +545,11 @@ export function GZCLPApp({
                   )}
                 >
                   <Suspense fallback={<StatsSkeleton />}>
-                    <StatsPanel startWeights={startWeights} results={results} />
+                    <StatsPanel
+                      startWeights={startWeights}
+                      results={results}
+                      definition={definition}
+                    />
                   </Suspense>
                 </ErrorBoundary>
               </div>

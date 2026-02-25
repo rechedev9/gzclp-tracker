@@ -2,6 +2,7 @@ import { describe, it, expect } from 'bun:test';
 import { render, screen } from '@testing-library/react';
 import { StatsPanel } from './stats-panel';
 import type { StartWeights, Results } from '@gzclp/shared/types';
+import { GZCLP_DEFINITION_FIXTURE } from '../../test/helpers/fixtures';
 
 // ---------------------------------------------------------------------------
 // StatsPanel — empty state and class assertions (REQ-STATS-001, REQ-STATS-003)
@@ -46,7 +47,13 @@ describe('StatsPanel', () => {
       // We wrap in try/catch for canvas errors but still assert the empty state is absent.
       let errorWasCanvasRelated = false;
       try {
-        render(<StatsPanel startWeights={DEFAULT_WEIGHTS} results={WITH_RESULTS} />);
+        render(
+          <StatsPanel
+            startWeights={DEFAULT_WEIGHTS}
+            results={WITH_RESULTS}
+            definition={GZCLP_DEFINITION_FIXTURE}
+          />
+        );
       } catch (err: unknown) {
         // AggregateError from canvas ctx in happy-dom is acceptable
         const isAggregate =
@@ -71,7 +78,13 @@ describe('StatsPanel', () => {
       // (happy-dom has partial canvas support).
       let container: HTMLElement | null = null;
       try {
-        const result = render(<StatsPanel startWeights={DEFAULT_WEIGHTS} results={WITH_RESULTS} />);
+        const result = render(
+          <StatsPanel
+            startWeights={DEFAULT_WEIGHTS}
+            results={WITH_RESULTS}
+            definition={GZCLP_DEFINITION_FIXTURE}
+          />
+        );
         container = result.container;
       } catch {
         // canvas context errors in happy-dom are acceptable; structure test still runs

@@ -1,6 +1,4 @@
-import { useCallback, useMemo } from 'react';
 import { useQuery, useMutation, useQueryClient, type QueryClient } from '@tanstack/react-query';
-import { getProgramDefinition } from '@gzclp/shared/programs/registry';
 import { computeGenericProgram } from '@gzclp/shared/generic-engine';
 import type {
   ProgramDefinition,
@@ -12,6 +10,7 @@ import { queryKeys } from '@/lib/query-keys';
 import {
   fetchPrograms,
   fetchGenericProgramDetail,
+  fetchCatalogDetail,
   createProgram,
   updateProgramConfig,
   completeProgram,
@@ -146,7 +145,14 @@ export function useGenericProgram(programId: string, instanceId?: string): UseGe
   const { user } = useAuth();
   const { toast } = useToast();
 
-  const definition = useMemo(() => getProgramDefinition(programId), [programId]);
+  // Fetch the program definition from the catalog API
+  const catalogQuery = useQuery({
+    queryKey: queryKeys.catalog.detail(programId),
+    queryFn: () => fetchCatalogDetail(programId),
+    staleTime: 5 * 60 * 1000,
+  });
+
+  const definition = catalogQuery.data;
 
   // Fetch the list of programs to find the active one
   const programsQuery = useQuery({
@@ -156,13 +162,13 @@ export function useGenericProgram(programId: string, instanceId?: string): UseGe
   });
 
   // Use provided instanceId, or find active instance with matching programId
-  const activeInstanceId = useMemo(() => {
+  const activeInstanceId = (() => {
     if (instanceId) return instanceId;
     if (!programsQuery.data) return null;
     return (
       programsQuery.data.find((p) => p.status === 'active' && p.programId === programId)?.id ?? null
     );
-  }, [instanceId, programsQuery.data, programId]);
+  })();
 
   // Fetch the full program detail in generic format
   const detailQuery = useQuery({
@@ -175,13 +181,13 @@ export function useGenericProgram(programId: string, instanceId?: string): UseGe
   const config = detail?.config ?? null;
   const results: GenericResults = detail?.results ?? {};
   const undoHistory: GenericUndoHistory = detail?.undoHistory ?? [];
-  const isLoading = programsQuery.isLoading || detailQuery.isLoading;
+  const isLoading = catalogQuery.isLoading || programsQuery.isLoading || detailQuery.isLoading;
 
   // Compute rows from definition + config + results
-  const rows = useMemo((): readonly GenericWorkoutRow[] => {
+  const rows: readonly GenericWorkoutRow[] = (() => {
     if (!definition || !config) return [];
     return computeGenericProgram(definition, config, results);
-  }, [definition, config, results]);
+  })();
 
   // -------------------------------------------------------------------------
   // Mutations
@@ -363,61 +369,43 @@ export function useGenericProgram(programId: string, instanceId?: string): UseGe
   // Stable callbacks
   // -------------------------------------------------------------------------
 
-  const markResultCb = useCallback(
-    (index: number, slotId: string, value: ResultValue): void => {
-      markResultMutation.mutate({ index, slotId, value });
-    },
-    [markResultMutation]
-  );
+  const markResultCb = (index: number, slotId: string, value: ResultValue): void => {
+    markResultMutation.mutate({ index, slotId, value });
+  };
 
-  const setAmrapRepsCb = useCallback(
-    (index: number, slotId: string, reps: number | undefined): void => {
-      setAmrapMutation.mutate({ index, slotId, reps });
-    },
-    [setAmrapMutation]
-  );
+  const setAmrapRepsCb = (index: number, slotId: string, reps: number | undefined): void => {
+    setAmrapMutation.mutate({ index, slotId, reps });
+  };
 
-  const setRpeCb = useCallback(
-    (index: number, slotId: string, rpe: number | undefined): void => {
-      setRpeMutation.mutate({ index, slotId, rpe });
-    },
-    [setRpeMutation]
-  );
+  const setRpeCb = (index: number, slotId: string, rpe: number | undefined): void => {
+    setRpeMutation.mutate({ index, slotId, rpe });
+  };
 
-  const undoSpecificCb = useCallback(
-    (index: number, slotId: string): void => {
-      undoSpecificMutation.mutate({ index, slotId });
-    },
-    [undoSpecificMutation]
-  );
+  const undoSpecificCb = (index: number, slotId: string): void => {
+    undoSpecificMutation.mutate({ index, slotId });
+  };
 
-  const undoLastCb = useCallback((): void => {
+  const undoLastCb = (): void => {
     undoLastMutation.mutate();
-  }, [undoLastMutation]);
+  };
 
-  const generateProgramCb = useCallback(
-    async (newConfig: Record<string, number>): Promise<void> => {
-      await generateProgramMutation.mutateAsync(newConfig);
-    },
-    [generateProgramMutation]
-  );
+  const generateProgramCb = async (newConfig: Record<string, number>): Promise<void> => {
+    await generateProgramMutation.mutateAsync(newConfig);
+  };
 
-  const updateConfigCb = useCallback(
-    (newConfig: Record<string, number>): void => {
-      updateConfigMutation.mutate(newConfig);
-    },
-    [updateConfigMutation]
-  );
+  const updateConfigCb = (newConfig: Record<string, number>): void => {
+    updateConfigMutation.mutate(newConfig);
+  };
 
-  const finishProgramCb = useCallback((): void => {
+  const finishProgramCb = (): void => {
     finishProgramMutation.mutate();
-  }, [finishProgramMutation]);
+  };
 
-  const resetAllCb = useCallback((): void => {
+  const resetAllCb = (): void => {
     resetAllMutation.mutate();
-  }, [resetAllMutation]);
+  };
 
-  const exportDataCb = useCallback((): void => {
+  const exportDataCb = (): void => {
     if (!activeInstanceId) return;
     void exportProgram(activeInstanceId).then((data) => {
       const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
@@ -430,24 +418,21 @@ export function useGenericProgram(programId: string, instanceId?: string): UseGe
       document.body.removeChild(a);
       URL.revokeObjectURL(url);
     });
-  }, [activeInstanceId, programId]);
+  };
 
-  const importDataCb = useCallback(
-    async (json: string): Promise<boolean> => {
-      try {
-        const parsed: unknown = JSON.parse(json);
-        await importProgram(parsed);
-        void queryClient.invalidateQueries({ queryKey: queryKeys.programs.all });
-        return true;
-      } catch {
-        toast({
-          message: 'No se pudo importar el programa. Verifica el archivo e inténtalo de nuevo.',
-        });
-        return false;
-      }
-    },
-    [queryClient, toast]
-  );
+  const importDataCb = async (json: string): Promise<boolean> => {
+    try {
+      const parsed: unknown = JSON.parse(json);
+      await importProgram(parsed);
+      void queryClient.invalidateQueries({ queryKey: queryKeys.programs.all });
+      return true;
+    } catch {
+      toast({
+        message: 'No se pudo importar el programa. Verifica el archivo e inténtalo de nuevo.',
+      });
+      return false;
+    }
+  };
 
   return {
     definition,

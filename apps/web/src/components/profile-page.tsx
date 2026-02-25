@@ -1,11 +1,12 @@
-import { useMemo, useState, useRef, useCallback } from 'react';
+import { useState, useRef, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useQuery } from '@tanstack/react-query';
 import { useProgram } from '@/hooks/use-program';
 import { useAuth } from '@/contexts/auth-context';
 import { computeProfileData, formatVolume } from '@/lib/profile-stats';
 import { extractChartData, calculateStats } from '@gzclp/shared/stats';
-import { NAMES, T1_EXERCISES } from '@gzclp/shared/program';
-import { updateProfile } from '@/lib/api-functions';
+import { queryKeys } from '@/lib/query-keys';
+import { updateProfile, fetchCatalogDetail } from '@/lib/api-functions';
 import { resizeImageToDataUrl } from '@/lib/resize-image';
 import { Button } from './button';
 import { ProfileStatCard } from './profile-stat-card';
@@ -22,6 +23,37 @@ export function ProfilePage({ onBack }: ProfilePageProps): React.ReactNode {
   const { user, updateUser, deleteAccount } = useAuth();
   const navigate = useNavigate();
 
+  // Fetch GZCLP definition from catalog
+  const catalogQuery = useQuery({
+    queryKey: queryKeys.catalog.detail('gzclp'),
+    queryFn: () => fetchCatalogDetail('gzclp'),
+    staleTime: 5 * 60 * 1000,
+  });
+
+  const definition = catalogQuery.data;
+
+  // Derive NAMES and T1_EXERCISES from definition
+  const { names, t1Exercises } = useMemo(() => {
+    if (!definition) {
+      const empty: { names: Record<string, string>; t1Exercises: string[] } = {
+        names: {},
+        t1Exercises: [],
+      };
+      return empty;
+    }
+    const nm: Record<string, string> = {};
+    for (const [id, ex] of Object.entries(definition.exercises)) {
+      nm[id] = ex.name;
+    }
+    const t1Set = new Set<string>();
+    for (const day of definition.days) {
+      for (const slot of day.slots) {
+        if (slot.tier === 't1') t1Set.add(slot.exerciseId);
+      }
+    }
+    return { names: nm, t1Exercises: [...t1Set] };
+  }, [definition]);
+
   // Avatar upload state
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [avatarUploading, setAvatarUploading] = useState(false);
@@ -30,43 +62,40 @@ export function ProfilePage({ onBack }: ProfilePageProps): React.ReactNode {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [deleteLoading, setDeleteLoading] = useState(false);
 
-  const profileData = useMemo(() => {
-    if (!startWeights) return null;
-    return computeProfileData(startWeights, results, resultTimestamps);
-  }, [startWeights, results, resultTimestamps]);
+  const profileData = (() => {
+    if (!startWeights || !definition) return null;
+    return computeProfileData(startWeights, results, definition, resultTimestamps);
+  })();
 
-  const chartData = useMemo(() => {
+  const chartData = (() => {
     if (!startWeights) return null;
     return extractChartData(startWeights, results);
-  }, [startWeights, results]);
+  })();
 
-  const handleAvatarClick = useCallback((): void => {
+  const handleAvatarClick = (): void => {
     fileInputRef.current?.click();
-  }, []);
+  };
 
-  const handleFileChange = useCallback(
-    async (e: React.ChangeEvent<HTMLInputElement>): Promise<void> => {
-      const file = e.target.files?.[0];
-      if (!file) return;
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>): Promise<void> => {
+    const file = e.target.files?.[0];
+    if (!file) return;
 
-      // Reset input so the same file can be re-selected
-      e.target.value = '';
+    // Reset input so the same file can be re-selected
+    e.target.value = '';
 
-      setAvatarUploading(true);
-      try {
-        const dataUrl = await resizeImageToDataUrl(file);
-        await updateProfile({ avatarUrl: dataUrl });
-        updateUser({ avatarUrl: dataUrl });
-      } catch (err: unknown) {
-        console.error('[profile] Avatar upload failed:', err instanceof Error ? err.message : err);
-      } finally {
-        setAvatarUploading(false);
-      }
-    },
-    [updateUser]
-  );
+    setAvatarUploading(true);
+    try {
+      const dataUrl = await resizeImageToDataUrl(file);
+      await updateProfile({ avatarUrl: dataUrl });
+      updateUser({ avatarUrl: dataUrl });
+    } catch (err: unknown) {
+      console.error('[profile] Avatar upload failed:', err instanceof Error ? err.message : err);
+    } finally {
+      setAvatarUploading(false);
+    }
+  };
 
-  const handleRemoveAvatar = useCallback(async (): Promise<void> => {
+  const handleRemoveAvatar = async (): Promise<void> => {
     setAvatarUploading(true);
     try {
       await updateProfile({ avatarUrl: null });
@@ -76,9 +105,9 @@ export function ProfilePage({ onBack }: ProfilePageProps): React.ReactNode {
     } finally {
       setAvatarUploading(false);
     }
-  }, [updateUser]);
+  };
 
-  const handleDeleteAccount = useCallback(async (): Promise<void> => {
+  const handleDeleteAccount = async (): Promise<void> => {
     setDeleteLoading(true);
     try {
       await deleteAccount();
@@ -87,7 +116,7 @@ export function ProfilePage({ onBack }: ProfilePageProps): React.ReactNode {
       console.error('[profile] Account deletion failed:', err instanceof Error ? err.message : err);
       setDeleteLoading(false);
     }
-  }, [deleteAccount, navigate]);
+  };
 
   const displayName = user?.name ?? user?.email ?? 'Local Lifter';
   const initial = (user?.email?.[0] ?? 'U').toUpperCase();
@@ -99,7 +128,10 @@ export function ProfilePage({ onBack }: ProfilePageProps): React.ReactNode {
       <div className="max-w-3xl mx-auto px-5 sm:px-8 py-8 sm:py-12">
         {/* Page title */}
         <section className="mb-12">
-          <h1 className="text-2xl sm:text-3xl font-extrabold text-[var(--text-header)] leading-tight">
+          <h1
+            className="font-display text-4xl sm:text-5xl text-[var(--text-header)] leading-none"
+            style={{ textShadow: '0 0 30px rgba(240, 192, 64, 0.12)' }}
+          >
             Perfil
           </h1>
         </section>
@@ -107,10 +139,8 @@ export function ProfilePage({ onBack }: ProfilePageProps): React.ReactNode {
         {/* Account settings (authenticated users only) */}
         {user && (
           <section className="mb-12">
-            <h2 className="text-xs font-bold uppercase tracking-[0.15em] text-[var(--text-muted)] mb-4">
-              Cuenta
-            </h2>
-            <div className="bg-[var(--bg-card)] border border-[var(--border-color)] p-5 sm:p-6">
+            <h2 className="section-label mb-4">Cuenta</h2>
+            <div className="bg-[var(--bg-card)] border border-[var(--border-color)] p-5 sm:p-6 card">
               <div className="flex items-center gap-4 sm:gap-5">
                 {/* Avatar */}
                 <button
@@ -164,8 +194,11 @@ export function ProfilePage({ onBack }: ProfilePageProps): React.ReactNode {
 
         {/* Empty state */}
         {!profileData && (
-          <div className="bg-[var(--bg-card)] border border-[var(--border-color)] p-8 sm:p-12 text-center">
-            <p className="font-display text-6xl sm:text-7xl text-[var(--text-muted)] leading-none mb-4">
+          <div className="bg-[var(--bg-card)] border border-[var(--border-color)] p-8 sm:p-12 text-center card">
+            <p
+              className="font-display text-6xl sm:text-7xl text-[var(--text-muted)] leading-none mb-4"
+              style={{ textShadow: '0 0 40px rgba(138, 122, 90, 0.15)' }}
+            >
               SIN PROGRAMA
             </p>
             <p className="text-sm text-[var(--text-muted)]">
@@ -183,9 +216,7 @@ export function ProfilePage({ onBack }: ProfilePageProps): React.ReactNode {
           <>
             {/* Training stats header */}
             <section className="mb-4">
-              <h2 className="text-xs font-bold uppercase tracking-[0.15em] text-[var(--text-muted)]">
-                Estadísticas de Entrenamiento
-              </h2>
+              <h2 className="section-label">Estadísticas de Entrenamiento</h2>
             </section>
 
             {/* Summary stats */}
@@ -214,9 +245,7 @@ export function ProfilePage({ onBack }: ProfilePageProps): React.ReactNode {
             {/* Streak */}
             {(profileData.streak.current > 0 || profileData.streak.longest > 0) && (
               <section className="mb-10">
-                <h2 className="text-xs font-bold uppercase tracking-[0.15em] text-[var(--text-muted)] mb-3">
-                  Racha
-                </h2>
+                <h2 className="section-label mb-3">Racha</h2>
                 <div className="grid grid-cols-2 gap-3">
                   <ProfileStatCard
                     value={String(profileData.streak.current)}
@@ -235,9 +264,7 @@ export function ProfilePage({ onBack }: ProfilePageProps): React.ReactNode {
             {/* Monthly Summary */}
             {profileData.monthlyReport && (
               <section className="mb-10">
-                <h2 className="text-xs font-bold uppercase tracking-[0.15em] text-[var(--text-muted)] mb-3">
-                  {profileData.monthlyReport.monthLabel}
-                </h2>
+                <h2 className="section-label mb-3">{profileData.monthlyReport.monthLabel}</h2>
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                   <ProfileStatCard
                     value={String(profileData.monthlyReport.workoutsCompleted)}
@@ -264,9 +291,7 @@ export function ProfilePage({ onBack }: ProfilePageProps): React.ReactNode {
 
             {/* Personal Records */}
             <section className="mb-12">
-              <h2 className="text-xs font-bold uppercase tracking-[0.15em] text-[var(--text-muted)] mb-4">
-                Récords Personales (T1)
-              </h2>
+              <h2 className="section-label mb-4">Récords Personales (T1)</h2>
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                 {profileData.personalRecords.map((pr) => {
                   const delta = pr.weight - pr.startWeight;
@@ -274,7 +299,7 @@ export function ProfilePage({ onBack }: ProfilePageProps): React.ReactNode {
                     <ProfileStatCard
                       key={pr.exercise}
                       value={`${pr.weight} kg`}
-                      label={NAMES[pr.exercise] ?? pr.exercise}
+                      label={names[pr.exercise] ?? pr.exercise}
                       sublabel={
                         pr.workoutIndex >= 0
                           ? `Entrenamiento #${pr.workoutIndex + 1}`
@@ -292,20 +317,20 @@ export function ProfilePage({ onBack }: ProfilePageProps): React.ReactNode {
             {/* Weight Progression Charts */}
             {chartData && (
               <section className="mb-10">
-                <h2 className="text-xs font-bold uppercase tracking-[0.15em] text-[var(--text-muted)] mb-3">
-                  Progresión de Peso
-                </h2>
+                <h2 className="section-label mb-3">Progresión de Peso</h2>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  {T1_EXERCISES.map((ex) => {
-                    const stats = calculateStats(chartData[ex]);
+                  {t1Exercises.map((ex) => {
+                    const data = chartData[ex];
+                    if (!data) return null;
+                    const stats = calculateStats(data);
                     const hasMark = stats.total > 0;
                     return (
                       <div
                         key={ex}
-                        className="bg-[var(--bg-card)] border border-[var(--border-color)] p-4"
+                        className="bg-[var(--bg-card)] border border-[var(--border-color)] p-4 card"
                       >
                         <h3 className="text-sm font-bold text-[var(--text-header)] mb-1">
-                          {NAMES[ex]}
+                          {names[ex] ?? ex}
                         </h3>
                         {hasMark && (
                           <p className="text-[11px] text-[var(--text-muted)] mb-3">
@@ -319,7 +344,7 @@ export function ProfilePage({ onBack }: ProfilePageProps): React.ReactNode {
                             | {stats.rate}% éxito
                           </p>
                         )}
-                        <LineChart data={chartData[ex]} label={NAMES[ex]} />
+                        <LineChart data={data} label={names[ex] ?? ex} />
                       </div>
                     );
                   })}
@@ -328,22 +353,17 @@ export function ProfilePage({ onBack }: ProfilePageProps): React.ReactNode {
             )}
           </>
         )}
-        {/* Danger zone — always at the bottom (authenticated users only) */}
+        {/* Delete account — subtle, at the bottom */}
         {user && (
-          <section className="mt-12 mb-4">
-            <div className="bg-[var(--bg-card)] border border-[var(--border-badge-no)] p-5 sm:p-6">
-              <h3 className="text-xs font-bold text-[var(--text-badge-no)] uppercase tracking-[0.15em] mb-2">
-                Zona de Peligro
-              </h3>
-              <p className="text-xs text-[var(--text-muted)] mb-4 leading-relaxed">
-                Eliminar tu cuenta marcará todos tus datos para borrado permanente tras 30 días.
-                Esta acción no se puede deshacer.
-              </p>
-              <Button variant="danger" size="sm" onClick={() => setDeleteDialogOpen(true)}>
-                Eliminar Cuenta
-              </Button>
-            </div>
-          </section>
+          <div className="mt-16 mb-4 flex justify-center">
+            <button
+              type="button"
+              onClick={() => setDeleteDialogOpen(true)}
+              className="text-xs text-[var(--text-muted)] underline cursor-pointer hover:text-[var(--text-badge-no)] transition-colors"
+            >
+              Eliminar cuenta
+            </button>
+          </div>
         )}
       </div>
 

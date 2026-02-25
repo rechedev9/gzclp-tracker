@@ -1,4 +1,3 @@
-import { memo } from 'react';
 import type { ResultValue } from '@gzclp/shared/types';
 
 interface ResultCellProps {
@@ -10,7 +9,7 @@ interface ResultCellProps {
   readonly onUndo: (index: number, tier: string) => void;
 }
 
-export const ResultCell = memo(function ResultCell({
+export function ResultCell({
   index,
   tier,
   result,
@@ -34,7 +33,7 @@ export const ResultCell = memo(function ResultCell({
       <button
         onClick={() => onUndo(index, tier)}
         aria-label={`Deshacer ${tier} ${isSuccess ? 'éxito' : 'fallo'}`}
-        className={`${padding} text-[13px] font-extrabold cursor-pointer border-3 rounded-sm animate-[pop-in_0.25s_ease-out] focus-visible:ring-2 focus-visible:ring-[var(--fill-progress)] focus-visible:outline-none ${badgeColor} ${tableStyles}`}
+        className={`${padding} text-[13px] font-extrabold cursor-pointer border-3 rounded-sm animate-[pop-in_0.25s_ease-out] focus-visible:ring-2 focus-visible:ring-[var(--fill-progress)] focus-visible:outline-none active:scale-95 transition-transform ${badgeColor} ${tableStyles} ${isSuccess ? 'shadow-[0_0_10px_rgba(106,170,58,0.2)]' : 'shadow-[0_0_10px_rgba(192,80,80,0.2)]'}`}
       >
         {isSuccess ? '\u2713' : '\u2717'}
         {/* fix: tooltip only on hover, not on focus (aria-label handles a11y) */}
@@ -62,17 +61,17 @@ export const ResultCell = memo(function ResultCell({
       <button
         onClick={() => onMark(index, tier, 'success')}
         aria-label={`Marcar ${tier} éxito`}
-        className={`${sizeClasses} font-extrabold border-2 border-[var(--border-badge-ok)] bg-transparent text-[var(--text-badge-ok)] rounded-sm cursor-pointer transition-all hover:bg-[var(--bg-badge-ok)] focus-visible:ring-2 focus-visible:ring-[var(--fill-progress)] focus-visible:outline-none`}
+        className={`${sizeClasses} font-extrabold border-2 border-[var(--border-badge-ok)] bg-transparent text-[var(--text-badge-ok)] rounded-sm cursor-pointer transition-all duration-150 hover:bg-[var(--bg-badge-ok)] hover:shadow-[var(--shadow-glow-success)] active:scale-95 focus-visible:ring-2 focus-visible:ring-[var(--fill-progress)] focus-visible:outline-none`}
       >
         &#10003;
       </button>
       <button
         onClick={() => onMark(index, tier, 'fail')}
         aria-label={`Marcar ${tier} fallo`}
-        className={`${sizeClasses} font-extrabold border-2 border-[var(--border-badge-no)] bg-transparent text-[var(--text-badge-no)] rounded-sm cursor-pointer transition-all hover:bg-[var(--bg-badge-no)] focus-visible:ring-2 focus-visible:ring-[var(--fill-progress)] focus-visible:outline-none`}
+        className={`${sizeClasses} font-extrabold border-2 border-[var(--border-badge-no)] bg-transparent text-[var(--text-badge-no)] rounded-sm cursor-pointer transition-all duration-150 hover:bg-[var(--bg-badge-no)] hover:shadow-[var(--shadow-glow-fail)] active:scale-95 focus-visible:ring-2 focus-visible:ring-[var(--fill-progress)] focus-visible:outline-none`}
       >
         &#10007;
       </button>
     </div>
   );
-});
+}

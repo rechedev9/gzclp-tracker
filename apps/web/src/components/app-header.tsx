@@ -22,7 +22,13 @@ export function AppHeader({
   const handleSignOut = onSignOut ?? ((): void => void signOut());
 
   return (
-    <header className="flex items-center justify-between px-5 sm:px-8 py-4 bg-[var(--bg-header)] border-b border-[var(--border-color)]">
+    <header
+      className="flex items-center justify-between px-5 sm:px-8 py-4 bg-[var(--bg-header)] border-b border-[var(--border-color)] shadow-[0_1px_8px_rgba(0,0,0,0.4)]"
+      style={{
+        borderImage:
+          'linear-gradient(90deg, var(--border-color) 0%, rgba(232, 170, 32, 0.2) 50%, var(--border-color) 100%) 1',
+      }}
+    >
       <div className="flex items-center gap-4">
         {onBack && (
           <button

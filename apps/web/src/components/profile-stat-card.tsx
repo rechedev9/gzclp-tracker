@@ -27,10 +27,13 @@ export function ProfileStatCard({
 }: ProfileStatCardProps): React.ReactNode {
   return (
     <div
-      className={`bg-[var(--bg-card)] border border-[var(--border-color)] p-4 sm:p-5${accent ? ' border-l-2 border-l-[var(--text-header)]' : ''}`}
+      className={`bg-[var(--bg-card)] border border-[var(--border-color)] p-4 sm:p-5 card edge-glow-top${accent ? ' border-l-2 border-l-[var(--text-header)]' : ''}`}
     >
       <div className="flex items-baseline gap-2">
-        <p className="font-display-data text-4xl sm:text-5xl text-[var(--text-header)] leading-none">
+        <p
+          className="font-display-data text-4xl sm:text-5xl text-[var(--text-header)] leading-none"
+          style={{ textShadow: '0 0 20px rgba(240, 192, 64, 0.15)' }}
+        >
           {value}
         </p>
         {badge && (
@@ -57,7 +60,7 @@ export function ProfileStatCard({
           aria-label={progress.label}
         >
           <div
-            className="h-full bg-[var(--fill-progress)] transition-[width] duration-300 ease-out"
+            className="h-full bg-[var(--fill-progress)] transition-[width] duration-300 ease-out progress-fill"
             style={{ width: `${Math.min(100, Math.max(0, progress.value))}%` }}
           />
         </div>

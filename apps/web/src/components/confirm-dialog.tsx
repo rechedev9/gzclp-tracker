@@ -1,4 +1,4 @@
-import { useEffect, useRef, useCallback } from 'react';
+import { useEffect, useRef } from 'react';
 import { Button } from './button';
 
 interface ConfirmDialogProps {
@@ -42,7 +42,7 @@ export function ConfirmDialog({
     };
   }, [open, onCancel]);
 
-  const handleDialogKeyDown = useCallback((e: React.KeyboardEvent<HTMLDivElement>): void => {
+  const handleDialogKeyDown = (e: React.KeyboardEvent<HTMLDivElement>): void => {
     if (e.key !== 'Tab') return;
     const focusable = [cancelRef.current, confirmRef.current].filter(
       (el): el is HTMLButtonElement => el !== null
@@ -59,7 +59,7 @@ export function ConfirmDialog({
       e.preventDefault();
       first.focus();
     }
-  }, []);
+  };
 
   if (!open) return null;
 
@@ -72,15 +72,16 @@ export function ConfirmDialog({
         role="dialog"
         aria-modal="true"
         aria-labelledby="confirm-dialog-title"
-        className="modal-box bg-[var(--bg-card)] border border-[var(--border-color)] p-6 max-w-sm w-[calc(100%-2rem)] shadow-lg"
+        className="modal-box bg-[var(--bg-card)] border border-[var(--border-color)] p-6 max-w-sm w-[calc(100%-2rem)]"
+        style={{ boxShadow: 'var(--shadow-elevated), 0 0 60px rgba(0, 0, 0, 0.5)' }}
         onClick={(e) => e.stopPropagation()}
         onKeyDown={handleDialogKeyDown}
       >
         <h3 id="confirm-dialog-title" className="text-sm font-bold text-[var(--text-header)] mb-2">
           {title}
         </h3>
-        <div className="text-xs text-[var(--text-muted)] mb-5 leading-relaxed">{message}</div>
-        <div className="flex justify-end gap-3">
+        <div className="text-xs text-[var(--text-muted)] leading-relaxed">{message}</div>
+        <div className="border-t border-[var(--border-color)] pt-4 mt-5 flex justify-end gap-3">
           <Button ref={cancelRef} variant="ghost" onClick={onCancel}>
             {cancelLabel}
           </Button>

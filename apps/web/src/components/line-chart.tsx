@@ -1,4 +1,4 @@
-import { memo, useRef, useEffect } from 'react';
+import { useRef, useEffect } from 'react';
 import type { ChartDataPoint } from '@gzclp/shared/types';
 
 interface LineChartProps {
@@ -6,7 +6,7 @@ interface LineChartProps {
   readonly label: string;
 }
 
-export const LineChart = memo(function LineChart({ data, label }: LineChartProps) {
+export function LineChart({ data, label }: LineChartProps): React.ReactNode {
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
   useEffect(() => {
@@ -273,4 +273,4 @@ export const LineChart = memo(function LineChart({ data, label }: LineChartProps
       </details>
     </>
   );
-});
+}

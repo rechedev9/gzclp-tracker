@@ -19,7 +19,7 @@ export function AppSkeleton(): React.ReactNode {
       <div className="bg-[var(--bg-card)] border-b border-[var(--border-color)] px-3 sm:px-5 py-2 sm:py-3">
         <div className="flex items-center gap-4">
           <div className="h-8 w-20 bg-[var(--border-color)] rounded animate-pulse" />
-          <div className="flex-1 h-2 bg-[var(--bg-progress)] rounded animate-pulse" />
+          <div className="flex-1 h-2.5 bg-[var(--bg-progress)] rounded-full animate-pulse" />
           <div className="h-8 w-24 bg-[var(--border-color)] rounded animate-pulse" />
         </div>
       </div>

@@ -22,7 +22,8 @@ export function ToastContainer(): React.ReactNode {
         return (
           <div
             key={t.id}
-            className={`pointer-events-auto flex items-center gap-3 px-4 py-3 text-xs font-bold shadow-lg ${animation} ${variantStyle}`}
+            className={`pointer-events-auto flex items-center gap-3 px-5 py-3.5 text-xs font-bold ${animation} ${variantStyle}`}
+            style={{ boxShadow: 'var(--shadow-elevated)' }}
           >
             <span className={t.variant === 'pr' ? 'hero-number-glow' : undefined}>
               {t.variant === 'pr' ? `NEW PR — ${t.message}` : t.message}

@@ -48,9 +48,9 @@ export function DayView({
   return (
     <div {...(isCurrent ? { 'data-current-row': true } : {})}>
       {/* Day header */}
-      <div className="flex items-center gap-3 mb-4">
-        <span className="font-display text-2xl">#{workoutNumber}</span>
-        <span className="text-xs font-semibold text-[var(--text-muted)] uppercase tracking-wider">
+      <div className="flex items-baseline gap-3 mb-5">
+        <span className="font-display text-3xl text-[var(--text-header)]">#{workoutNumber}</span>
+        <span className="font-mono text-[11px] font-bold text-[var(--text-muted)] uppercase tracking-widest">
           {dayName}
         </span>
       </div>

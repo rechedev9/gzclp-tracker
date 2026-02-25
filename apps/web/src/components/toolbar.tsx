@@ -1,4 +1,4 @@
-import { useState, useCallback, type ReactNode } from 'react';
+import { useState, type ReactNode } from 'react';
 import { Button } from './button';
 import { ConfirmDialog } from './confirm-dialog';
 import { DropdownMenu, DropdownItem } from './dropdown-menu';
@@ -26,7 +26,7 @@ function ProgressBar({
   return (
     <div className={`flex items-center gap-3 ${className ?? ''}`}>
       <div
-        className="flex-1 h-2 bg-[var(--bg-progress)] overflow-hidden"
+        className="flex-1 h-2.5 bg-[var(--bg-progress)] overflow-hidden rounded-full"
         role="progressbar"
         aria-valuenow={completed}
         aria-valuemin={0}
@@ -34,7 +34,7 @@ function ProgressBar({
         aria-label="Progreso de entrenamiento"
       >
         <div
-          className="h-full bg-[var(--fill-progress)] transition-[width] duration-300 ease-out"
+          className="h-full bg-[var(--fill-progress)] transition-[width] duration-300 ease-out progress-fill rounded-full"
           style={{ width: `${pct}%` }}
         />
       </div>
@@ -57,10 +57,15 @@ export function Toolbar({
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [finishConfirmOpen, setFinishConfirmOpen] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
-  const closeMenu = useCallback((): void => setMenuOpen(false), []);
+  const closeMenu = (): void => setMenuOpen(false);
 
   return (
-    <div className="bg-[var(--bg-card)] border-b border-[var(--border-color)] px-3 sm:px-5 py-2 sm:py-3 shadow-[0_2px_8px_var(--shadow-toolbar)]">
+    <div
+      className="bg-[var(--bg-card)] border-b border-[var(--border-color)] px-3 sm:px-5 py-2 sm:py-3 shadow-[0_2px_12px_var(--shadow-toolbar)]"
+      style={{
+        backgroundImage: 'linear-gradient(to bottom, rgba(232, 170, 32, 0.02), transparent)',
+      }}
+    >
       {/* Mobile progress bar */}
       <ProgressBar
         completed={completedCount}

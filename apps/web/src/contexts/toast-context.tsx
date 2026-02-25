@@ -1,4 +1,4 @@
-import { createContext, useCallback, useContext, useRef, useState } from 'react';
+import { createContext, useContext, useRef, useState } from 'react';
 
 interface ToastAction {
   readonly label: string;
@@ -41,30 +41,24 @@ export function ToastProvider({
   const [toasts, setToasts] = useState<readonly Toast[]>([]);
   const nextId = useRef(0);
 
-  const remove = useCallback((id: number): void => {
+  const remove = (id: number): void => {
     setToasts((prev) => prev.filter((t) => t.id !== id));
-  }, []);
+  };
 
-  const dismiss = useCallback(
-    (id: number): void => {
-      setToasts((prev) => prev.map((t) => (t.id === id ? { ...t, exiting: true } : t)));
-      setTimeout(() => remove(id), 200);
-    },
-    [remove]
-  );
+  const dismiss = (id: number): void => {
+    setToasts((prev) => prev.map((t) => (t.id === id ? { ...t, exiting: true } : t)));
+    setTimeout(() => remove(id), 200);
+  };
 
-  const toast = useCallback(
-    (opts: ToastOpts): void => {
-      const id = nextId.current++;
-      const variant = opts.variant ?? 'default';
-      setToasts((prev) => [
-        ...prev.slice(-(MAX_TOASTS - 1)),
-        { id, message: opts.message, action: opts.action, variant, exiting: false },
-      ]);
-      setTimeout(() => dismiss(id), variant === 'pr' ? PR_DISMISS_MS : AUTO_DISMISS_MS);
-    },
-    [dismiss]
-  );
+  const toast = (opts: ToastOpts): void => {
+    const id = nextId.current++;
+    const variant = opts.variant ?? 'default';
+    setToasts((prev) => [
+      ...prev.slice(-(MAX_TOASTS - 1)),
+      { id, message: opts.message, action: opts.action, variant, exiting: false },
+    ]);
+    setTimeout(() => dismiss(id), variant === 'pr' ? PR_DISMISS_MS : AUTO_DISMISS_MS);
+  };
 
   return (
     <ToastContext.Provider value={{ toasts, toast, dismiss }}>{children}</ToastContext.Provider>

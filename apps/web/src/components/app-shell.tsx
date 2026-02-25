@@ -1,4 +1,4 @@
-import { useState, useCallback, useRef } from 'react';
+import { useState, useRef } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/auth-context';
 import { Dashboard } from './dashboard';
@@ -34,54 +34,45 @@ export function AppShell(): React.ReactNode {
   const [selectedProgramId, setSelectedProgramId] = useState<string | undefined>(undefined);
   const [pendingProgramId, setPendingProgramId] = useState<string | undefined>(undefined);
 
-  const setView = useCallback(
-    (next: View): void => {
-      prevViewRef.current = view;
-      setViewState(next);
-      navigate(next === 'dashboard' ? '/app' : `/app?view=${next}`, { replace: true });
-    },
-    [navigate, view]
-  );
+  const setView = (next: View): void => {
+    prevViewRef.current = view;
+    setViewState(next);
+    navigate(next === 'dashboard' ? '/app' : `/app?view=${next}`, { replace: true });
+  };
 
-  const clearSelection = useCallback((): void => {
+  const clearSelection = (): void => {
     setSelectedInstanceId(undefined);
     setSelectedProgramId(undefined);
     setPendingProgramId(undefined);
-  }, []);
+  };
 
-  const handleSelectProgram = useCallback(
-    (instanceId: string, programId: string): void => {
-      setSelectedInstanceId(instanceId);
-      setSelectedProgramId(programId);
-      setPendingProgramId(undefined);
-      setView('tracker');
-    },
-    [setView]
-  );
+  const handleSelectProgram = (instanceId: string, programId: string): void => {
+    setSelectedInstanceId(instanceId);
+    setSelectedProgramId(programId);
+    setPendingProgramId(undefined);
+    setView('tracker');
+  };
 
-  const handleStartNewProgram = useCallback(
-    (programId: string): void => {
-      setSelectedInstanceId(undefined);
-      setSelectedProgramId(programId);
-      setPendingProgramId(programId);
-      setView('tracker');
-    },
-    [setView]
-  );
+  const handleStartNewProgram = (programId: string): void => {
+    setSelectedInstanceId(undefined);
+    setSelectedProgramId(programId);
+    setPendingProgramId(programId);
+    setView('tracker');
+  };
 
-  const handleContinueProgram = useCallback((): void => {
+  const handleContinueProgram = (): void => {
     clearSelection();
     setView('tracker');
-  }, [clearSelection, setView]);
+  };
 
-  const handleBackToDashboard = useCallback((): void => {
+  const handleBackToDashboard = (): void => {
     clearSelection();
     setView('dashboard');
-  }, [clearSelection, setView]);
+  };
 
-  const handleGoToProfile = useCallback((): void => {
+  const handleGoToProfile = (): void => {
     setView('profile');
-  }, [setView]);
+  };
 
   if (authLoading) return <AppSkeleton />;
 

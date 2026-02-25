@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Button } from './button';
 
 const CONFIRM_WORD = 'ELIMINAR';
@@ -41,7 +41,7 @@ export function DeleteAccountDialog({
     };
   }, [open, onCancel]);
 
-  const handleDialogKeyDown = useCallback((e: React.KeyboardEvent<HTMLDivElement>): void => {
+  const handleDialogKeyDown = (e: React.KeyboardEvent<HTMLDivElement>): void => {
     if (e.key !== 'Tab') return;
     const focusable: HTMLElement[] = [];
     if (inputRef.current) focusable.push(inputRef.current);
@@ -58,7 +58,7 @@ export function DeleteAccountDialog({
       e.preventDefault();
       first?.focus();
     }
-  }, []);
+  };
 
   if (!open) return null;
 
@@ -71,7 +71,8 @@ export function DeleteAccountDialog({
         role="dialog"
         aria-modal="true"
         aria-labelledby="delete-account-title"
-        className="modal-box bg-[var(--bg-card)] border border-[var(--border-color)] p-6 max-w-sm w-[calc(100%-2rem)] shadow-lg"
+        className="modal-box bg-[var(--bg-card)] border border-[var(--border-color)] p-6 max-w-sm w-[calc(100%-2rem)]"
+        style={{ boxShadow: 'var(--shadow-elevated), 0 0 60px rgba(0, 0, 0, 0.5)' }}
         onClick={(e) => e.stopPropagation()}
         onKeyDown={handleDialogKeyDown}
       >

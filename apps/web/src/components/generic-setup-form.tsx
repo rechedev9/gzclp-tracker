@@ -1,4 +1,4 @@
-import { useState, useCallback, useMemo } from 'react';
+import { useState } from 'react';
 import type { ProgramDefinition } from '@gzclp/shared/types/program';
 import { ConfirmDialog } from './confirm-dialog';
 import { WeightField } from './weight-field';
@@ -42,45 +42,36 @@ export function GenericSetupForm({
     return init;
   });
 
-  const handleChange = useCallback(
-    (key: string, value: string) => {
-      setValues((prev) => ({ ...prev, [key]: value }));
-      const field = fields.find((f) => f.key === key);
-      if (touched[key] && field) {
-        setFieldErrors((prev) => ({ ...prev, [key]: validateField(value, field.min) }));
-      }
-    },
-    [touched, fields]
-  );
+  const handleChange = (key: string, value: string): void => {
+    setValues((prev) => ({ ...prev, [key]: value }));
+    const field = fields.find((f) => f.key === key);
+    if (touched[key] && field) {
+      setFieldErrors((prev) => ({ ...prev, [key]: validateField(value, field.min) }));
+    }
+  };
 
-  const handleBlur = useCallback(
-    (key: string, value: string) => {
-      const field = fields.find((f) => f.key === key);
-      setTouched((prev) => ({ ...prev, [key]: true }));
+  const handleBlur = (key: string, value: string): void => {
+    const field = fields.find((f) => f.key === key);
+    setTouched((prev) => ({ ...prev, [key]: true }));
+    if (field) {
+      setFieldErrors((prev) => ({ ...prev, [key]: validateField(value, field.min) }));
+    }
+  };
+
+  const adjustWeight = (key: string, delta: number): void => {
+    const field = fields.find((f) => f.key === key);
+    const step = field?.step ?? 0.5;
+    setValues((prev) => {
+      const current = parseFloat(prev[key]) || 0;
+      const next = Math.max(step, Math.round((current + delta) / step) * step);
+      const nextStr = String(next);
+      setTouched((t) => ({ ...t, [key]: true }));
       if (field) {
-        setFieldErrors((prev) => ({ ...prev, [key]: validateField(value, field.min) }));
+        setFieldErrors((fe) => ({ ...fe, [key]: validateField(nextStr, field.min) }));
       }
-    },
-    [fields]
-  );
-
-  const adjustWeight = useCallback(
-    (key: string, delta: number) => {
-      const field = fields.find((f) => f.key === key);
-      const step = field?.step ?? 0.5;
-      setValues((prev) => {
-        const current = parseFloat(prev[key]) || 0;
-        const next = Math.max(step, Math.round((current + delta) / step) * step);
-        const nextStr = String(next);
-        setTouched((t) => ({ ...t, [key]: true }));
-        if (field) {
-          setFieldErrors((fe) => ({ ...fe, [key]: validateField(nextStr, field.min) }));
-        }
-        return { ...prev, [key]: nextStr };
-      });
-    },
-    [fields]
-  );
+      return { ...prev, [key]: nextStr };
+    });
+  };
 
   type ConfigField = ProgramDefinition['configFields'][number];
   interface FieldGroup {
@@ -88,7 +79,7 @@ export function GenericSetupForm({
     readonly fields: ConfigField[];
   }
 
-  const groupedFields = useMemo((): FieldGroup[] => {
+  const groupedFields: FieldGroup[] = (() => {
     const groups: FieldGroup[] = [];
     let current: FieldGroup | null = null;
     for (const f of fields) {
@@ -101,7 +92,7 @@ export function GenericSetupForm({
       }
     }
     return groups;
-  }, [fields]);
+  })();
 
   const validateAndParse = (): Record<string, number> | null => {
     setError(null);
@@ -263,7 +254,7 @@ export function GenericSetupForm({
     <>
       {isEditMode ? (
         <>
-          <div className="bg-[var(--bg-card)] border border-[var(--border-color)] p-4 sm:p-7 mb-7">
+          <div className="bg-[var(--bg-card)] border border-[var(--border-color)] p-4 sm:p-7 mb-7 card">
             <div className="flex items-center justify-between flex-wrap gap-3">
               <div>
                 <h2
@@ -296,7 +287,8 @@ export function GenericSetupForm({
               onClick={() => setIsExpanded(false)}
             >
               <div
-                className="bg-[var(--bg-card)] border border-[var(--border-color)] p-6 sm:p-8 max-w-2xl w-[calc(100%-2rem)] max-h-[90vh] overflow-y-auto shadow-lg"
+                className="modal-box bg-[var(--bg-card)] border border-[var(--border-color)] p-6 sm:p-8 max-w-2xl w-[calc(100%-2rem)] max-h-[90vh] overflow-y-auto"
+                style={{ boxShadow: 'var(--shadow-elevated), 0 0 60px rgba(0, 0, 0, 0.5)' }}
                 onClick={(e) => e.stopPropagation()}
               >
                 {formContent}
@@ -305,7 +297,7 @@ export function GenericSetupForm({
           )}
         </>
       ) : (
-        <div className="bg-[var(--bg-card)] border border-[var(--border-color)] p-4 sm:p-7 mb-7 max-w-2xl mx-auto">
+        <div className="bg-[var(--bg-card)] border border-[var(--border-color)] p-4 sm:p-7 mb-7 max-w-2xl mx-auto card edge-glow-top">
           {formContent}
         </div>
       )}
