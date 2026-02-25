@@ -129,7 +129,7 @@ export interface UseGenericProgramReturn {
   readonly setRpe: (index: number, slotId: string, rpe: number | undefined) => void;
   readonly undoSpecific: (index: number, slotId: string) => void;
   readonly undoLast: () => void;
-  readonly finishProgram: () => void;
+  readonly finishProgram: () => Promise<void>;
   readonly isFinishing: boolean;
   readonly resetAll: () => void;
   readonly exportData: () => void;
@@ -397,8 +397,8 @@ export function useGenericProgram(programId: string, instanceId?: string): UseGe
     updateConfigMutation.mutate(newConfig);
   };
 
-  const finishProgramCb = (): void => {
-    finishProgramMutation.mutate();
+  const finishProgramCb = async (): Promise<void> => {
+    await finishProgramMutation.mutateAsync();
   };
 
   const resetAllCb = (): void => {

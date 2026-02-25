@@ -239,8 +239,8 @@ export function GenericProgramApp({
     setRpeReminder(null);
   };
 
-  const handleFinishProgram = (): void => {
-    finishProgram();
+  const handleFinishProgram = async (): Promise<void> => {
+    await finishProgram();
     onBackToDashboard?.();
   };
 

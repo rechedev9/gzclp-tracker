@@ -132,11 +132,7 @@ describe('Dashboard', () => {
       const Wrapper = createWrapper();
       render(
         <Wrapper>
-          <Dashboard
-            onSelectProgram={noopFn}
-            onStartNewProgram={noopFn}
-            onContinueProgram={noopFn}
-          />
+          <Dashboard onStartNewProgram={noopFn} onContinueProgram={noopFn} />
         </Wrapper>
       );
 
@@ -158,11 +154,7 @@ describe('Dashboard', () => {
       const Wrapper = createWrapper();
       render(
         <Wrapper>
-          <Dashboard
-            onSelectProgram={noopFn}
-            onStartNewProgram={noopFn}
-            onContinueProgram={noopFn}
-          />
+          <Dashboard onStartNewProgram={noopFn} onContinueProgram={noopFn} />
         </Wrapper>
       );
 
@@ -181,11 +173,7 @@ describe('Dashboard', () => {
       const Wrapper = createWrapper();
       render(
         <Wrapper>
-          <Dashboard
-            onSelectProgram={noopFn}
-            onStartNewProgram={noopFn}
-            onContinueProgram={noopFn}
-          />
+          <Dashboard onStartNewProgram={noopFn} onContinueProgram={noopFn} />
         </Wrapper>
       );
 

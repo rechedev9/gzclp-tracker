@@ -12,7 +12,6 @@ import { AppHeader } from './app-header';
 import type { ProgramSummary } from '@/lib/api-functions';
 
 interface DashboardProps {
-  readonly onSelectProgram: (instanceId: string, programId: string) => void;
   readonly onStartNewProgram: (programId: string) => void;
   readonly onContinueProgram: () => void;
   readonly onGoToProfile?: () => void;
@@ -120,51 +119,10 @@ function ActiveProgramCard({
 }
 
 // ---------------------------------------------------------------------------
-// Archived/completed program card
-// ---------------------------------------------------------------------------
-
-interface OtherProgramCardProps {
-  readonly program: ProgramSummary;
-  readonly onContinue: (instanceId: string, programId: string) => void;
-}
-
-function OtherProgramCard({ program, onContinue }: OtherProgramCardProps): React.ReactNode {
-  const catalogQuery = useQuery({
-    queryKey: queryKeys.catalog.detail(program.programId),
-    queryFn: () => fetchCatalogDetail(program.programId),
-    staleTime: 5 * 60 * 1000,
-  });
-
-  const definition = catalogQuery.data;
-  if (!definition) return null;
-
-  const statusLabel = program.status === 'completed' ? 'completado' : program.status;
-  const buttonLabel = program.status === 'completed' ? 'Ver Historial' : 'Continuar';
-
-  return (
-    <div className="bg-[var(--bg-card)] border border-[var(--border-color)] p-4 sm:p-5 flex items-center justify-between gap-3 card">
-      <div>
-        <span className="text-xs font-bold text-[var(--text-header)]">{program.name}</span>
-        <span className="ml-2 text-[10px] text-[var(--text-muted)] uppercase tracking-wider">
-          {statusLabel}
-        </span>
-      </div>
-      <button
-        onClick={() => onContinue(program.id, program.programId)}
-        className="px-4 py-2 text-xs font-bold border border-[var(--border-color)] text-[var(--text-main)] hover:border-[var(--border-light)] cursor-pointer transition-colors whitespace-nowrap"
-      >
-        {buttonLabel}
-      </button>
-    </div>
-  );
-}
-
-// ---------------------------------------------------------------------------
 // Dashboard
 // ---------------------------------------------------------------------------
 
 export function Dashboard({
-  onSelectProgram,
   onStartNewProgram,
   onContinueProgram,
   onGoToProfile,
@@ -188,11 +146,6 @@ export function Dashboard({
   const activeProgram = (() => {
     if (!programsQuery.data) return null;
     return programsQuery.data.find((p) => p.status === 'active') ?? null;
-  })();
-
-  const otherPrograms = (() => {
-    if (!programsQuery.data) return [];
-    return programsQuery.data.filter((p) => p.status !== 'active');
   })();
 
   return (
@@ -222,18 +175,6 @@ export function Dashboard({
               onContinue={onContinueProgram}
               onGoToProfile={onGoToProfile}
             />
-          </section>
-        )}
-
-        {/* Other programs (archived / completed) */}
-        {otherPrograms.length > 0 && (
-          <section className="mb-12">
-            <h2 className="section-label mb-4">Otros Programas</h2>
-            <div className="flex flex-col gap-2">
-              {otherPrograms.map((p) => (
-                <OtherProgramCard key={p.id} program={p} onContinue={onSelectProgram} />
-              ))}
-            </div>
           </section>
         )}
 
@@ -279,7 +220,7 @@ export function Dashboard({
                     disabledLabel="Finaliza tu programa actual"
                     onSelect={() => {
                       if (isCurrent && activeProgram) {
-                        onSelectProgram(activeProgram.id, activeProgram.programId);
+                        onContinueProgram();
                       } else {
                         onStartNewProgram(entry.id);
                       }

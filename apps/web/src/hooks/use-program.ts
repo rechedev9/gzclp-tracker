@@ -119,7 +119,7 @@ interface UseProgramReturn {
   readonly setRpe: (index: number, tier: 't1' | 't3', rpe: number | undefined) => void;
   readonly undoSpecific: (index: number, tier: Tier) => void;
   readonly undoLast: () => void;
-  readonly finishProgram: () => void;
+  readonly finishProgram: () => Promise<void>;
   readonly isFinishing: boolean;
   readonly resetAll: () => void;
   readonly exportData: () => void;
@@ -429,8 +429,8 @@ export function useProgram(instanceId?: string): UseProgramReturn {
     updateWeightsMutation.mutate(weights);
   };
 
-  const finishProgramCb = (): void => {
-    finishProgramMutation.mutate();
+  const finishProgramCb = async (): Promise<void> => {
+    await finishProgramMutation.mutateAsync();
   };
 
   const resetAllCb = (): void => {

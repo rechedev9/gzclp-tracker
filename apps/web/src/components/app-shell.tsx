@@ -46,13 +46,6 @@ export function AppShell(): React.ReactNode {
     setPendingProgramId(undefined);
   };
 
-  const handleSelectProgram = (instanceId: string, programId: string): void => {
-    setSelectedInstanceId(instanceId);
-    setSelectedProgramId(programId);
-    setPendingProgramId(undefined);
-    setView('tracker');
-  };
-
   const handleStartNewProgram = (programId: string): void => {
     setSelectedInstanceId(undefined);
     setSelectedProgramId(programId);
@@ -83,7 +76,6 @@ export function AppShell(): React.ReactNode {
   } else if (view === 'dashboard') {
     content = (
       <Dashboard
-        onSelectProgram={handleSelectProgram}
         onStartNewProgram={handleStartNewProgram}
         onContinueProgram={handleContinueProgram}
         onGoToProfile={handleGoToProfile}
