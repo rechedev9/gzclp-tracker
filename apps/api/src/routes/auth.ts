@@ -265,6 +265,8 @@ export const authRoutes = new Elysia({ prefix: '/auth' })
         throw new ApiError(401, 'Invalid or expired token', 'TOKEN_INVALID');
       }
 
+      await rateLimit(payload['sub'], 'GET /auth/me', { maxRequests: 100 });
+
       const user = await findUserById(payload['sub']);
       if (!user) {
         throw new ApiError(404, 'User not found', 'USER_NOT_FOUND');

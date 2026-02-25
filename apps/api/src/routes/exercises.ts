@@ -88,6 +88,8 @@ const publicExerciseRoutes = new Elysia()
     '/exercises',
     async ({ jwt: jwtCtx, headers, query }) => {
       const { userId } = await resolveOptionalUserId({ jwt: jwtCtx, headers });
+      const rateLimitKey = userId ?? headers['x-forwarded-for'] ?? 'anonymous';
+      await rateLimit(rateLimitKey, 'GET /exercises', { maxRequests: 100 });
 
       const filter: ExerciseFilter = {
         q: query.q || undefined,
@@ -126,16 +128,24 @@ const publicExerciseRoutes = new Elysia()
   )
 
   // GET /muscle-groups — no auth required
-  .get('/muscle-groups', () => listMuscleGroups(), {
-    detail: {
-      tags: ['Exercises'],
-      summary: 'List muscle groups',
-      description: 'Returns all muscle groups. No authentication required.',
-      responses: {
-        200: { description: 'Array of muscle groups' },
-      },
+  .get(
+    '/muscle-groups',
+    async ({ headers }) => {
+      const ip = headers['x-forwarded-for'] ?? 'anonymous';
+      await rateLimit(ip, 'GET /muscle-groups', { maxRequests: 100 });
+      return listMuscleGroups();
     },
-  });
+    {
+      detail: {
+        tags: ['Exercises'],
+        summary: 'List muscle groups',
+        description: 'Returns all muscle groups. No authentication required.',
+        responses: {
+          200: { description: 'Array of muscle groups' },
+        },
+      },
+    }
+  );
 
 // ---------------------------------------------------------------------------
 // Protected routes (auth required)

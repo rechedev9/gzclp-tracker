@@ -4,27 +4,38 @@
  */
 import { Elysia, t } from 'elysia';
 import { listPrograms, getProgramDefinition } from '../services/catalog';
+import { rateLimit } from '../middleware/rate-limit';
 import { ApiError } from '../middleware/error-handler';
 
 export const catalogRoutes = new Elysia({ prefix: '/catalog' })
 
   // GET /catalog — list all available program definitions
-  .get('/', () => listPrograms(), {
-    detail: {
-      tags: ['Catalog'],
-      summary: 'List program definitions',
-      description:
-        'Returns all available preset program definitions from the database. No authentication required.',
-      responses: {
-        200: { description: 'Array of catalog entries' },
-      },
+  .get(
+    '/',
+    async ({ headers }) => {
+      const ip = headers['x-forwarded-for'] ?? 'anonymous';
+      await rateLimit(ip, 'GET /catalog', { maxRequests: 100 });
+      return listPrograms();
     },
-  })
+    {
+      detail: {
+        tags: ['Catalog'],
+        summary: 'List program definitions',
+        description:
+          'Returns all available preset program definitions from the database. No authentication required.',
+        responses: {
+          200: { description: 'Array of catalog entries' },
+        },
+      },
+    }
+  )
 
   // GET /catalog/:programId — get a specific hydrated program definition
   .get(
     '/:programId',
-    async ({ params }) => {
+    async ({ params, headers }) => {
+      const ip = headers['x-forwarded-for'] ?? 'anonymous';
+      await rateLimit(ip, 'GET /catalog/:id', { maxRequests: 100 });
       const result = await getProgramDefinition(params.programId);
       if (result.status === 'not_found') {
         throw new ApiError(404, 'Program not found', 'PROGRAM_NOT_FOUND');

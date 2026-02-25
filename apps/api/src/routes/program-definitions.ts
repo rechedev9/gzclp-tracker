@@ -60,28 +60,36 @@ export const programDefinitionRoutes = new Elysia({ prefix: '/program-definition
   )
 
   // GET /program-definitions — list user's own definitions
-  .get('/', ({ userId, query }) => list(userId, query.offset ?? 0, query.limit ?? 20), {
-    query: t.Object({
-      limit: t.Optional(t.Numeric({ minimum: 1, maximum: 100 })),
-      offset: t.Optional(t.Numeric({ minimum: 0 })),
-    }),
-    detail: {
-      tags: ['Program Definitions'],
-      summary: 'List own program definitions',
-      description:
-        "Returns the authenticated user's program definitions, newest first. Supports offset-based pagination.",
-      security,
-      responses: {
-        200: { description: 'Paginated list of program definitions' },
-        401: { description: 'Missing or invalid token' },
-      },
+  .get(
+    '/',
+    async ({ userId, query }) => {
+      await rateLimit(userId, 'GET /program-definitions', { maxRequests: 100 });
+      return list(userId, query.offset ?? 0, query.limit ?? 20);
     },
-  })
+    {
+      query: t.Object({
+        limit: t.Optional(t.Numeric({ minimum: 1, maximum: 100 })),
+        offset: t.Optional(t.Numeric({ minimum: 0 })),
+      }),
+      detail: {
+        tags: ['Program Definitions'],
+        summary: 'List own program definitions',
+        description:
+          "Returns the authenticated user's program definitions, newest first. Supports offset-based pagination.",
+        security,
+        responses: {
+          200: { description: 'Paginated list of program definitions' },
+          401: { description: 'Missing or invalid token' },
+        },
+      },
+    }
+  )
 
   // GET /program-definitions/:id — get a single definition
   .get(
     '/:id',
     async ({ userId, params }) => {
+      await rateLimit(userId, 'GET /program-definitions/:id', { maxRequests: 100 });
       const result = await getById(userId, params.id);
       if (!result) {
         throw new ApiError(404, 'Program definition not found', 'NOT_FOUND');

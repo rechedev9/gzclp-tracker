@@ -30,7 +30,10 @@ export const programRoutes = new Elysia({ prefix: '/programs' })
   // GET /programs — list user's program instances (cursor-based pagination)
   .get(
     '/',
-    ({ userId, query }) => getInstances(userId, { limit: query.limit, cursor: query.cursor }),
+    async ({ userId, query }) => {
+      await rateLimit(userId, 'GET /programs', { maxRequests: 100 });
+      return getInstances(userId, { limit: query.limit, cursor: query.cursor });
+    },
     {
       query: t.Object({
         limit: t.Optional(t.Numeric({ minimum: 1, maximum: 100 })),
@@ -86,6 +89,7 @@ export const programRoutes = new Elysia({ prefix: '/programs' })
   .get(
     '/:id',
     async ({ userId, params }) => {
+      await rateLimit(userId, 'GET /programs/:id', { maxRequests: 100 });
       const cached = await getCachedInstance(userId, params.id);
       if (cached) return cached;
       const fresh = await getInstance(userId, params.id);
@@ -181,21 +185,28 @@ export const programRoutes = new Elysia({ prefix: '/programs' })
   )
 
   // GET /programs/:id/export — export a program instance as JSON
-  .get('/:id/export', ({ userId, params }) => exportInstance(userId, params.id), {
-    params: t.Object({ id: t.String() }),
-    detail: {
-      tags: ['Programs'],
-      summary: 'Export program instance',
-      description:
-        'Exports the program instance as a portable JSON document that can be imported into any GZCLP Tracker account.',
-      security,
-      responses: {
-        200: { description: 'Exported program JSON' },
-        401: { description: 'Missing or invalid token' },
-        404: { description: 'Program not found or not owned by user' },
-      },
+  .get(
+    '/:id/export',
+    async ({ userId, params }) => {
+      await rateLimit(userId, 'GET /programs/:id/export', { maxRequests: 20 });
+      return exportInstance(userId, params.id);
     },
-  })
+    {
+      params: t.Object({ id: t.String() }),
+      detail: {
+        tags: ['Programs'],
+        summary: 'Export program instance',
+        description:
+          'Exports the program instance as a portable JSON document that can be imported into any GZCLP Tracker account.',
+        security,
+        responses: {
+          200: { description: 'Exported program JSON' },
+          401: { description: 'Missing or invalid token' },
+          404: { description: 'Program not found or not owned by user' },
+        },
+      },
+    }
+  )
 
   // POST /programs/import — import a program from exported JSON
   .post(
