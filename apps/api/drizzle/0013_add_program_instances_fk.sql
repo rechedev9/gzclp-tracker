@@ -1,5 +1,3 @@
-ALTER TABLE "program_instances"
-  ADD CONSTRAINT "program_instances_program_id_fk"
-  FOREIGN KEY ("program_id")
-  REFERENCES "program_templates"("id")
-  ON DELETE RESTRICT;
+-- FK constraint moved to seed runner (must run AFTER program_templates is populated).
+-- This migration is intentionally empty to preserve the journal sequence.
+SELECT 1;

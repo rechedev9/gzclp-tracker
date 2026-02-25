@@ -88,6 +88,25 @@ async function runSeeds(): Promise<void> {
   await seedMuscleGroups(db);
   await seedExercises(db);
   await seedProgramTemplates(db);
+
+  // Add FK constraint after seeds populate program_templates.
+  // Uses IF NOT EXISTS pattern: idempotent across restarts.
+  await db.execute(sql`
+    DO $$
+    BEGIN
+      IF NOT EXISTS (
+        SELECT 1 FROM pg_constraint WHERE conname = 'program_instances_program_id_fk'
+      ) THEN
+        ALTER TABLE "program_instances"
+          ADD CONSTRAINT "program_instances_program_id_fk"
+          FOREIGN KEY ("program_id")
+          REFERENCES "program_templates"("id")
+          ON DELETE RESTRICT;
+      END IF;
+    END
+    $$;
+  `);
+
   logger.info('reference data seeds complete');
 }
 
