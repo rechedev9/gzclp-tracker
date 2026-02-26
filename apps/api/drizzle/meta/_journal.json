@@ -120,6 +120,13 @@
       "when": 1772300000000,
       "tag": "0016_add_undo_entries_composite_index",
       "breakpoints": true
+    },
+    {
+      "idx": 17,
+      "version": "7",
+      "when": 1772400000000,
+      "tag": "0017_enable_pg_stat_statements",
+      "breakpoints": true
     }
   ]
 }

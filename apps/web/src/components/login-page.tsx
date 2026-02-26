@@ -121,8 +121,13 @@ export function LoginPage(): React.ReactNode {
 
       {/* Auth card */}
       <div
-        className="w-full max-w-[300px] relative"
-        style={{ animation: 'riseIn 0.55s ease both', animationDelay: '0.24s' }}
+        className="relative"
+        style={{
+          width: '100%',
+          maxWidth: '300px',
+          animation: 'riseIn 0.55s ease both',
+          animationDelay: '0.24s',
+        }}
       >
         {/* Decorative corner mark */}
         <span
