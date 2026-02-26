@@ -25,6 +25,7 @@ interface AuthState {
 
 interface AuthActions {
   readonly signInWithGoogle: (credential: string) => Promise<AuthResult | null>;
+  readonly signInWithDev: () => Promise<AuthResult | null>;
   readonly signOut: () => Promise<void>;
   readonly updateUser: (info: Partial<Pick<UserInfo, 'name' | 'avatarUrl'>>) => void;
   readonly deleteAccount: () => Promise<void>;
@@ -106,6 +107,24 @@ export function AuthProvider({
     }
   };
 
+  const signInWithDev = async (): Promise<AuthResult | null> => {
+    try {
+      const data = await apiFetch('/auth/dev', {
+        method: 'POST',
+        body: JSON.stringify({ email: 'dev@localhost.dev' }),
+      });
+      if (isRecord(data) && typeof data.accessToken === 'string') {
+        setAccessToken(data.accessToken);
+        const userInfo = parseUserInfo(data.user);
+        if (userInfo) setUser(userInfo);
+        return null;
+      }
+      return { message: 'Unexpected response from server' };
+    } catch (err: unknown) {
+      return { message: err instanceof Error ? err.message : 'Something went wrong' };
+    }
+  };
+
   const updateUser = (info: Partial<Pick<UserInfo, 'name' | 'avatarUrl'>>): void => {
     setUser((prev) => (prev ? { ...prev, ...info } : prev));
   };
@@ -134,6 +153,7 @@ export function AuthProvider({
     user,
     loading,
     signInWithGoogle,
+    signInWithDev,
     signOut,
     updateUser,
     deleteAccount,

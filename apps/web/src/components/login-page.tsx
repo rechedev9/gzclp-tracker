@@ -5,7 +5,7 @@ import { useAuth } from '@/contexts/auth-context';
 import { sanitizeAuthError } from '@/lib/auth-errors';
 
 export function LoginPage(): React.ReactNode {
-  const { user, signInWithGoogle } = useAuth();
+  const { user, signInWithGoogle, signInWithDev } = useAuth();
   const navigate = useNavigate();
   const [error, setError] = useState<string | null>(null);
 
@@ -18,6 +18,14 @@ export function LoginPage(): React.ReactNode {
   const handleGoogleSuccess = async (credential: string): Promise<void> => {
     setError(null);
     const authError = await signInWithGoogle(credential);
+    if (authError) {
+      setError(sanitizeAuthError(authError.message));
+    }
+  };
+
+  const handleDevLogin = async (): Promise<void> => {
+    setError(null);
+    const authError = await signInWithDev();
     if (authError) {
       setError(sanitizeAuthError(authError.message));
     }
@@ -176,6 +184,22 @@ export function LoginPage(): React.ReactNode {
               width="240"
             />
           </div>
+
+          {/* Dev-only bypass — stripped from production builds */}
+          {import.meta.env.DEV && (
+            <button
+              type="button"
+              onClick={() => void handleDevLogin()}
+              className="w-full mt-3 font-mono text-[10px] tracking-[0.2em] uppercase py-2 cursor-pointer"
+              style={{
+                background: 'rgba(200,168,78,0.06)',
+                border: '1px dashed rgba(200,168,78,0.3)',
+                color: 'rgba(200,168,78,0.6)',
+              }}
+            >
+              ⚗ Dev Login
+            </button>
+          )}
 
           {/* Error */}
           {error && (
