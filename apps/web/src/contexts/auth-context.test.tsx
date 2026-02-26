@@ -23,12 +23,9 @@ mock.module('@/lib/api-functions', () => ({
   apiFetch: mockApiFetch,
   // Provide stubs for all other exports used by consumers
   fetchPrograms: mock(() => Promise.resolve([])),
-  fetchProgram: mock(() => Promise.resolve({})),
   createProgram: mock(() => Promise.resolve({})),
   updateProgramConfig: mock(() => Promise.resolve()),
   deleteProgram: mock(() => Promise.resolve()),
-  recordResult: mock(() => Promise.resolve()),
-  deleteResult: mock(() => Promise.resolve()),
   undoLastResult: mock(() => Promise.resolve()),
   exportProgram: mock(() => Promise.resolve({})),
   importProgram: mock(() => Promise.resolve({})),

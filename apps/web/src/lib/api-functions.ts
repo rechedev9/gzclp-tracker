@@ -1,16 +1,11 @@
 /**
  * API functions wrapping fetch calls with auth retry.
  *
- * All format conversion (tier-keyed ↔ slot-keyed) happens here at the boundary.
- * Consumers (useProgram, components) always work with legacy tier-keyed format.
- *
- * Uses direct fetch instead of Eden Treaty to avoid type inference issues with
- * complex Elysia apps. The typed abstraction layer here gives us the same safety.
+ * All consumers work with slot-keyed generic format.
  */
 import { getAccessToken, refreshAccessToken } from './api';
-import { convertResultsToLegacy, convertUndoToLegacy } from './migrations/v3-to-v1';
 import { ProgramDefinitionSchema } from '@gzclp/shared/schemas/program-definition';
-import type { StartWeights, Results, UndoHistory, Tier, ResultValue } from '@gzclp/shared/types';
+import type { ResultValue } from '@gzclp/shared/types';
 import type { ProgramDefinition } from '@gzclp/shared/types/program';
 import type { GenericResults, GenericUndoHistory } from '@gzclp/shared/types/program';
 import { isRecord } from '@gzclp/shared/type-guards';
@@ -31,13 +26,6 @@ export interface ProgramSummary {
   readonly updatedAt: string;
 }
 
-export interface ProgramDetail extends ProgramSummary {
-  readonly startWeights: StartWeights;
-  readonly results: Results;
-  readonly undoHistory: UndoHistory;
-  readonly resultTimestamps: Readonly<Record<string, string>>;
-}
-
 export interface GenericProgramDetail {
   readonly id: string;
   readonly programId: string;
@@ -47,26 +35,6 @@ export interface GenericProgramDetail {
   readonly undoHistory: GenericUndoHistory;
   readonly resultTimestamps: Readonly<Record<string, string>>;
   readonly status: string;
-}
-
-// ---------------------------------------------------------------------------
-// Slot ↔ Tier lookup (GZCLP-specific, inlined to avoid importing gzclp.ts)
-// ---------------------------------------------------------------------------
-
-/** GZCLP day-slot map. Inlined for legacy tier-to-slot conversion. */
-const GZCLP_DAY_SLOT_MAP: Readonly<Record<number, Readonly<Record<string, string>>>> = {
-  0: { t1: 'd1-t1', t2: 'd1-t2', t3: 'latpulldown-t3' },
-  1: { t1: 'd2-t1', t2: 'd2-t2', t3: 'dbrow-t3' },
-  2: { t1: 'd3-t1', t2: 'd3-t2', t3: 'latpulldown-t3' },
-  3: { t1: 'd4-t1', t2: 'd4-t2', t3: 'dbrow-t3' },
-};
-
-const GZCLP_CYCLE_LENGTH = 4;
-
-/** Convert a tier + workout index to a slot ID. */
-export function tierToSlotId(workoutIndex: number, tier: Tier): string | null {
-  const dayIndex = workoutIndex % GZCLP_CYCLE_LENGTH;
-  return GZCLP_DAY_SLOT_MAP[dayIndex]?.[tier] ?? null;
 }
 
 // ---------------------------------------------------------------------------
@@ -134,24 +102,6 @@ export async function apiFetch(path: string, options: RequestInit = {}): Promise
   if (!res.ok) throw new Error(await extractErrorMessage(res, `API error: ${res.status}`));
   if (res.status === 204) return null;
   return res.json();
-}
-
-// ---------------------------------------------------------------------------
-// Helper: parse config as StartWeights
-// ---------------------------------------------------------------------------
-
-function parseConfig(config: unknown): StartWeights {
-  if (!isRecord(config)) {
-    return { squat: 20, bench: 20, deadlift: 20, ohp: 20, latpulldown: 20, dbrow: 20 };
-  }
-  return {
-    squat: typeof config.squat === 'number' ? config.squat : 20,
-    bench: typeof config.bench === 'number' ? config.bench : 20,
-    deadlift: typeof config.deadlift === 'number' ? config.deadlift : 20,
-    ohp: typeof config.ohp === 'number' ? config.ohp : 20,
-    latpulldown: typeof config.latpulldown === 'number' ? config.latpulldown : 20,
-    dbrow: typeof config.dbrow === 'number' ? config.dbrow : 20,
-  };
 }
 
 function parseNumericRecord(value: unknown): Record<string, number> {
@@ -235,23 +185,6 @@ function parseGenericUndoHistory(raw: unknown): GenericUndoHistory {
   }));
 }
 
-/** Fetch a single program instance with full results and undo history. */
-export async function fetchProgram(id: string): Promise<ProgramDetail> {
-  const data = await apiFetch(`/programs/${encodeURIComponent(id)}`);
-  if (!isRecord(data)) throw new Error('Invalid program response');
-
-  const genericResults = parseGenericResults(data.results);
-  const genericUndo = parseGenericUndoHistory(data.undoHistory);
-
-  return {
-    ...parseSummary(data),
-    startWeights: parseConfig(data.config),
-    results: convertResultsToLegacy(genericResults),
-    undoHistory: convertUndoToLegacy(genericUndo),
-    resultTimestamps: parseStringRecord(data.resultTimestamps),
-  };
-}
-
 /** Create a new program instance. */
 export async function createProgram(
   programId: string,
@@ -287,49 +220,6 @@ export async function completeProgram(id: string): Promise<void> {
 /** Delete a program instance. */
 export async function deleteProgram(id: string): Promise<void> {
   await apiFetch(`/programs/${encodeURIComponent(id)}`, { method: 'DELETE' });
-}
-
-/** Record a workout result. Converts tier to slotId at the boundary. */
-export async function recordResult(
-  instanceId: string,
-  workoutIndex: number,
-  tier: Tier,
-  result: ResultValue,
-  amrapReps?: number,
-  rpe?: number
-): Promise<void> {
-  const slotId = tierToSlotId(workoutIndex, tier);
-  if (!slotId) {
-    throw new Error(`Cannot determine slot for tier ${tier} at workout ${workoutIndex}`);
-  }
-
-  await apiFetch(`/programs/${encodeURIComponent(instanceId)}/results`, {
-    method: 'POST',
-    body: JSON.stringify({
-      workoutIndex,
-      slotId,
-      result,
-      ...(amrapReps !== undefined ? { amrapReps } : {}),
-      ...(rpe !== undefined ? { rpe } : {}),
-    }),
-  });
-}
-
-/** Delete a specific result. Converts tier to slotId at the boundary. */
-export async function deleteResult(
-  instanceId: string,
-  workoutIndex: number,
-  tier: Tier
-): Promise<void> {
-  const slotId = tierToSlotId(workoutIndex, tier);
-  if (!slotId) {
-    throw new Error(`Cannot determine slot for tier ${tier} at workout ${workoutIndex}`);
-  }
-
-  await apiFetch(
-    `/programs/${encodeURIComponent(instanceId)}/results/${workoutIndex}/${encodeURIComponent(slotId)}`,
-    { method: 'DELETE' }
-  );
 }
 
 /** Undo the last action. */
