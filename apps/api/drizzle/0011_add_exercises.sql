@@ -7,7 +7,6 @@ CREATE TABLE "exercises" (
   "is_preset" boolean NOT NULL DEFAULT true,
   "created_by" uuid REFERENCES "users"("id") ON DELETE SET NULL,
   "created_at" timestamp with time zone DEFAULT now() NOT NULL
-);
-
-CREATE INDEX "exercises_muscle_group_id_idx" ON "exercises" ("muscle_group_id");
+);--> statement-breakpoint
+CREATE INDEX "exercises_muscle_group_id_idx" ON "exercises" ("muscle_group_id");--> statement-breakpoint
 CREATE INDEX "exercises_created_by_idx" ON "exercises" ("created_by");
