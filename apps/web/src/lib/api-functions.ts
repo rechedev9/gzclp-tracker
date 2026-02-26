@@ -445,7 +445,8 @@ function parseSecondaryMuscles(value: unknown): readonly string[] | null {
   return strings.length > 0 ? strings : null;
 }
 
-function parseExerciseEntry(raw: unknown): ExerciseEntry {
+/** Exported for testing — parses a raw API response object into a typed ExerciseEntry. */
+export function parseExerciseEntry(raw: unknown): ExerciseEntry {
   if (!isRecord(raw)) throw new Error('Invalid exercise entry');
   return {
     id: String(raw.id ?? ''),

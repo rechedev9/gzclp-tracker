@@ -17,7 +17,8 @@ type DbClient = PostgresJsDatabase<typeof schema>;
 // Muscle group mapping (17 source names -> 8 existing IDs)
 // ---------------------------------------------------------------------------
 
-const MUSCLE_GROUP_MAP: Readonly<Record<string, string>> = {
+/** Exported for testing — verifies coverage of all 17 source muscle names. */
+export const MUSCLE_GROUP_MAP: Readonly<Record<string, string>> = {
   abdominals: 'core',
   adductors: 'legs',
   abductors: 'legs',
@@ -53,7 +54,8 @@ interface ExpandedExerciseRaw {
   readonly category: string;
 }
 
-function isExpandedExerciseRaw(value: unknown): value is ExpandedExerciseRaw {
+/** Exported for testing — verifies type guard accepts/rejects raw entries. */
+export function isExpandedExerciseRaw(value: unknown): value is ExpandedExerciseRaw {
   if (!isRecord(value)) return false;
   return (
     typeof value.id === 'string' &&
