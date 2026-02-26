@@ -1,3 +1,5 @@
+import './lib/sentry';
+import { captureException } from './lib/sentry';
 import { Elysia } from 'elysia';
 import { cors } from '@elysiajs/cors';
 import { staticPlugin } from '@elysiajs/static';
@@ -201,6 +203,7 @@ export const app = new Elysia()
       set.status = error.statusCode;
       const level = error.statusCode >= 500 ? 'error' : 'warn';
       log[level]({ status: error.statusCode, code: error.code, latencyMs }, error.message);
+      if (error.statusCode >= 500) captureException(error);
       return { error: error.message, code: error.code };
     }
 
@@ -223,6 +226,7 @@ export const app = new Elysia()
     }
 
     log.error({ err: error, code, status: 500, latencyMs }, 'unhandled error');
+    captureException(error);
     set.status = 500;
     return { error: 'Internal server error', code: 'INTERNAL_ERROR' };
   })
