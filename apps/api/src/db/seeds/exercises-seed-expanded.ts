@@ -111,5 +111,10 @@ export async function seedExercisesExpanded(db: DbClient): Promise<void> {
     };
   });
 
-  await db.insert(exercises).values(rows).onConflictDoNothing();
+  // Batch inserts to avoid exceeding query parameter limits (~8100 params at once).
+  const BATCH_SIZE = 100;
+  for (let i = 0; i < rows.length; i += BATCH_SIZE) {
+    const batch = rows.slice(i, i + BATCH_SIZE);
+    await db.insert(exercises).values(batch).onConflictDoNothing();
+  }
 }
