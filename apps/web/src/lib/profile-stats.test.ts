@@ -2,7 +2,11 @@ import { describe, it, expect } from 'bun:test';
 import { computeGenericProgram } from '@gzclp/shared/generic-engine';
 import type { GenericResults } from '@gzclp/shared/types/program';
 import { computeProfileData, formatVolume } from './profile-stats';
-import { GZCLP_DEFINITION_FIXTURE, DEFAULT_WEIGHTS } from '../../test/helpers/fixtures';
+import {
+  GZCLP_DEFINITION_FIXTURE,
+  DEFAULT_WEIGHTS,
+  buildGenericSuccessResults,
+} from '../../test/helpers/fixtures';
 
 const DEF = GZCLP_DEFINITION_FIXTURE;
 const CONFIG = DEFAULT_WEIGHTS as Record<string, number>;
@@ -14,29 +18,6 @@ function buildGenericResults(
   const results: GenericResults = {};
   for (const [index, slots] of entries) {
     results[String(index)] = slots;
-  }
-  return results;
-}
-
-/** Map day index → slot IDs for GZCLP (4-day rotation). */
-const DAY_SLOTS: Record<number, { t1: string; t2: string; t3: string }> = {
-  0: { t1: 'd1-t1', t2: 'd1-t2', t3: 'latpulldown-t3' },
-  1: { t1: 'd2-t1', t2: 'd2-t2', t3: 'dbrow-t3' },
-  2: { t1: 'd3-t1', t2: 'd3-t2', t3: 'latpulldown-t3' },
-  3: { t1: 'd4-t1', t2: 'd4-t2', t3: 'dbrow-t3' },
-};
-
-/** Build N consecutive all-success workouts in generic format. */
-function buildAllSuccessResults(n: number): GenericResults {
-  const results: GenericResults = {};
-  for (let i = 0; i < n; i++) {
-    const dayIdx = i % 4;
-    const slots = DAY_SLOTS[dayIdx];
-    results[String(i)] = {
-      [slots.t1]: { result: 'success' },
-      [slots.t2]: { result: 'success' },
-      [slots.t3]: { result: 'success' },
-    };
   }
   return results;
 }
@@ -86,7 +67,7 @@ describe('computeProfileData', () => {
 
   describe('personal records', () => {
     it('should track highest successful weight for each primary exercise', () => {
-      const results = buildAllSuccessResults(8); // 2 full cycles
+      const results = buildGenericSuccessResults(8); // 2 full cycles
       const rows = computeGenericProgram(DEF, CONFIG, results);
       const profile = computeProfileData(rows, DEF, CONFIG);
 
@@ -97,7 +78,7 @@ describe('computeProfileData', () => {
     });
 
     it('should include display names', () => {
-      const results = buildAllSuccessResults(4);
+      const results = buildGenericSuccessResults(4);
       const rows = computeGenericProgram(DEF, CONFIG, results);
       const profile = computeProfileData(rows, DEF, CONFIG);
       const squatPR = profile.personalRecords.find((pr) => pr.exercise === 'squat');
@@ -107,7 +88,7 @@ describe('computeProfileData', () => {
 
   describe('streaks', () => {
     it('should count consecutive fully-completed workouts', () => {
-      const results = buildAllSuccessResults(4);
+      const results = buildGenericSuccessResults(4);
       const rows = computeGenericProgram(DEF, CONFIG, results);
       const profile = computeProfileData(rows, DEF, CONFIG);
 
@@ -238,7 +219,7 @@ describe('computeProfileData', () => {
 
   describe('completion stats', () => {
     it('should calculate completion percentage', () => {
-      const results = buildAllSuccessResults(45);
+      const results = buildGenericSuccessResults(45);
       const rows = computeGenericProgram(DEF, CONFIG, results);
       const profile = computeProfileData(rows, DEF, CONFIG);
 
@@ -273,7 +254,7 @@ describe('computeProfileData', () => {
     });
 
     it('should sum weight gained across all primary exercises', () => {
-      const results = buildAllSuccessResults(8);
+      const results = buildGenericSuccessResults(8);
       const rows = computeGenericProgram(DEF, CONFIG, results);
       const profile = computeProfileData(rows, DEF, CONFIG);
 

@@ -4,33 +4,14 @@ import { useWebMcp } from './use-webmcp';
 import { computeGenericProgram } from '@gzclp/shared/generic-engine';
 import type { GenericResults } from '@gzclp/shared/types/program';
 import type { GenericWorkoutRow } from '@gzclp/shared/types';
-import { DEFAULT_WEIGHTS, GZCLP_DEFINITION_FIXTURE } from '../../test/helpers/fixtures';
+import {
+  DEFAULT_WEIGHTS,
+  GZCLP_DEFINITION_FIXTURE,
+  buildGenericSuccessResults,
+} from '../../test/helpers/fixtures';
 
 const DEF = GZCLP_DEFINITION_FIXTURE;
 const CONFIG = DEFAULT_WEIGHTS as Record<string, number>;
-
-/** Map day index → slot IDs for GZCLP (4-day rotation). */
-const DAY_SLOTS: Record<number, { t1: string; t2: string; t3: string }> = {
-  0: { t1: 'd1-t1', t2: 'd1-t2', t3: 'latpulldown-t3' },
-  1: { t1: 'd2-t1', t2: 'd2-t2', t3: 'dbrow-t3' },
-  2: { t1: 'd3-t1', t2: 'd3-t2', t3: 'latpulldown-t3' },
-  3: { t1: 'd4-t1', t2: 'd4-t2', t3: 'dbrow-t3' },
-};
-
-/** Build N consecutive all-success results in generic format. */
-function buildAllSuccessResults(n: number): GenericResults {
-  const results: GenericResults = {};
-  for (let i = 0; i < n; i++) {
-    const dayIdx = i % 4;
-    const slots = DAY_SLOTS[dayIdx];
-    results[String(i)] = {
-      [slots.t1]: { result: 'success' },
-      [slots.t2]: { result: 'success' },
-      [slots.t3]: { result: 'success' },
-    };
-  }
-  return results;
-}
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -259,7 +240,7 @@ describe('useWebMcp', () => {
 
     it('should return completed message when all workouts are done', async () => {
       installMockModelContext();
-      const results = buildAllSuccessResults(90);
+      const results = buildGenericSuccessResults(90);
       const opts = buildOptions({ results });
       renderHook(() => useWebMcp(opts));
 

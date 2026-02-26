@@ -274,3 +274,32 @@ export function buildSuccessfulResults(n: number): Results {
   }
   return results;
 }
+
+// ---------------------------------------------------------------------------
+// Generic (slot-keyed) test helpers
+// ---------------------------------------------------------------------------
+
+import type { GenericResults } from '@gzclp/shared/types/program';
+
+/** Map day index → slot IDs for GZCLP (4-day rotation). */
+export const GZCLP_DAY_SLOTS: Readonly<Record<number, { t1: string; t2: string; t3: string }>> = {
+  0: { t1: 'd1-t1', t2: 'd1-t2', t3: 'latpulldown-t3' },
+  1: { t1: 'd2-t1', t2: 'd2-t2', t3: 'dbrow-t3' },
+  2: { t1: 'd3-t1', t2: 'd3-t2', t3: 'latpulldown-t3' },
+  3: { t1: 'd4-t1', t2: 'd4-t2', t3: 'dbrow-t3' },
+};
+
+/** Build N consecutive all-success workouts in generic slot-keyed format. */
+export function buildGenericSuccessResults(n: number): GenericResults {
+  const results: GenericResults = {};
+  for (let i = 0; i < n; i++) {
+    const dayIdx = i % 4;
+    const slots = GZCLP_DAY_SLOTS[dayIdx];
+    results[String(i)] = {
+      [slots.t1]: { result: 'success' },
+      [slots.t2]: { result: 'success' },
+      [slots.t3]: { result: 'success' },
+    };
+  }
+  return results;
+}
