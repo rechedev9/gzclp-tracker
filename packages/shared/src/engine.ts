@@ -309,6 +309,7 @@ function mapGenericToWorkoutRow(row: GenericWorkoutRow): WorkoutRow {
   };
 }
 
+/** @deprecated Use computeGenericProgram from generic-engine instead. */
 export function computeProgram(startWeights: StartWeights, results: Results): WorkoutRow[] {
   const genericResults = convertLegacyResultsForGzclp(results);
   const genericRows = computeGenericProgram(GZCLP_DEFINITION, startWeights, genericResults);

@@ -6,13 +6,17 @@ import type {
   ExportDataSchema,
 } from '../schemas/legacy';
 
+/** @deprecated Use GenericProgramDetail config (Record<string, number>) instead. */
 export type StartWeights = z.infer<typeof StartWeightsSchema>;
+/** @deprecated Use GenericResults from types/program instead. */
 export type Results = z.infer<typeof ResultsSchema>;
+/** @deprecated Use GenericUndoHistory from types/program instead. */
 export type UndoHistory = z.infer<typeof UndoHistorySchema>;
 export type ExportData = z.infer<typeof ExportDataSchema>;
 export type ResultValue = 'success' | 'fail';
 export type Tier = string;
 
+/** @deprecated Use GenericWorkoutRow with slot-keyed format instead. */
 export interface WorkoutRow {
   index: number;
   dayName: string;
