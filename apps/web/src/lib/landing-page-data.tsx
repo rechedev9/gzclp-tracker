@@ -16,29 +16,6 @@ export interface Step {
   readonly source: string;
 }
 
-export interface Metric {
-  readonly value: string;
-  readonly label: string;
-  readonly suffix: string;
-}
-
-export interface ProgramCardMeta {
-  readonly daysPerWeek: string;
-  readonly duration: string;
-  readonly level: string;
-}
-
-export interface ProgramCard {
-  readonly id: string;
-  readonly name: string;
-  readonly author: string;
-  readonly tagline: string;
-  readonly audience: string;
-  readonly keyBenefit: string;
-  readonly metadata: ProgramCardMeta;
-  readonly icon: React.ReactNode;
-}
-
 /* ── Data ──────────────────────────────────────── */
 
 export const FEATURES: readonly Feature[] = [
@@ -148,72 +125,5 @@ export const SCIENCE_CARDS: readonly Feature[] = [
     ),
     title: 'Cero Pensar',
     desc: 'Entra al gimnasio sabiendo exactamente qué hacer. Sin planeación, sin hojas de cálculo, sin tiempo perdido.',
-  },
-];
-
-export const METRICS: readonly Metric[] = [
-  { value: '2+', label: 'Programas Disponibles', suffix: '' },
-  { value: '100%', label: 'Gratis', suffix: '' },
-  { value: 'Desde 3', label: 'Días por Semana', suffix: '' },
-];
-
-export const PROGRAM_CARDS: readonly ProgramCard[] = [
-  {
-    id: 'gzclp',
-    name: 'GZCLP',
-    author: 'Sayar & Baker',
-    tagline: 'Progresión lineal probada para construir fuerza real desde cero.',
-    audience: 'Principiantes y atletas intermedios que buscan una base sólida.',
-    keyBenefit:
-      'Gestión automática del peso: sube cuando estás listo y se adapta cuando lo necesitas.',
-    metadata: {
-      daysPerWeek: '3–4 días/semana',
-      duration: '22+ semanas',
-      level: 'Principiante – Intermedio',
-    },
-    icon: (
-      <svg
-        width="36"
-        height="36"
-        viewBox="0 0 24 24"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="1.5"
-      >
-        <path
-          d="M2 12h2m16 0h2M6 8v8M18 8v8M8 6v12M16 6v12M10 10v4h4v-4"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-        />
-      </svg>
-    ),
-  },
-  {
-    id: 'nivel-7',
-    name: 'Nivel 7',
-    author: 'Gravity Room',
-    tagline: 'Periodización intermedia-avanzada que combina hipertrofia y fuerza.',
-    audience: 'Atletas intermedios y avanzados que quieren romper mesetas.',
-    keyBenefit:
-      'Programación periodizada: cada semana está calculada para maximizar tu rendimiento.',
-    metadata: {
-      daysPerWeek: '4 días/semana',
-      duration: '12 semanas',
-      level: 'Intermedio – Avanzado',
-    },
-    icon: (
-      <svg
-        width="36"
-        height="36"
-        viewBox="0 0 24 24"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="1.5"
-      >
-        <circle cx="12" cy="12" r="10" />
-        <circle cx="12" cy="12" r="6" />
-        <circle cx="12" cy="12" r="2" />
-      </svg>
-    ),
   },
 ];

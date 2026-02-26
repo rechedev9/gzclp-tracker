@@ -1,5 +1,8 @@
 import { Link } from 'react-router-dom';
-import { FEATURES, STEPS, METRICS, PROGRAM_CARDS, SCIENCE_CARDS } from '@/lib/landing-page-data';
+import { FEATURES, STEPS, SCIENCE_CARDS } from '@/lib/landing-page-data';
+import { useQuery } from '@tanstack/react-query';
+import { fetchCatalogList } from '@/lib/api-functions';
+import { queryKeys } from '@/lib/query-keys';
 import { useFadeInOnScroll } from '@/hooks/use-fade-in-on-scroll';
 import { useScrollSpy } from '@/hooks/use-scroll-spy';
 
@@ -23,11 +26,64 @@ function SectionLabel({ children }: { readonly children: string }): React.ReactN
   return <div className="section-label mb-12">{children}</div>;
 }
 
+/* ── Program Catalog Helpers ──────────────────── */
+
+const MAX_LANDING_PROGRAMS = 6;
+const CATALOG_STALE_TIME = 5 * 60 * 1000;
+
+function categoryLabel(category: string): string {
+  switch (category) {
+    case 'strength':
+      return 'Fuerza';
+    case 'hypertrophy':
+      return 'Hipertrofia';
+    case 'powerlifting':
+      return 'Powerlifting';
+    default:
+      return category.charAt(0).toUpperCase() + category.slice(1);
+  }
+}
+
+function estimatedWeeks(totalWorkouts: number, workoutsPerWeek: number): number {
+  if (workoutsPerWeek <= 0) return 0;
+  return Math.ceil(totalWorkouts / workoutsPerWeek);
+}
+
+function ProgramCardSkeleton(): React.ReactNode {
+  return (
+    <div className="bg-[var(--bg-card)] p-8 animate-pulse">
+      <div className="flex justify-center mb-5">
+        <div className="w-20 h-5 bg-[var(--border-color)] rounded-sm" />
+      </div>
+      <div className="h-8 bg-[var(--border-color)] rounded-sm mx-auto w-2/3 mb-2" />
+      <div className="h-3 bg-[var(--border-color)] rounded-sm mx-auto w-1/3 mb-5" />
+      <div className="space-y-2 mb-6">
+        <div className="h-3 bg-[var(--border-color)] rounded-sm w-full" />
+        <div className="h-3 bg-[var(--border-color)] rounded-sm w-4/5 mx-auto" />
+      </div>
+      <div className="flex justify-center gap-2">
+        <div className="h-5 w-16 bg-[var(--border-color)] rounded-sm" />
+        <div className="h-5 w-20 bg-[var(--border-color)] rounded-sm" />
+      </div>
+    </div>
+  );
+}
+
 /* ── Main Component ────────────────────────────── */
 
 export function LandingPage(): React.ReactNode {
   const observe = useFadeInOnScroll();
   const activeSection = useScrollSpy(SECTION_IDS);
+
+  const catalogQuery = useQuery({
+    queryKey: queryKeys.catalog.list(),
+    queryFn: fetchCatalogList,
+    staleTime: CATALOG_STALE_TIME,
+  });
+  const catalog = catalogQuery.data;
+  const programCount = catalog?.length ?? 0;
+  const minDaysPerWeek =
+    catalog && catalog.length > 0 ? Math.min(...catalog.map((p) => p.workoutsPerWeek)) : 0;
 
   return (
     <div className="grain-overlay min-h-dvh bg-[var(--bg-body)] overflow-x-hidden">
@@ -187,7 +243,19 @@ export function LandingPage(): React.ReactNode {
           className="landing-fade-in px-6 sm:px-10 py-16 sm:py-20 bg-[var(--bg-header)]"
         >
           <div className="max-w-4xl mx-auto grid grid-cols-1 sm:grid-cols-3 gap-0 divide-y sm:divide-y-0 sm:divide-x divide-[var(--border-color)]">
-            {METRICS.map((m) => (
+            {[
+              {
+                value: programCount > 0 ? String(programCount) : '—',
+                label: 'Programas Disponibles',
+                suffix: '',
+              },
+              { value: '100%', label: 'Gratis', suffix: '' },
+              {
+                value: minDaysPerWeek > 0 ? `Desde ${minDaysPerWeek}` : '—',
+                label: 'Días por Semana',
+                suffix: '',
+              },
+            ].map((m) => (
               <div key={m.label} className="text-center px-6 sm:px-10 py-5 sm:py-0">
                 <div
                   className="font-display hero-number-glow leading-none mb-2"
@@ -443,7 +511,7 @@ export function LandingPage(): React.ReactNode {
           className="landing-fade-in px-6 sm:px-10 py-16 sm:py-24 bg-[var(--bg-header)]"
         >
           <div className="max-w-4xl mx-auto">
-            <SectionLabel>Programas Destacados</SectionLabel>
+            <SectionLabel>Catálogo</SectionLabel>
             <h2
               id="programs-heading"
               className="font-display text-center mb-4 leading-none"
@@ -463,88 +531,101 @@ export function LandingPage(): React.ReactNode {
                 lineHeight: 1.7,
               }}
             >
-              Programas de fuerza probados con progresión automática. Elige el que se adapte a tu
-              nivel y objetivos.
+              Programas de entrenamiento con progresión automática. Elige el que se adapte a tus
+              objetivos.
             </p>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-px bg-[var(--border-color)]">
-              {PROGRAM_CARDS.map((program) => (
-                <div
-                  key={program.id}
-                  className="relative bg-[var(--bg-card)] p-8 landing-card-glow group cursor-default"
-                >
-                  {/* Icon */}
-                  <div
-                    className="mb-5 flex justify-center group-hover:scale-110 transition-transform duration-300"
-                    style={{ color: 'var(--fill-progress)' }}
-                  >
-                    {program.icon}
-                  </div>
-
-                  {/* Name (Bebas Neue) */}
-                  <h3
-                    className="font-display text-center text-3xl mb-1 tracking-wide"
-                    style={{ color: 'var(--text-header)' }}
-                  >
-                    {program.name}
-                  </h3>
-
-                  {/* Author */}
-                  <p
-                    className="font-mono text-center text-[11px] tracking-wider uppercase mb-4"
-                    style={{ color: 'var(--text-muted)' }}
-                  >
-                    por {program.author}
-                  </p>
-
-                  {/* Tagline */}
-                  <p
-                    className="text-sm text-center leading-relaxed mb-4"
-                    style={{ color: 'var(--text-main)' }}
-                  >
-                    {program.tagline}
-                  </p>
-
-                  {/* Audience line */}
-                  <p
-                    className="text-sm text-center leading-relaxed mb-5"
-                    style={{ color: 'var(--text-muted)' }}
-                  >
-                    <span
-                      className="font-mono text-[11px] uppercase tracking-wider"
-                      style={{ color: 'var(--fill-progress)' }}
+            {catalogQuery.isLoading && (
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-px bg-[var(--border-color)]">
+                <ProgramCardSkeleton />
+                <ProgramCardSkeleton />
+                <ProgramCardSkeleton />
+              </div>
+            )}
+            {catalog && catalog.length > 0 && (
+              <>
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-px bg-[var(--border-color)]">
+                  {catalog.slice(0, MAX_LANDING_PROGRAMS).map((program) => (
+                    <div
+                      key={program.id}
+                      className="relative bg-[var(--bg-card)] p-8 landing-card-glow group cursor-default"
                     >
-                      Ideal para:
-                    </span>{' '}
-                    {program.audience}
-                  </p>
+                      {/* Category badge */}
+                      <div className="flex justify-center mb-5">
+                        <span
+                          className="font-mono text-[10px] tracking-[0.2em] uppercase px-3 py-1 border"
+                          style={{
+                            color: 'var(--fill-progress)',
+                            borderColor:
+                              'color-mix(in srgb, var(--fill-progress) 30%, transparent)',
+                          }}
+                        >
+                          {categoryLabel(program.category)}
+                        </span>
+                      </div>
 
-                  {/* Key benefit */}
-                  <p
-                    className="text-sm text-center leading-relaxed mb-6"
-                    style={{ color: 'var(--text-muted)' }}
-                  >
-                    {program.keyBenefit}
-                  </p>
+                      {/* Name (Bebas Neue) */}
+                      <h3
+                        className="font-display text-center text-3xl mb-1 tracking-wide"
+                        style={{ color: 'var(--text-header)' }}
+                      >
+                        {program.name}
+                      </h3>
 
-                  {/* Metadata pills */}
-                  <div className="flex flex-wrap justify-center gap-2">
-                    {[
-                      program.metadata.daysPerWeek,
-                      program.metadata.duration,
-                      program.metadata.level,
-                    ].map((pill) => (
-                      <span
-                        key={pill}
-                        className="font-mono text-[10px] tracking-wider uppercase px-3 py-1 border border-[var(--border-light)] bg-[var(--bg-body)]"
+                      {/* Author */}
+                      <p
+                        className="font-mono text-center text-[11px] tracking-wider uppercase mb-4"
                         style={{ color: 'var(--text-muted)' }}
                       >
-                        {pill}
-                      </span>
-                    ))}
-                  </div>
+                        por {program.author}
+                      </p>
+
+                      {/* Description (2 lines max) */}
+                      <p
+                        className="text-sm text-center leading-relaxed mb-6 line-clamp-2"
+                        style={{ color: 'var(--text-muted)' }}
+                      >
+                        {program.description}
+                      </p>
+
+                      {/* Metadata pills */}
+                      <div className="flex flex-wrap justify-center gap-2">
+                        {[
+                          `${program.workoutsPerWeek} días/semana`,
+                          ...(estimatedWeeks(program.totalWorkouts, program.workoutsPerWeek) > 0
+                            ? [
+                                `${estimatedWeeks(program.totalWorkouts, program.workoutsPerWeek)} semanas`,
+                              ]
+                            : []),
+                        ].map((pill) => (
+                          <span
+                            key={pill}
+                            className="font-mono text-[10px] tracking-wider uppercase px-3 py-1 border border-[var(--border-light)] bg-[var(--bg-body)]"
+                            style={{ color: 'var(--text-muted)' }}
+                          >
+                            {pill}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  ))}
                 </div>
-              ))}
-            </div>
+                {catalog.length > MAX_LANDING_PROGRAMS && (
+                  <div className="text-center mt-8">
+                    <Link
+                      to="/login"
+                      className="font-mono text-sm tracking-wider uppercase text-[var(--text-muted)] hover:text-[var(--fill-progress)] transition-colors"
+                    >
+                      Ver los {catalog.length} programas →
+                    </Link>
+                  </div>
+                )}
+              </>
+            )}
+            {catalogQuery.isError && (
+              <p className="text-sm text-center" style={{ color: 'var(--text-muted)' }}>
+                No se pudieron cargar los programas.
+              </p>
+            )}
           </div>
         </section>
 
