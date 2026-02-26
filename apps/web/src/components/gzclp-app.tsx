@@ -6,7 +6,6 @@ import { computeProgram } from '@gzclp/shared/engine';
 import { useProgram } from '@/hooks/use-program';
 import { useAuth } from '@/contexts/auth-context';
 import { useToast } from '@/contexts/toast-context';
-import { useWebMcp } from '@/hooks/use-webmcp';
 import { detectT1PersonalRecord } from '@/lib/pr-detection';
 import { queryKeys } from '@/lib/query-keys';
 import { fetchCatalogDetail } from '@/lib/api-functions';
@@ -158,18 +157,7 @@ export function GZCLPApp({
   const rowsRef = useRef(rows);
   rowsRef.current = rows;
 
-  useWebMcp({
-    startWeights,
-    results,
-    rows,
-    names,
-    totalWorkouts,
-    definition,
-    generateProgram,
-    markResult,
-    setAmrapReps,
-    undoLast,
-  });
+  // useWebMcp removed — hook is now wired into GenericProgramApp
 
   const completedCount = rows.filter((r) => r.result.t1 && r.result.t2 && r.result.t3).length;
 

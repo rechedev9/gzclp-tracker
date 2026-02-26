@@ -1,17 +1,36 @@
 import { describe, it, expect, mock, beforeEach, afterEach } from 'bun:test';
 import { renderHook } from '@testing-library/react';
 import { useWebMcp } from './use-webmcp';
-import { computeProgram } from '@gzclp/shared/engine';
+import { computeGenericProgram } from '@gzclp/shared/generic-engine';
+import type { GenericResults } from '@gzclp/shared/types/program';
+import type { GenericWorkoutRow } from '@gzclp/shared/types';
 import { DEFAULT_WEIGHTS, GZCLP_DEFINITION_FIXTURE } from '../../test/helpers/fixtures';
-import type { StartWeights, Results, WorkoutRow } from '@gzclp/shared/types';
 
-const GZCLP_NAMES: Readonly<Record<string, string>> = (() => {
-  const map: Record<string, string> = {};
-  for (const [id, ex] of Object.entries(GZCLP_DEFINITION_FIXTURE.exercises)) {
-    map[id] = ex.name;
+const DEF = GZCLP_DEFINITION_FIXTURE;
+const CONFIG = DEFAULT_WEIGHTS as Record<string, number>;
+
+/** Map day index → slot IDs for GZCLP (4-day rotation). */
+const DAY_SLOTS: Record<number, { t1: string; t2: string; t3: string }> = {
+  0: { t1: 'd1-t1', t2: 'd1-t2', t3: 'latpulldown-t3' },
+  1: { t1: 'd2-t1', t2: 'd2-t2', t3: 'dbrow-t3' },
+  2: { t1: 'd3-t1', t2: 'd3-t2', t3: 'latpulldown-t3' },
+  3: { t1: 'd4-t1', t2: 'd4-t2', t3: 'dbrow-t3' },
+};
+
+/** Build N consecutive all-success results in generic format. */
+function buildAllSuccessResults(n: number): GenericResults {
+  const results: GenericResults = {};
+  for (let i = 0; i < n; i++) {
+    const dayIdx = i % 4;
+    const slots = DAY_SLOTS[dayIdx];
+    results[String(i)] = {
+      [slots.t1]: { result: 'success' },
+      [slots.t2]: { result: 'success' },
+      [slots.t3]: { result: 'success' },
+    };
   }
-  return map;
-})();
+  return results;
+}
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -43,31 +62,27 @@ function isErrorResponse(parsed: unknown): parsed is { error: string } {
 }
 
 function buildOptions(overrides?: {
-  startWeights?: StartWeights | null;
-  results?: Results;
-  rows?: readonly WorkoutRow[];
+  config?: Record<string, number> | null;
+  results?: GenericResults;
+  rows?: readonly GenericWorkoutRow[];
 }): {
-  startWeights: StartWeights | null;
-  results: Results;
-  rows: readonly WorkoutRow[];
-  names: Readonly<Record<string, string>>;
+  config: Record<string, number> | null;
+  rows: readonly GenericWorkoutRow[];
   totalWorkouts: number;
-  definition: typeof GZCLP_DEFINITION_FIXTURE;
+  definition: typeof DEF;
   generateProgram: ReturnType<typeof mock>;
   markResult: ReturnType<typeof mock>;
   setAmrapReps: ReturnType<typeof mock>;
   undoLast: ReturnType<typeof mock>;
 } {
-  const sw = overrides?.startWeights === undefined ? DEFAULT_WEIGHTS : overrides.startWeights;
+  const cfg = overrides?.config === undefined ? CONFIG : overrides.config;
   const results = overrides?.results ?? {};
-  const rows = overrides?.rows ?? (sw ? computeProgram(sw, results) : []);
+  const rows = overrides?.rows ?? (cfg ? computeGenericProgram(DEF, cfg, results) : []);
   return {
-    startWeights: sw,
-    results,
+    config: cfg,
     rows,
-    names: GZCLP_NAMES,
-    totalWorkouts: GZCLP_DEFINITION_FIXTURE.totalWorkouts,
-    definition: GZCLP_DEFINITION_FIXTURE,
+    totalWorkouts: DEF.totalWorkouts,
+    definition: DEF,
     generateProgram: mock(),
     markResult: mock(),
     setAmrapReps: mock(),
@@ -220,7 +235,7 @@ describe('useWebMcp', () => {
   describe('getCurrentWorkout', () => {
     it('should return error when no program initialized', async () => {
       installMockModelContext();
-      const opts = buildOptions({ startWeights: null });
+      const opts = buildOptions({ config: null });
       renderHook(() => useWebMcp(opts));
 
       const resp = await findTool('getCurrentWorkout').execute({}, {});
@@ -244,10 +259,7 @@ describe('useWebMcp', () => {
 
     it('should return completed message when all workouts are done', async () => {
       installMockModelContext();
-      const results: Results = {};
-      for (let i = 0; i < 90; i++) {
-        results[i] = { t1: 'success', t2: 'success', t3: 'success' };
-      }
+      const results = buildAllSuccessResults(90);
       const opts = buildOptions({ results });
       renderHook(() => useWebMcp(opts));
 
@@ -262,7 +274,7 @@ describe('useWebMcp', () => {
   describe('getProgram', () => {
     it('should return error when no program initialized', async () => {
       installMockModelContext();
-      const opts = buildOptions({ startWeights: null });
+      const opts = buildOptions({ config: null });
       renderHook(() => useWebMcp(opts));
 
       const resp = await findTool('getProgram').execute({}, {});
@@ -325,7 +337,7 @@ describe('useWebMcp', () => {
   describe('getStats', () => {
     it('should return error when no program initialized', async () => {
       installMockModelContext();
-      const opts = buildOptions({ startWeights: null });
+      const opts = buildOptions({ config: null });
       renderHook(() => useWebMcp(opts));
 
       const resp = await findTool('getStats').execute({}, {});
@@ -334,7 +346,7 @@ describe('useWebMcp', () => {
       expect(isErrorResponse(parsed)).toBe(true);
     });
 
-    it('should return stats for all exercises when no exercise specified', async () => {
+    it('should return stats for all T1 exercises when no exercise specified', async () => {
       installMockModelContext();
       const opts = buildOptions();
       renderHook(() => useWebMcp(opts));
@@ -380,7 +392,7 @@ describe('useWebMcp', () => {
   describe('getProgress', () => {
     it('should return error when no program initialized', async () => {
       installMockModelContext();
-      const opts = buildOptions({ startWeights: null });
+      const opts = buildOptions({ config: null });
       renderHook(() => useWebMcp(opts));
 
       const resp = await findTool('getProgress').execute({}, {});
@@ -408,11 +420,11 @@ describe('useWebMcp', () => {
   describe('logResult', () => {
     it('should return error when no program initialized', async () => {
       installMockModelContext();
-      const opts = buildOptions({ startWeights: null });
+      const opts = buildOptions({ config: null });
       renderHook(() => useWebMcp(opts));
 
       const resp = await findTool('logResult').execute(
-        { index: 0, tier: 't1', result: 'success' },
+        { index: 0, slotId: 'd1-t1', result: 'success' },
         {}
       );
       const { parsed } = parseResponse(resp);
@@ -426,55 +438,43 @@ describe('useWebMcp', () => {
       renderHook(() => useWebMcp(opts));
 
       const resp = await findTool('logResult').execute(
-        { index: 0, tier: 't1', result: 'success' },
+        { index: 0, slotId: 'd1-t1', result: 'success' },
         {}
       );
       const { parsed } = parseResponse(resp);
 
       expect(isErrorResponse(parsed)).toBe(false);
-      expect(opts.markResult).toHaveBeenCalledWith(0, 't1', 'success');
+      expect(opts.markResult).toHaveBeenCalledWith(0, 'd1-t1', 'success');
     });
 
-    it('should call setAmrapReps when amrapReps is provided for t1', async () => {
+    it('should call setAmrapReps when amrapReps is provided for an AMRAP slot', async () => {
       installMockModelContext();
       const opts = buildOptions();
       renderHook(() => useWebMcp(opts));
 
+      // T3 is the only AMRAP slot in GZCLP
       await findTool('logResult').execute(
-        { index: 0, tier: 't1', result: 'success', amrapReps: 8 },
+        { index: 0, slotId: 'latpulldown-t3', result: 'success', amrapReps: 25 },
         {}
       );
 
-      expect(opts.setAmrapReps).toHaveBeenCalledWith(0, 't1Reps', 8);
+      expect(opts.setAmrapReps).toHaveBeenCalledWith(0, 'latpulldown-t3', 25);
     });
 
-    it('should call setAmrapReps when amrapReps is provided for t3', async () => {
-      installMockModelContext();
-      const opts = buildOptions();
-      renderHook(() => useWebMcp(opts));
-
-      await findTool('logResult').execute(
-        { index: 0, tier: 't3', result: 'success', amrapReps: 25 },
-        {}
-      );
-
-      expect(opts.setAmrapReps).toHaveBeenCalledWith(0, 't3Reps', 25);
-    });
-
-    it('should return error for invalid tier', async () => {
+    it('should return error for invalid slotId', async () => {
       installMockModelContext();
       const opts = buildOptions();
       renderHook(() => useWebMcp(opts));
 
       const resp = await findTool('logResult').execute(
-        { index: 0, tier: 't4', result: 'success' },
+        { index: 0, slotId: 'invalid-slot', result: 'success' },
         {}
       );
       const { parsed } = parseResponse(resp);
 
       expect(isErrorResponse(parsed)).toBe(true);
       if (isErrorResponse(parsed)) {
-        expect(parsed.error).toContain('tier');
+        expect(parsed.error).toContain('slotId');
       }
     });
 
@@ -484,7 +484,7 @@ describe('useWebMcp', () => {
       renderHook(() => useWebMcp(opts));
 
       const resp = await findTool('logResult').execute(
-        { index: 0, tier: 't1', result: 'maybe' },
+        { index: 0, slotId: 'd1-t1', result: 'maybe' },
         {}
       );
       const { parsed } = parseResponse(resp);
@@ -501,7 +501,7 @@ describe('useWebMcp', () => {
       renderHook(() => useWebMcp(opts));
 
       const resp = await findTool('logResult').execute(
-        { index: 90, tier: 't1', result: 'success' },
+        { index: 90, slotId: 'd1-t1', result: 'success' },
         {}
       );
       const { parsed } = parseResponse(resp);
@@ -529,7 +529,7 @@ describe('useWebMcp', () => {
       renderHook(() => useWebMcp(opts));
 
       const resp = await findTool('logResult').execute(
-        { index: 0, tier: 't1', result: 'success', amrapReps: -1 },
+        { index: 0, slotId: 'd1-t1', result: 'success', amrapReps: -1 },
         {}
       );
       const { parsed } = parseResponse(resp);
@@ -539,12 +539,29 @@ describe('useWebMcp', () => {
         expect(parsed.error).toContain('amrapReps');
       }
     });
+
+    it('should return error for amrapReps on non-AMRAP slot', async () => {
+      installMockModelContext();
+      const opts = buildOptions();
+      renderHook(() => useWebMcp(opts));
+
+      const resp = await findTool('logResult').execute(
+        { index: 0, slotId: 'd1-t2', result: 'success', amrapReps: 10 },
+        {}
+      );
+      const { parsed } = parseResponse(resp);
+
+      expect(isErrorResponse(parsed)).toBe(true);
+      if (isErrorResponse(parsed)) {
+        expect(parsed.error).toContain('not an AMRAP slot');
+      }
+    });
   });
 
   describe('undoLastResult', () => {
     it('should return error when no program initialized', async () => {
       installMockModelContext();
-      const opts = buildOptions({ startWeights: null });
+      const opts = buildOptions({ config: null });
       renderHook(() => useWebMcp(opts));
 
       const resp = await findTool('undoLastResult').execute({}, {});
@@ -570,7 +587,7 @@ describe('useWebMcp', () => {
   describe('scheduleNextWorkout', () => {
     it('should return error when no program initialized', async () => {
       installMockModelContext();
-      const opts = buildOptions({ startWeights: null });
+      const opts = buildOptions({ config: null });
       renderHook(() => useWebMcp(opts));
 
       const resp = await findTool('scheduleNextWorkout').execute({}, {});
@@ -608,7 +625,6 @@ describe('useWebMcp', () => {
       const { parsed } = parseResponse(resp);
       const data = parsed as Record<string, unknown>;
 
-      // Day 1: Squat (T1) / Bench Press (T2) / Lat Pulldown (T3)
       expect(data.title).toBe('GZCLP Día 1 — Sentadilla / Press Banca / Jalón al Pecho');
     });
 
@@ -625,7 +641,6 @@ describe('useWebMcp', () => {
       const data = parsed as Record<string, unknown>;
       const url = data.calendarUrl as string;
 
-      // Start: 20260215T180000, End: 20260215T193000
       expect(url).toContain('dates=20260215T180000/20260215T193000');
       expect(data.startTime).toBe('18:00');
       expect(data.endTime).toBe('19:30');
@@ -644,7 +659,6 @@ describe('useWebMcp', () => {
       const data = parsed as Record<string, unknown>;
 
       expect(data.workoutIndex).toBe(1);
-      // Day 2: OHP (T1) / Deadlift (T2) / DB Row (T3)
       expect(data.title).toBe('GZCLP Día 2 — Press Militar / Peso Muerto / Remo con Mancuernas');
     });
 
@@ -727,7 +741,6 @@ describe('useWebMcp', () => {
       const { parsed } = parseResponse(resp);
       const url = (parsed as Record<string, unknown>).calendarUrl as string;
 
-      // The URL should contain encoded workout details
       expect(url).toContain('details=');
       const detailsParam = decodeURIComponent(url.split('details=')[1] as string);
       expect(detailsParam).toContain('T1: Sentadilla');
@@ -752,7 +765,7 @@ describe('useWebMcp', () => {
       const opts = buildOptions();
       renderHook(() => useWebMcp(opts));
 
-      const resp = await findTool('initializeProgram').execute(DEFAULT_WEIGHTS, {});
+      const resp = await findTool('initializeProgram').execute(CONFIG, {});
       const { parsed } = parseResponse(resp);
 
       expect(isErrorResponse(parsed)).toBe(true);
@@ -763,19 +776,19 @@ describe('useWebMcp', () => {
 
     it('should call generateProgram with valid weights', async () => {
       installMockModelContext();
-      const opts = buildOptions({ startWeights: null });
+      const opts = buildOptions({ config: null });
       renderHook(() => useWebMcp(opts));
 
-      const resp = await findTool('initializeProgram').execute(DEFAULT_WEIGHTS, {});
+      const resp = await findTool('initializeProgram').execute(CONFIG, {});
       const { parsed } = parseResponse(resp);
 
       expect(isErrorResponse(parsed)).toBe(false);
-      expect(opts.generateProgram).toHaveBeenCalledWith(DEFAULT_WEIGHTS);
+      expect(opts.generateProgram).toHaveBeenCalledWith(CONFIG);
     });
 
     it('should return error for missing weight field', async () => {
       installMockModelContext();
-      const opts = buildOptions({ startWeights: null });
+      const opts = buildOptions({ config: null });
       renderHook(() => useWebMcp(opts));
 
       const resp = await findTool('initializeProgram').execute(
@@ -799,7 +812,7 @@ describe('useWebMcp', () => {
 
     it('should return error for weight below minimum', async () => {
       installMockModelContext();
-      const opts = buildOptions({ startWeights: null });
+      const opts = buildOptions({ config: null });
       renderHook(() => useWebMcp(opts));
 
       const resp = await findTool('initializeProgram').execute(
@@ -816,7 +829,7 @@ describe('useWebMcp', () => {
 
     it('should return error for non-object input', async () => {
       installMockModelContext();
-      const opts = buildOptions({ startWeights: null });
+      const opts = buildOptions({ config: null });
       renderHook(() => useWebMcp(opts));
 
       const resp = await findTool('initializeProgram').execute('not an object', {});

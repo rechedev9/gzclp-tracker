@@ -1,10 +1,11 @@
 import { describe, it, expect } from 'bun:test';
 import { buildGoogleCalendarUrl } from './calendar';
-import { computeProgram } from '@gzclp/shared/engine';
+import { computeGenericProgram } from '@gzclp/shared/generic-engine';
 import { DEFAULT_WEIGHTS, GZCLP_DEFINITION_FIXTURE } from '../../test/helpers/fixtures';
 
-const rows = computeProgram(DEFAULT_WEIGHTS, {});
 const DEF = GZCLP_DEFINITION_FIXTURE;
+const CONFIG = DEFAULT_WEIGHTS as Record<string, number>;
+const rows = computeGenericProgram(DEF, CONFIG, {});
 
 describe('buildGoogleCalendarUrl', () => {
   describe('URL format', () => {
@@ -26,7 +27,7 @@ describe('buildGoogleCalendarUrl', () => {
   });
 
   describe('title', () => {
-    it('contains the day name and all three exercise names', () => {
+    it('contains the day name and all exercise names', () => {
       const result = buildGoogleCalendarUrl(rows[0], DEF, { date: '2026-03-01' });
 
       expect(result.title).toBe('GZCLP Día 1 — Sentadilla / Press Banca / Jalón al Pecho');
@@ -40,7 +41,7 @@ describe('buildGoogleCalendarUrl', () => {
   });
 
   describe('description', () => {
-    it('contains tier details with weights, sets×reps, and stages', () => {
+    it('contains slot details with weights, sets×reps, and stages', () => {
       const { calendarUrl } = buildGoogleCalendarUrl(rows[0], DEF, { date: '2026-03-01' });
       const detailsParam = new URL(calendarUrl).searchParams.get('details') ?? '';
 
@@ -50,7 +51,6 @@ describe('buildGoogleCalendarUrl', () => {
       expect(detailsParam).toContain('Etapa 1');
       expect(detailsParam).toContain('T2: Press Banca');
       expect(detailsParam).toContain('T3: Jalón al Pecho');
-      // T3 stages in GZCLP definition: sets=3, reps=25 (AMRAP threshold)
       expect(detailsParam).toContain('3×25');
     });
   });
@@ -88,18 +88,28 @@ describe('buildGoogleCalendarUrl', () => {
   });
 
   describe('stages', () => {
-    it('handles T1 stage 2 correctly', () => {
-      const row = { ...rows[0], t1Stage: 1 };
-      const { calendarUrl } = buildGoogleCalendarUrl(row, DEF, { date: '2026-03-01' });
+    it('handles a modified stage correctly in description', () => {
+      const baseRow = rows[0];
+      // Simulate T1 at stage 1 (6×2)
+      const modifiedRow = {
+        ...baseRow,
+        slots: baseRow.slots.map((s, i) => (i === 0 ? { ...s, stage: 1, sets: 6, reps: 2 } : s)),
+      };
+      const { calendarUrl } = buildGoogleCalendarUrl(modifiedRow, DEF, { date: '2026-03-01' });
       const details = new URL(calendarUrl).searchParams.get('details') ?? '';
 
       expect(details).toContain('6×2');
       expect(details).toContain('Etapa 2');
     });
 
-    it('handles T1 stage 3 correctly', () => {
-      const row = { ...rows[0], t1Stage: 2 };
-      const { calendarUrl } = buildGoogleCalendarUrl(row, DEF, { date: '2026-03-01' });
+    it('handles a modified stage 2 correctly', () => {
+      const baseRow = rows[0];
+      // Simulate T1 at stage 2 (10×1)
+      const modifiedRow = {
+        ...baseRow,
+        slots: baseRow.slots.map((s, i) => (i === 0 ? { ...s, stage: 2, sets: 10, reps: 1 } : s)),
+      };
+      const { calendarUrl } = buildGoogleCalendarUrl(modifiedRow, DEF, { date: '2026-03-01' });
       const details = new URL(calendarUrl).searchParams.get('details') ?? '';
 
       expect(details).toContain('10×1');

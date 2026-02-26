@@ -1,24 +1,19 @@
 import { useEffect, useRef } from 'react';
-import type { StartWeights, Results, WorkoutRow, ResultValue, Tier } from '@gzclp/shared/types';
+import type { ResultValue, GenericWorkoutRow } from '@gzclp/shared/types';
 import type { ProgramDefinition } from '@gzclp/shared/types/program';
-import { extractChartData, calculateStats } from '@gzclp/shared/stats';
+import { extractGenericChartData } from '@gzclp/shared/generic-stats';
+import { calculateStats } from '@gzclp/shared/stats';
 import { isRecord } from '@gzclp/shared/type-guards';
 import { buildGoogleCalendarUrl } from '@/lib/calendar';
 
 interface UseWebMcpOptions {
-  readonly startWeights: StartWeights | null;
-  readonly results: Results;
-  readonly rows: readonly WorkoutRow[];
-  readonly names: Readonly<Record<string, string>>;
-  readonly totalWorkouts: number;
+  readonly config: Record<string, number> | null;
+  readonly rows: readonly GenericWorkoutRow[];
   readonly definition?: ProgramDefinition;
-  readonly generateProgram: (weights: StartWeights) => void;
-  readonly markResult: (index: number, tier: Tier, value: ResultValue) => void;
-  readonly setAmrapReps: (
-    index: number,
-    field: 't1Reps' | 't3Reps',
-    reps: number | undefined
-  ) => void;
+  readonly totalWorkouts: number;
+  readonly generateProgram: (config: Record<string, number>) => void;
+  readonly markResult: (index: number, slotId: string, value: ResultValue) => void;
+  readonly setAmrapReps: (index: number, slotId: string, reps: number | undefined) => void;
   readonly undoLast: () => void;
 }
 
@@ -34,28 +29,8 @@ function errorResponse(error: string): ModelContextToolResponse {
   return { content: [{ type: 'text', text: JSON.stringify({ error }) }] };
 }
 
-function findNextIncomplete(rows: readonly WorkoutRow[]): WorkoutRow | undefined {
-  return rows.find((r) => !r.result.t1 || !r.result.t2 || !r.result.t3);
-}
-
-const EXERCISE_FIELDS = ['squat', 'bench', 'deadlift', 'ohp', 'latpulldown', 'dbrow'] as const;
-const FALLBACK_T1_EXERCISES = ['squat', 'bench', 'deadlift', 'ohp'] as const;
-const NO_PROGRAM = 'No program initialized. Use initializeProgram first.';
-
-/** Derive T1 exercise IDs from the definition, with fallback for when definition hasn't loaded. */
-function deriveT1ExercisesFromOptions(options: UseWebMcpOptions): readonly string[] {
-  if (!options.definition) return FALLBACK_T1_EXERCISES;
-  const ids = new Set<string>();
-  for (const day of options.definition.days) {
-    for (const slot of day.slots) {
-      if (slot.tier === 't1') ids.add(slot.exerciseId);
-    }
-  }
-  return [...ids];
-}
-
-function isTier(value: unknown): value is Tier {
-  return value === 't1' || value === 't2' || value === 't3';
+function findNextIncomplete(rows: readonly GenericWorkoutRow[]): GenericWorkoutRow | undefined {
+  return rows.find((r) => r.slots.some((s) => s.result === undefined));
 }
 
 function isResultValue(value: unknown): value is ResultValue {
@@ -67,6 +42,19 @@ function isValidIndex(value: unknown, totalWorkouts: number): value is number {
     typeof value === 'number' && Number.isInteger(value) && value >= 0 && value < totalWorkouts
   );
 }
+
+/** Derive T1 exercise IDs from the definition. */
+function deriveT1Exercises(definition: ProgramDefinition): readonly string[] {
+  const ids = new Set<string>();
+  for (const day of definition.days) {
+    for (const slot of day.slots) {
+      if (slot.tier === 't1') ids.add(slot.exerciseId);
+    }
+  }
+  return [...ids];
+}
+
+const NO_PROGRAM = 'No program initialized. Use initializeProgram first.';
 
 // ---------------------------------------------------------------------------
 // Tool name constants (used for registerTool / unregisterTool)
@@ -106,12 +94,12 @@ export function useWebMcp(options: UseWebMcpOptions): void {
     mc.registerTool({
       name: 'getCurrentWorkout',
       description:
-        'Get the next incomplete workout in the GZCLP program. Returns the workout details including exercises, weights, sets, reps, and any partial results.',
+        'Get the next incomplete workout. Returns the workout details including exercises, weights, sets, reps, and any partial results.',
       inputSchema: { type: 'object', properties: {} },
       annotations: { readOnlyHint: true },
       execute: async (): Promise<ModelContextToolResponse> => {
-        const { rows, startWeights, names } = stateRef.current;
-        if (!startWeights) return errorResponse(NO_PROGRAM);
+        const { rows, config } = stateRef.current;
+        if (!config) return errorResponse(NO_PROGRAM);
         const current = findNextIncomplete(rows);
         if (!current) {
           return textResponse({ message: 'All workouts completed!', completed: true });
@@ -119,29 +107,17 @@ export function useWebMcp(options: UseWebMcpOptions): void {
         return textResponse({
           index: current.index,
           dayName: current.dayName,
-          t1: {
-            exercise: names[current.t1Exercise] ?? current.t1Exercise,
-            weight: current.t1Weight,
-            sets: current.t1Sets,
-            reps: current.t1Reps,
-            stage: current.t1Stage + 1,
-            result: current.result.t1 ?? null,
-          },
-          t2: {
-            exercise: names[current.t2Exercise] ?? current.t2Exercise,
-            weight: current.t2Weight,
-            sets: current.t2Sets,
-            reps: current.t2Reps,
-            stage: current.t2Stage + 1,
-            result: current.result.t2 ?? null,
-          },
-          t3: {
-            exercise: names[current.t3Exercise] ?? current.t3Exercise,
-            weight: current.t3Weight,
-            sets: 3,
-            reps: 15,
-            result: current.result.t3 ?? null,
-          },
+          slots: current.slots.map((s) => ({
+            slotId: s.slotId,
+            exercise: s.exerciseName,
+            tier: s.tier.toUpperCase(),
+            weight: s.weight,
+            sets: s.sets,
+            reps: s.reps,
+            stage: s.stage + 1,
+            isAmrap: s.isAmrap,
+            result: s.result ?? null,
+          })),
         });
       },
     });
@@ -149,18 +125,18 @@ export function useWebMcp(options: UseWebMcpOptions): void {
     mc.registerTool({
       name: 'getProgram',
       description:
-        'Get workout rows from the GZCLP program. Optionally pass startIndex and endIndex (0-89) to get a range. Returns all 90 rows by default.',
+        'Get workout rows from the program. Optionally pass startIndex and endIndex to get a range. Returns all rows by default.',
       inputSchema: {
         type: 'object',
         properties: {
-          startIndex: { type: 'number', description: 'First workout index (0-89), default 0' },
-          endIndex: { type: 'number', description: 'Last workout index (0-89), default 89' },
+          startIndex: { type: 'number', description: 'First workout index, default 0' },
+          endIndex: { type: 'number', description: 'Last workout index' },
         },
       },
       annotations: { readOnlyHint: true },
       execute: async (input: unknown): Promise<ModelContextToolResponse> => {
-        const { rows, startWeights, names, totalWorkouts: tw } = stateRef.current;
-        if (!startWeights) return errorResponse(NO_PROGRAM);
+        const { rows, config, totalWorkouts: tw } = stateRef.current;
+        if (!config) return errorResponse(NO_PROGRAM);
         let start = 0;
         let end = tw - 1;
         if (isRecord(input)) {
@@ -183,18 +159,14 @@ export function useWebMcp(options: UseWebMcpOptions): void {
         const slice = rows.slice(start, end + 1).map((r) => ({
           index: r.index,
           dayName: r.dayName,
-          t1: {
-            exercise: names[r.t1Exercise] ?? r.t1Exercise,
-            weight: r.t1Weight,
-            stage: r.t1Stage + 1,
-          },
-          t2: {
-            exercise: names[r.t2Exercise] ?? r.t2Exercise,
-            weight: r.t2Weight,
-            stage: r.t2Stage + 1,
-          },
-          t3: { exercise: names[r.t3Exercise] ?? r.t3Exercise, weight: r.t3Weight },
-          completed: Boolean(r.result.t1 && r.result.t2 && r.result.t3),
+          slots: r.slots.map((s) => ({
+            slotId: s.slotId,
+            exercise: s.exerciseName,
+            tier: s.tier.toUpperCase(),
+            weight: s.weight,
+            stage: s.stage + 1,
+          })),
+          completed: r.slots.every((s) => s.result !== undefined),
         }));
         return textResponse(slice);
       },
@@ -203,24 +175,24 @@ export function useWebMcp(options: UseWebMcpOptions): void {
     mc.registerTool({
       name: 'getStats',
       description:
-        'Get performance statistics for one or all T1 exercises (squat, bench, deadlift, ohp). Includes success rate, current weight, weight gained, and current stage.',
+        'Get performance statistics for one or all primary (T1) exercises. Includes success rate, current weight, weight gained, and current stage.',
       inputSchema: {
         type: 'object',
         properties: {
           exercise: {
             type: 'string',
-            description: 'Exercise name: squat, bench, deadlift, or ohp. Omit for all.',
+            description: 'Exercise ID (e.g. squat, bench). Omit for all T1 exercises.',
           },
         },
       },
       annotations: { readOnlyHint: true },
       execute: async (input: unknown): Promise<ModelContextToolResponse> => {
-        const { startWeights } = stateRef.current;
-        if (!startWeights) return errorResponse(NO_PROGRAM);
-        // Derive T1 exercises from definition or fall back to known GZCLP T1s
-        const t1Exercises = deriveT1ExercisesFromOptions(stateRef.current);
+        const { config, definition: def, rows } = stateRef.current;
+        if (!config) return errorResponse(NO_PROGRAM);
+        if (!def) return errorResponse('Program definition not loaded yet.');
+        const t1Exercises = deriveT1Exercises(def);
         const validExercises = new Set<string>(t1Exercises);
-        const chartData = extractChartData(startWeights, stateRef.current.results);
+        const chartData = extractGenericChartData(def, rows);
         if (isRecord(input) && typeof input.exercise === 'string') {
           const ex = input.exercise.toLowerCase();
           if (!validExercises.has(ex)) {
@@ -250,9 +222,9 @@ export function useWebMcp(options: UseWebMcpOptions): void {
       inputSchema: { type: 'object', properties: {} },
       annotations: { readOnlyHint: true },
       execute: async (): Promise<ModelContextToolResponse> => {
-        const { rows, startWeights, totalWorkouts: tw } = stateRef.current;
-        if (!startWeights) return errorResponse(NO_PROGRAM);
-        const completed = rows.filter((r) => r.result.t1 && r.result.t2 && r.result.t3).length;
+        const { rows, config, totalWorkouts: tw } = stateRef.current;
+        if (!config) return errorResponse(NO_PROGRAM);
+        const completed = rows.filter((r) => r.slots.every((s) => s.result !== undefined)).length;
         const next = findNextIncomplete(rows);
         return textResponse({
           total: tw,
@@ -268,37 +240,46 @@ export function useWebMcp(options: UseWebMcpOptions): void {
     mc.registerTool({
       name: 'logResult',
       description:
-        'Log a success or fail result for a tier (t1, t2, t3) at a specific workout index. Optionally set AMRAP reps for t1 or t3.',
+        'Log a success or fail result for a slot at a specific workout index. Optionally set AMRAP reps for AMRAP slots.',
       inputSchema: {
         type: 'object',
         properties: {
-          index: { type: 'number', description: 'Workout index (0-89)' },
-          tier: { type: 'string', description: 'Tier: t1, t2, or t3' },
+          index: { type: 'number', description: 'Workout index' },
+          slotId: { type: 'string', description: 'Slot ID (e.g. d1-t1, latpulldown-t3)' },
           result: { type: 'string', description: 'Result: success or fail' },
           amrapReps: {
             type: 'number',
-            description: 'Optional AMRAP reps for t1 or t3 (0-999)',
+            description: 'Optional AMRAP reps for AMRAP slots (0-999)',
           },
         },
-        required: ['index', 'tier', 'result'],
+        required: ['index', 'slotId', 'result'],
       },
       execute: async (input: unknown): Promise<ModelContextToolResponse> => {
-        if (!stateRef.current.startWeights) return errorResponse(NO_PROGRAM);
+        if (!stateRef.current.config) return errorResponse(NO_PROGRAM);
         if (!isRecord(input)) {
-          return errorResponse('Input must be an object with index, tier, and result.');
+          return errorResponse('Input must be an object with index, slotId, and result.');
         }
-        const { index, tier, result, amrapReps } = input;
+        const { index, slotId, result, amrapReps } = input;
         const tw = stateRef.current.totalWorkouts;
         if (!isValidIndex(index, tw)) {
           return errorResponse(`index must be an integer between 0 and ${tw - 1}.`);
         }
-        if (!isTier(tier)) {
-          return errorResponse('tier must be one of: t1, t2, t3.');
+        if (typeof slotId !== 'string') {
+          return errorResponse('slotId must be a string.');
+        }
+        const row = stateRef.current.rows[index];
+        if (!row) {
+          return errorResponse(`No workout found at index ${index}.`);
+        }
+        const slot = row.slots.find((s) => s.slotId === slotId);
+        if (!slot) {
+          const validSlots = row.slots.map((s) => s.slotId).join(', ');
+          return errorResponse(`Invalid slotId. Must be one of: ${validSlots}`);
         }
         if (!isResultValue(result)) {
           return errorResponse('result must be "success" or "fail".');
         }
-        stateRef.current.markResult(index, tier, result);
+        stateRef.current.markResult(index, slotId, result);
         if (amrapReps !== undefined) {
           if (
             typeof amrapReps !== 'number' ||
@@ -308,13 +289,12 @@ export function useWebMcp(options: UseWebMcpOptions): void {
           ) {
             return errorResponse('amrapReps must be an integer between 0 and 999.');
           }
-          if (tier === 't1') {
-            stateRef.current.setAmrapReps(index, 't1Reps', amrapReps);
-          } else if (tier === 't3') {
-            stateRef.current.setAmrapReps(index, 't3Reps', amrapReps);
+          if (!slot.isAmrap) {
+            return errorResponse(`Slot ${slotId} is not an AMRAP slot.`);
           }
+          stateRef.current.setAmrapReps(index, slotId, amrapReps);
         }
-        return textResponse({ logged: { index, tier, result, amrapReps: amrapReps ?? null } });
+        return textResponse({ logged: { index, slotId, result, amrapReps: amrapReps ?? null } });
       },
     });
 
@@ -323,7 +303,7 @@ export function useWebMcp(options: UseWebMcpOptions): void {
       description: 'Undo the most recent result change.',
       inputSchema: { type: 'object', properties: {} },
       execute: async (): Promise<ModelContextToolResponse> => {
-        if (!stateRef.current.startWeights) return errorResponse(NO_PROGRAM);
+        if (!stateRef.current.config) return errorResponse(NO_PROGRAM);
         stateRef.current.undoLast();
         return textResponse({ undone: true });
       },
@@ -332,62 +312,47 @@ export function useWebMcp(options: UseWebMcpOptions): void {
     mc.registerTool({
       name: 'initializeProgram',
       description:
-        'Initialize the GZCLP program with starting weights (kg) for all six exercises. Only works when no program exists.',
+        'Initialize the program with starting weights. The required fields depend on the program definition.',
       inputSchema: {
         type: 'object',
-        properties: {
-          squat: { type: 'number', description: 'Squat starting weight in kg (min 2.5)' },
-          bench: { type: 'number', description: 'Bench press starting weight in kg (min 2.5)' },
-          deadlift: { type: 'number', description: 'Deadlift starting weight in kg (min 2.5)' },
-          ohp: { type: 'number', description: 'OHP starting weight in kg (min 2.5)' },
-          latpulldown: {
-            type: 'number',
-            description: 'Lat pulldown starting weight in kg (min 2.5)',
-          },
-          dbrow: { type: 'number', description: 'DB row starting weight in kg (min 2.5)' },
-        },
-        required: ['squat', 'bench', 'deadlift', 'ohp', 'latpulldown', 'dbrow'],
+        properties: {},
       },
       execute: async (input: unknown): Promise<ModelContextToolResponse> => {
-        if (stateRef.current.startWeights) {
+        if (stateRef.current.config) {
           return errorResponse('Program already initialized. Cannot re-initialize.');
+        }
+        const def = stateRef.current.definition;
+        if (!def) {
+          return errorResponse('Program definition not loaded yet.');
         }
         if (!isRecord(input)) {
           return errorResponse(
-            'Input must be an object with squat, bench, deadlift, ohp, latpulldown, dbrow.'
+            `Input must be an object with: ${def.configFields.map((f) => f.key).join(', ')}.`
           );
         }
         const validated: Record<string, number> = {};
-        for (const field of EXERCISE_FIELDS) {
-          const val = input[field];
-          if (typeof val !== 'number' || val < 2.5) {
-            return errorResponse(`${field} must be a number >= 2.5.`);
+        for (const field of def.configFields) {
+          const val = input[field.key];
+          if (typeof val !== 'number' || val < field.min) {
+            return errorResponse(`${field.key} must be a number >= ${field.min}.`);
           }
-          validated[field] = val;
+          validated[field.key] = val;
         }
-        const weights: StartWeights = {
-          squat: validated.squat,
-          bench: validated.bench,
-          deadlift: validated.deadlift,
-          ohp: validated.ohp,
-          latpulldown: validated.latpulldown,
-          dbrow: validated.dbrow,
-        };
-        stateRef.current.generateProgram(weights);
-        return textResponse({ initialized: true, weights });
+        stateRef.current.generateProgram(validated);
+        return textResponse({ initialized: true, weights: validated });
       },
     });
 
     mc.registerTool({
       name: 'scheduleNextWorkout',
       description:
-        'Generate a Google Calendar URL to schedule a GZCLP workout. Opens a pre-filled event creation page — no OAuth or API keys needed.',
+        'Generate a Google Calendar URL to schedule a workout. Opens a pre-filled event creation page.',
       inputSchema: {
         type: 'object',
         properties: {
           workoutIndex: {
             type: 'number',
-            description: 'Workout index (0-89). Defaults to the next incomplete workout.',
+            description: 'Workout index. Defaults to the next incomplete workout.',
           },
           date: {
             type: 'string',
@@ -405,8 +370,8 @@ export function useWebMcp(options: UseWebMcpOptions): void {
       },
       annotations: { readOnlyHint: true },
       execute: async (input: unknown): Promise<ModelContextToolResponse> => {
-        const { rows, startWeights, totalWorkouts: tw, definition: def } = stateRef.current;
-        if (!startWeights) return errorResponse(NO_PROGRAM);
+        const { rows, config, totalWorkouts: tw, definition: def } = stateRef.current;
+        if (!config) return errorResponse(NO_PROGRAM);
         if (!def) return errorResponse('Program definition not loaded yet.');
 
         let workoutIndex: number | undefined;

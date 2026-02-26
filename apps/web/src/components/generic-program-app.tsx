@@ -6,6 +6,7 @@ import { useGenericProgram } from '@/hooks/use-generic-program';
 import { useAuth } from '@/contexts/auth-context';
 import { useToast } from '@/contexts/toast-context';
 import { detectGenericPersonalRecord } from '@/lib/pr-detection';
+import { useWebMcp } from '@/hooks/use-webmcp';
 import { AppHeader } from './app-header';
 import { ConfirmDialog } from './confirm-dialog';
 import { DayNavigator } from './day-navigator';
@@ -82,6 +83,17 @@ export function GenericProgramApp({
     finishProgram,
     resetAll,
   } = useGenericProgram(programId, instanceId);
+
+  useWebMcp({
+    config,
+    rows,
+    definition,
+    totalWorkouts: definition?.totalWorkouts ?? 0,
+    generateProgram,
+    markResult,
+    setAmrapReps,
+    undoLast,
+  });
 
   const queryClient = useQueryClient();
   const { toast } = useToast();
