@@ -1,13 +1,7 @@
 -- Migration: 0015_add_performance_indexes
 --
--- NOTE: CONCURRENTLY was removed because Drizzle's migrator wraps
--- migrations in a transaction, and CREATE INDEX CONCURRENTLY cannot
--- run inside a transaction block. At our current scale (~675 exercises,
--- few program_definitions), regular CREATE INDEX completes in <100ms
--- and the brief ACCESS EXCLUSIVE lock is negligible.
---
--- Each statement is separated by --> statement-breakpoint so Drizzle
--- executes them individually (multi-statement sql.raw() fails in postgres-js).
+-- NOTE: CONCURRENTLY removed (incompatible with Drizzle's transaction wrapper).
+-- Statement breakpoint markers required for postgres-js compatibility.
 
 CREATE EXTENSION IF NOT EXISTS pg_trgm;--> statement-breakpoint
 CREATE INDEX IF NOT EXISTS "exercises_name_trgm_idx"
