@@ -43,6 +43,7 @@ function makeGenericRow(index: number, slots: Partial<GenericSlotRow>[]): Generi
       reps: s.reps ?? 3,
       repsMax: s.repsMax,
       isAmrap: s.isAmrap ?? false,
+      stagesCount: s.stagesCount ?? 1,
       result: s.result,
       amrapReps: s.amrapReps,
       rpe: s.rpe,

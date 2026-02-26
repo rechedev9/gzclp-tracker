@@ -55,6 +55,7 @@ export interface GenericSlotRow {
   readonly reps: number;
   readonly repsMax: number | undefined;
   readonly isAmrap: boolean;
+  readonly stagesCount: number;
   readonly result: ResultValue | undefined;
   readonly amrapReps: number | undefined;
   readonly rpe: number | undefined;

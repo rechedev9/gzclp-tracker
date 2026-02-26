@@ -222,6 +222,7 @@ export function computeGenericProgram(
         reps: stageConfig.reps,
         repsMax: stageConfig.repsMax,
         isAmrap: stageConfig.amrap === true,
+        stagesCount: slot.stages.length,
         result: slotResult.result,
         amrapReps: slotResult.amrapReps,
         rpe: slotResult.rpe,
