@@ -26,6 +26,20 @@ function ToastTrigger({
   return null;
 }
 
+function ToastTriggerWithAction({
+  message,
+  actionLabel,
+}: {
+  readonly message: string;
+  readonly actionLabel: string;
+}): null {
+  const { toast } = useToast();
+  useEffect(() => {
+    toast({ message, action: { label: actionLabel, onClick: () => {} } });
+  }, []);
+  return null;
+}
+
 function renderWithToast(message: string, variant?: 'pr' | 'default'): ReturnType<typeof render> {
   return render(
     <ToastProvider>
@@ -78,6 +92,32 @@ describe('ToastContainer', () => {
       const span = document.querySelector('.hero-number-glow');
 
       expect(span?.textContent).toBe('NUEVO PR — Sentadilla 100 kg');
+    });
+  });
+
+  describe('close button (C-6)', () => {
+    it('should render a close button with aria-label "Cerrar notificación"', () => {
+      renderWithToast('Test message');
+
+      const closeBtn = document.querySelector('[aria-label="Cerrar notificación"]');
+
+      expect(closeBtn).not.toBeNull();
+    });
+  });
+
+  describe('action button tap target (C-6)', () => {
+    it('should have min-h-[44px] class on action button', () => {
+      render(
+        <ToastProvider>
+          <ToastTriggerWithAction message="Undo test" actionLabel="Deshacer" />
+          <ToastContainer />
+        </ToastProvider>
+      );
+
+      const actionBtn = document.querySelector('button.min-h-\\[44px\\]');
+
+      expect(actionBtn).not.toBeNull();
+      expect(actionBtn?.textContent).toBe('Deshacer');
     });
   });
 

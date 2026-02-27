@@ -36,11 +36,18 @@ export function ToastContainer(): React.ReactNode {
                   t.action?.onClick();
                   dismiss(t.id);
                 }}
-                className="text-accent font-bold underline cursor-pointer bg-transparent border-none p-0 text-xs whitespace-nowrap"
+                className="min-h-[44px] py-2 px-3 flex items-center text-accent font-bold underline cursor-pointer bg-transparent border-none text-xs whitespace-nowrap"
               >
                 {t.action.label}
               </button>
             )}
+            <button
+              onClick={() => dismiss(t.id)}
+              className="min-h-[44px] min-w-[44px] flex items-center justify-center text-muted hover:text-heading bg-transparent border-none cursor-pointer transition-colors"
+              aria-label="Cerrar notificación"
+            >
+              &#10005;
+            </button>
           </div>
         );
       })}
