@@ -30,7 +30,7 @@ export function WeekNavigator({
         aria-label="Semana anterior"
         className="font-mono text-[11px] font-bold tracking-widest uppercase px-4 py-2.5 min-h-[44px] border-2 border-rule bg-card text-muted disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer transition-all duration-150 hover:bg-hover-row hover:text-main hover:border-rule-light active:scale-95"
       >
-        &larr; Anterior
+        &larr;<span className="hidden sm:inline"> Anterior</span>
       </button>
 
       <div className="flex-1 flex flex-col items-center gap-2">
@@ -81,7 +81,7 @@ export function WeekNavigator({
         aria-label="Siguiente semana"
         className="font-mono text-[11px] font-bold tracking-widest uppercase px-4 py-2.5 min-h-[44px] border-2 border-rule bg-card text-muted disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer transition-all duration-150 hover:bg-hover-row hover:text-main hover:border-rule-light active:scale-95"
       >
-        Siguiente &rarr;
+        <span className="hidden sm:inline">Siguiente </span>&rarr;
       </button>
     </div>
   );

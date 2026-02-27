@@ -463,8 +463,8 @@ export function ProgramApp({
                 ) : (
                   <>
                     <DayNavigator
-                      days={weekRows.map((row, i) => ({
-                        label: `Entreno ${i + 1}`,
+                      days={weekRows.map((row) => ({
+                        label: row.dayName,
                         isComplete: row.slots.every((s) => s.result !== undefined),
                       }))}
                       selectedDay={selectedDay}

@@ -46,7 +46,7 @@ export function DayNavigator({
             }`}
           >
             <span className="mr-1.5">{day.isComplete ? '\u25CF' : '\u25CB'}</span>
-            Entreno {i + 1}
+            {day.label}
           </button>
         );
       })}

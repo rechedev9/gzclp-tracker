@@ -49,6 +49,7 @@ export function AppShell(): React.ReactNode {
         return updated;
       });
       setAnimatingView(next);
+      window.scrollTo(0, 0);
       navigate(next === 'dashboard' ? '/app' : `/app?view=${next}`, { replace: true });
     },
     [view, navigate]
