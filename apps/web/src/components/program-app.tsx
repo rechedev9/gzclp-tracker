@@ -39,6 +39,7 @@ const preloadStatsPanel = (): void => {
 interface ProgramAppProps {
   readonly programId: string;
   readonly instanceId?: string;
+  readonly isActive?: boolean;
   readonly onBackToDashboard?: () => void;
   readonly onProgramReset?: () => void;
   readonly onGoToProfile?: () => void;
@@ -47,6 +48,7 @@ interface ProgramAppProps {
 export function ProgramApp({
   programId,
   instanceId,
+  isActive: isViewActive = true,
   onBackToDashboard,
   onProgramReset,
   onGoToProfile,
@@ -144,8 +146,8 @@ export function ProgramApp({
   // View mode: card (mobile-first) / table (desktop-first) toggle
   const { viewMode, toggle: toggleViewMode } = useViewMode();
 
-  // Wake lock: keep screen on during active tracker session
-  useWakeLock(activeTab === 'program' && config !== null);
+  // Wake lock: keep screen on during active tracker session (gated by isViewActive)
+  useWakeLock(isViewActive && activeTab === 'program' && config !== null);
 
   // Card mode: day selection within the current week
   const weekRows = weeks[selectedWeek - 1]?.rows ?? [];
@@ -315,9 +317,9 @@ export function ProgramApp({
     return slot ?? null;
   })();
 
-  // Keyboard shortcuts: s/f/u + ArrowLeft/ArrowRight
+  // Keyboard shortcuts: s/f/u + ArrowLeft/ArrowRight (gated by isViewActive)
   useKeyboardShortcuts({
-    isActive: activeTab === 'program' && config !== null,
+    isActive: isViewActive && activeTab === 'program' && config !== null,
     onSuccess: () => {
       if (firstPendingSlot !== null) {
         handleMarkResult(firstPendingIdx, firstPendingSlot.slotId, 'success');

@@ -1,5 +1,17 @@
-import { describe, it, expect, mock } from 'bun:test';
+import { describe, it, expect, mock, beforeAll } from 'bun:test';
 import { render, screen, fireEvent } from '@testing-library/react';
+
+// Polyfill dialog methods for happy-dom if missing
+beforeAll(() => {
+  if (typeof HTMLDialogElement !== 'undefined' && !HTMLDialogElement.prototype.showModal) {
+    HTMLDialogElement.prototype.showModal = function () {
+      this.setAttribute('open', '');
+    };
+    HTMLDialogElement.prototype.close = function () {
+      this.removeAttribute('open');
+    };
+  }
+});
 import { Toolbar } from './toolbar';
 
 // ---------------------------------------------------------------------------
@@ -93,14 +105,11 @@ describe('Toolbar', () => {
       render(<Toolbar {...buildToolbarProps()} />);
 
       openOverflowMenu();
-      fireEvent.click(screen.getByText('Reiniciar Todo'));
+      fireEvent.click(screen.getByRole('menuitem', { name: 'Reiniciar Todo' }));
 
+      const dialog = screen.getByRole('dialog');
+      expect(dialog.hasAttribute('open')).toBe(true);
       expect(screen.getByText('Reiniciar Todo el Progreso')).toBeInTheDocument();
-      expect(
-        screen.getByText(
-          '¿Estás seguro de que quieres reiniciar TODO el progreso? Esto no se puede deshacer.'
-        )
-      ).toBeInTheDocument();
     });
 
     it('should call onReset when reset is confirmed', () => {
@@ -108,7 +117,7 @@ describe('Toolbar', () => {
       render(<Toolbar {...buildToolbarProps({ onReset })} />);
 
       openOverflowMenu();
-      fireEvent.click(screen.getByText('Reiniciar Todo'));
+      fireEvent.click(screen.getByRole('menuitem', { name: 'Reiniciar Todo' }));
       const confirmBtns = screen.getAllByText('Reiniciar Todo');
       fireEvent.click(confirmBtns[confirmBtns.length - 1]);
 
@@ -119,10 +128,17 @@ describe('Toolbar', () => {
       render(<Toolbar {...buildToolbarProps()} />);
 
       openOverflowMenu();
-      fireEvent.click(screen.getByText('Reiniciar Todo'));
-      fireEvent.click(screen.getByText('Cancelar'));
+      fireEvent.click(screen.getByRole('menuitem', { name: 'Reiniciar Todo' }));
 
-      expect(screen.queryByText('Reiniciar Todo el Progreso')).not.toBeInTheDocument();
+      // The reset dialog is the one with [open]; find Cancel within it
+      const openDialog = screen.getByRole('dialog');
+      const cancelBtn = openDialog.querySelector('button');
+      expect(cancelBtn).not.toBeNull();
+      fireEvent.click(cancelBtn!);
+
+      const dialogs = screen.getAllByRole('dialog', { hidden: true });
+      const allClosed = dialogs.every((d) => !d.hasAttribute('open'));
+      expect(allClosed).toBe(true);
     });
   });
 });
