@@ -33,7 +33,9 @@ export function DayNavigator({
             key={i}
             type="button"
             role="tab"
+            id={`day-tab-${i}`}
             aria-selected={isSelected}
+            aria-controls="day-panel"
             onClick={() => onSelectDay(i)}
             className={`shrink-0 px-4 py-2.5 min-h-[44px] text-[12px] font-bold uppercase tracking-wider border-2 cursor-pointer transition-all duration-150 active:scale-95 ${
               isSelected

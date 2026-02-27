@@ -394,12 +394,16 @@ export function ProgramApp({
             {/* Tabs */}
             <div role="tablist" className="flex gap-0 mb-4 sm:mb-8 border-b-2 border-rule">
               <TabButton
+                id="tab-program"
+                controls="panel-program"
                 active={activeTab === 'program'}
                 onClick={() => startTransition(() => setActiveTab('program'))}
               >
                 Programa
               </TabButton>
               <TabButton
+                id="tab-stats"
+                controls="panel-stats"
                 active={activeTab === 'stats'}
                 onClick={() => startTransition(() => setActiveTab('stats'))}
                 onMouseEnter={preloadStatsPanel}
@@ -410,7 +414,7 @@ export function ProgramApp({
             </div>
 
             {activeTab === 'program' && (
-              <>
+              <div id="panel-program" role="tabpanel" aria-labelledby="tab-program">
                 {/* Program info */}
                 <details className="group bg-card border border-rule mb-4 sm:mb-8 overflow-hidden">
                   <summary className="font-mono px-5 py-3.5 font-bold cursor-pointer select-none flex justify-between items-center [&::marker]:hidden list-none text-[11px] tracking-widest uppercase">
@@ -467,43 +471,48 @@ export function ProgramApp({
                       currentDay={currentDayInWeek}
                       onSelectDay={setSelectedDay}
                     />
-                    {weekRows[selectedDay] !== undefined && (
-                      <DayView
-                        workoutIndex={weekRows[selectedDay].index}
-                        workoutNumber={weekRows[selectedDay].index + 1}
-                        dayName={weekRows[selectedDay].dayName}
-                        isCurrent={weekRows[selectedDay].index === firstPendingIdx}
-                        instanceId={instanceId}
-                        slots={weekRows[selectedDay].slots.map((s) => ({
-                          key: s.slotId,
-                          exerciseName: s.exerciseName,
-                          tierLabel: s.tier.toUpperCase(),
-                          role: s.role ?? 'accessory',
-                          weight: s.weight,
-                          scheme: `${s.sets}\u00d7${s.reps}${s.repsMax !== undefined ? `\u2013${s.repsMax}` : ''}${s.isAmrap ? '+' : ''}`,
-                          stage: s.stage,
-                          showStage: s.stagesCount > 1,
-                          isAmrap: s.isAmrap,
-                          result: s.result,
-                          amrapReps: s.amrapReps,
-                          rpe: s.rpe,
-                          showRpe: s.role === 'primary',
-                          isChanged: s.isChanged,
-                          isDeload: s.isDeload,
-                        }))}
-                        onMark={handleMarkResult}
-                        onUndo={undoSpecific}
-                        onSetAmrapReps={setAmrapReps}
-                        onSetRpe={setRpe}
-                      />
-                    )}
+                    <div id="day-panel" role="tabpanel" aria-labelledby={`day-tab-${selectedDay}`}>
+                      {weekRows[selectedDay] !== undefined && (
+                        <DayView
+                          workoutIndex={weekRows[selectedDay].index}
+                          workoutNumber={weekRows[selectedDay].index + 1}
+                          dayName={weekRows[selectedDay].dayName}
+                          isCurrent={weekRows[selectedDay].index === firstPendingIdx}
+                          instanceId={instanceId}
+                          slots={weekRows[selectedDay].slots.map((s) => ({
+                            key: s.slotId,
+                            exerciseName: s.exerciseName,
+                            tierLabel: s.tier.toUpperCase(),
+                            role: s.role ?? 'accessory',
+                            weight: s.weight,
+                            scheme: `${s.sets}\u00d7${s.reps}${s.repsMax !== undefined ? `\u2013${s.repsMax}` : ''}${s.isAmrap ? '+' : ''}`,
+                            stage: s.stage,
+                            showStage: s.stagesCount > 1,
+                            isAmrap: s.isAmrap,
+                            result: s.result,
+                            amrapReps: s.amrapReps,
+                            rpe: s.rpe,
+                            showRpe: s.role === 'primary',
+                            isChanged: s.isChanged,
+                            isDeload: s.isDeload,
+                          }))}
+                          onMark={handleMarkResult}
+                          onUndo={undoSpecific}
+                          onSetAmrapReps={setAmrapReps}
+                          onSetRpe={setRpe}
+                        />
+                      )}
+                    </div>
                   </>
                 )}
-              </>
+              </div>
             )}
 
             {activeTab === 'stats' && (
               <div
+                id="panel-stats"
+                role="tabpanel"
+                aria-labelledby="tab-stats"
                 className="transition-opacity duration-150"
                 style={{ opacity: isPending ? 0.6 : 1 }}
               >

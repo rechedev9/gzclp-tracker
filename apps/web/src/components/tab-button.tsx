@@ -1,7 +1,9 @@
 import type { ReactNode } from 'react';
 
 interface TabButtonProps {
+  readonly id?: string;
   readonly active: boolean;
+  readonly controls?: string;
   readonly onClick: () => void;
   readonly onMouseEnter?: () => void;
   readonly onFocus?: () => void;
@@ -9,7 +11,9 @@ interface TabButtonProps {
 }
 
 export function TabButton({
+  id,
   active,
+  controls,
   onClick,
   onMouseEnter,
   onFocus,
@@ -17,8 +21,10 @@ export function TabButton({
 }: TabButtonProps): ReactNode {
   return (
     <button
+      id={id}
       role="tab"
       aria-selected={active}
+      aria-controls={controls}
       onClick={onClick}
       onMouseEnter={onMouseEnter}
       onFocus={onFocus}
