@@ -349,7 +349,7 @@ const CANONICAL_EXERCISES: readonly ExerciseSeed[] = [
   // ── PHUL exercises (unique to PHUL) ──
   {
     id: 'skullcrusher',
-    name: 'Skull Crusher',
+    name: 'Extensión de Tríceps Tumbado',
     muscleGroupId: 'arms',
     equipment: 'barbell',
     isCompound: false,
