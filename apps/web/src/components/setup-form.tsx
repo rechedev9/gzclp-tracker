@@ -56,6 +56,14 @@ export function SetupForm({
     };
   }, []);
 
+  // Auto-focus first field on initial setup (not edit mode)
+  const firstFieldKey = fields[0]?.key;
+  useEffect(() => {
+    if (!isEditMode && firstFieldKey) {
+      document.getElementById(`weight-${firstFieldKey}`)?.focus();
+    }
+  }, [isEditMode, firstFieldKey]);
+
   const [showConfirm, setShowConfirm] = useState(false);
   const [pendingConfig, setPendingConfig] = useState<Record<string, number> | null>(null);
   const [error, setError] = useState<string | null>(null);
