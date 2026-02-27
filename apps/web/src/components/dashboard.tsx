@@ -319,6 +319,20 @@ export function Dashboard({
             </div>
           )}
 
+          {/* Catalog error state */}
+          {catalogQuery.isError && (
+            <div className="bg-card border border-rule p-6 text-center">
+              <p className="text-sm text-muted mb-3">No se pudo cargar el catálogo de programas.</p>
+              <button
+                type="button"
+                onClick={() => void catalogQuery.refetch()}
+                className="px-4 py-2.5 min-h-[44px] text-xs font-bold cursor-pointer bg-btn text-btn-text border-2 border-btn-ring hover:bg-btn-active hover:text-btn-active-text transition-colors"
+              >
+                Reintentar
+              </button>
+            </div>
+          )}
+
           {/* Catalog loaded — render program cards (exclude active program) */}
           {catalogQuery.data &&
             (() => {
