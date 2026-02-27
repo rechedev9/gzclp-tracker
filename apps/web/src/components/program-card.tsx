@@ -34,8 +34,7 @@ export function ProgramCard({
 
   return (
     <div
-      onClick={disabled ? undefined : onSelect}
-      className={`bg-card border border-rule p-5 sm:p-6 flex flex-col gap-3 card card-interactive edge-glow-top ${disabled ? 'opacity-60' : 'cursor-pointer'}`}
+      className={`bg-card border border-rule p-5 sm:p-6 flex flex-col gap-3 card card-interactive edge-glow-top ${disabled ? 'opacity-60' : ''}`}
     >
       {/* Header: name + category badge */}
       <div className="flex items-start justify-between gap-2">
@@ -61,10 +60,7 @@ export function ProgramCard({
 
       {/* CTA */}
       <button
-        onClick={(e) => {
-          e.stopPropagation();
-          onSelect();
-        }}
+        onClick={onSelect}
         disabled={disabled}
         className={`mt-auto px-4 py-2.5 text-xs font-bold border-2 cursor-pointer transition-all disabled:opacity-30 disabled:cursor-not-allowed ${
           isActive
