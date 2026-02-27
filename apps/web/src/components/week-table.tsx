@@ -94,7 +94,7 @@ export function WeekTable({
   }, [weekRows]);
 
   return (
-    <div ref={scrollRef} className="overflow-x-auto -mx-3 sm:mx-0 table-scroll-shadow">
+    <div ref={scrollRef} className="overflow-x-auto -mx-3 px-3 sm:mx-0 sm:px-0 table-scroll-shadow">
       <table className="w-full border-collapse min-w-[680px]">
         <thead>
           <tr className="border-b-2 border-rule">
@@ -151,7 +151,7 @@ export function WeekTable({
                     <tr
                       key={slot.slotId}
                       className={`border-b border-rule-light transition-opacity duration-200 ${
-                        fullyDone ? 'opacity-55' : ''
+                        fullyDone ? 'opacity-70' : ''
                       } ${isCurrent && !fullyDone ? 'bg-[rgba(232,170,32,0.03)]' : ''} ${
                         slot.isChanged && !isDone ? 'bg-changed' : ''
                       }`}

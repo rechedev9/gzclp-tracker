@@ -260,7 +260,7 @@ describe('WeekTable conditional columns', () => {
   });
 
   describe('completed row opacity (REQ-TIF-002)', () => {
-    it('applies opacity-55 class to a fully completed row', () => {
+    it('applies opacity-70 class to a fully completed row', () => {
       const { container } = render(
         <WeekTable
           weekRows={[
@@ -281,11 +281,11 @@ describe('WeekTable conditional columns', () => {
         />
       );
 
-      // The exercise <tr> (not the day-header <tr>) should have opacity-55
+      // The exercise <tr> (not the day-header <tr>) should have opacity-70
       const rows = container.querySelectorAll('tbody tr');
       // Row 0 = day header, Row 1 = exercise slot
       const exerciseRow = rows[1];
-      expect(exerciseRow?.className).toContain('opacity-55');
+      expect(exerciseRow?.className).toContain('opacity-70');
     });
   });
 

@@ -37,20 +37,20 @@ function buildProps(overrides?: Partial<ExerciseCardProps>): ExerciseCardProps {
 
 describe('ExerciseCard', () => {
   describe('completed card opacity (REQ-TIF-002)', () => {
-    it('should have opacity-55 class when result is defined', () => {
+    it('should have opacity-70 class when result is defined', () => {
       const { container } = render(<ExerciseCard {...buildProps({ result: 'success' })} />);
 
       const card = container.firstElementChild;
 
-      expect(card?.className).toContain('opacity-55');
+      expect(card?.className).toContain('opacity-70');
     });
 
-    it('should NOT have opacity-55 class when result is undefined', () => {
+    it('should NOT have opacity-70 class when result is undefined', () => {
       const { container } = render(<ExerciseCard {...buildProps({ result: undefined })} />);
 
       const card = container.firstElementChild;
 
-      expect(card?.className).not.toContain('opacity-55');
+      expect(card?.className).not.toContain('opacity-70');
     });
   });
 

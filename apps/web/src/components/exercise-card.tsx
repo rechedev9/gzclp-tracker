@@ -85,7 +85,7 @@ export function ExerciseCard({
       className={`bg-card border border-rule p-4 card transition-all duration-200 ${
         role === 'primary' ? 'accent-left-gold' : role === 'secondary' ? 'accent-left-muted' : ''
       } ${
-        result !== undefined ? 'opacity-55 saturate-50' : ''
+        result !== undefined ? 'opacity-70 saturate-50' : ''
       } ${isChanged && result === undefined ? 'bg-changed' : ''}`}
     >
       {/* Tier · Exercise name */}
