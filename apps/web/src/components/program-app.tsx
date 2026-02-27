@@ -10,7 +10,7 @@ import { computeProfileData, compute1RMData } from '@/lib/profile-stats';
 import { useWebMcp } from '@/hooks/use-webmcp';
 import { useViewMode } from '@/hooks/use-view-mode';
 import { useWakeLock } from '@/hooks/use-wake-lock';
-import { useRestTimer } from '@/hooks/use-rest-timer';
+
 import { useKeyboardShortcuts } from '@/hooks/use-keyboard-shortcuts';
 import { generateProgramCsv, downloadCsv } from '@/lib/csv-export';
 import { AppHeader } from './app-header';
@@ -19,7 +19,7 @@ import { DayNavigator } from './day-navigator';
 import { DayView } from './day-view';
 import { ErrorBoundary } from './error-boundary';
 import { ProgramCompletionScreen } from './program-completion-screen';
-import { RestTimer } from './rest-timer';
+
 import { SetupForm } from './setup-form';
 import { StatsSkeleton } from './stats-skeleton';
 import { TabButton } from './tab-button';
@@ -144,9 +144,6 @@ export function ProgramApp({
   // Wake lock: keep screen on during active tracker session
   useWakeLock(activeTab === 'program' && config !== null);
 
-  // Rest timer: auto-starts after marking a result
-  const restTimer = useRestTimer();
-
   // Card mode: day selection within the current week
   const weekRows = weeks[selectedWeek - 1]?.rows ?? [];
 
@@ -201,7 +198,6 @@ export function ProgramApp({
     const row = rows[workoutIndex];
     if (!row) {
       recordAndToast(workoutIndex, slotId, value);
-      restTimer.startIfIdle();
       return;
     }
 
@@ -234,7 +230,6 @@ export function ProgramApp({
     }
 
     recordAndToast(workoutIndex, slotId, value);
-    restTimer.startIfIdle();
   };
 
   const handleRpeReminderContinue = (): void => {
@@ -541,7 +536,6 @@ export function ProgramApp({
         onCancel={handleRpeReminderContinue}
       />
 
-      <RestTimer remaining={restTimer.remaining} onDismiss={restTimer.stop} />
       <ToastContainer />
 
       {showCompletion &&
