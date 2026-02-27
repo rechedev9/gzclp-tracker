@@ -1,11 +1,18 @@
 import { useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueries } from '@tanstack/react-query';
 import { extractGenericChartData, calculateStats } from '@gzclp/shared/generic-stats';
+import { computeGenericProgram } from '@gzclp/shared/generic-engine';
 import { useProgram } from '@/hooks/use-program';
 import { useAuth } from '@/contexts/auth-context';
-import { computeProfileData, formatVolume } from '@/lib/profile-stats';
-import { fetchPrograms, updateProfile, type ProgramSummary } from '@/lib/api-functions';
+import { computeProfileData, computeVolume, formatVolume } from '@/lib/profile-stats';
+import {
+  fetchPrograms,
+  fetchGenericProgramDetail,
+  fetchCatalogDetail,
+  updateProfile,
+  type ProgramSummary,
+} from '@/lib/api-functions';
 import { queryKeys } from '@/lib/query-keys';
 import { resizeImageToDataUrl } from '@/lib/resize-image';
 import { Button } from './button';
@@ -30,13 +37,17 @@ export function ProfilePage({ programId, instanceId, onBack }: ProfilePageProps)
     enabled: user !== null,
   });
 
+  const [selectedInstanceId, setSelectedInstanceId] = useState<string | undefined>(undefined);
+
   const completedPrograms: readonly ProgramSummary[] = allPrograms
     .filter((p) => p.status === 'completed')
     .sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime());
 
   // When navigating to profile without a specific selection (e.g. after finishing),
   // auto-show the most recently active or completed program.
+  // The user-selected value (from the <select> or "Ver estadísticas") takes priority.
   const effectiveInstanceId: string | undefined = (() => {
+    if (selectedInstanceId) return selectedInstanceId;
     if (instanceId) return instanceId;
     const active = allPrograms.find((p) => p.status === 'active');
     if (active) return active.id;
@@ -44,6 +55,11 @@ export function ProfilePage({ programId, instanceId, onBack }: ProfilePageProps)
   })();
 
   const effectiveProgramId: string = (() => {
+    // If user selected a program via dropdown/button, look up its programId
+    if (selectedInstanceId) {
+      const selected = allPrograms.find((p) => p.id === selectedInstanceId);
+      if (selected) return selected.programId;
+    }
     if (instanceId && programId) return programId;
     if (instanceId) return programId ?? 'gzclp';
     const active = allPrograms.find((p) => p.status === 'active');
@@ -94,6 +110,52 @@ export function ProfilePage({ programId, instanceId, onBack }: ProfilePageProps)
   const chartData = (() => {
     if (!definition || rows.length === 0) return null;
     return extractGenericChartData(definition, rows);
+  })();
+
+  // Lifetime volume: fetch details for all programs and sum volumes
+  const uniqueProgramIds = [...new Set(allPrograms.map((p) => p.programId))];
+
+  const catalogDetailQueries = useQueries({
+    queries: uniqueProgramIds.map((progId) => ({
+      queryKey: queryKeys.catalog.detail(progId),
+      queryFn: () => fetchCatalogDetail(progId),
+      staleTime: 5 * 60 * 1000,
+    })),
+  });
+
+  const programDetailQueries = useQueries({
+    queries: allPrograms.map((p) => ({
+      queryKey: queryKeys.programs.detail(p.id),
+      queryFn: () => fetchGenericProgramDetail(p.id),
+      staleTime: 5 * 60 * 1000,
+      enabled: user !== null,
+    })),
+  });
+
+  const lifetimeVolume: number | null = (() => {
+    const allCatalogLoaded = catalogDetailQueries.every((q) => q.isSuccess);
+    const allDetailLoaded = programDetailQueries.every((q) => q.isSuccess);
+    if (!allCatalogLoaded || !allDetailLoaded) return null;
+
+    const catalogMap = new Map(
+      catalogDetailQueries
+        .filter((q) => q.data !== undefined)
+        .map((q) => {
+          const d = q.data;
+          return [d.id, d];
+        })
+    );
+
+    let total = 0;
+    for (let i = 0; i < allPrograms.length; i++) {
+      const detail = programDetailQueries[i]?.data;
+      const def = catalogMap.get(allPrograms[i].programId);
+      if (!detail || !def) continue;
+      const programRows = computeGenericProgram(def, detail.config, detail.results);
+      const vol = computeVolume(programRows);
+      total += vol.totalVolume;
+    }
+    return total;
   })();
 
   const handleAvatarClick = (): void => {
@@ -159,6 +221,30 @@ export function ProfilePage({ programId, instanceId, onBack }: ProfilePageProps)
             Perfil
           </h1>
         </section>
+
+        {/* Program selector (only when multiple programs exist) */}
+        {allPrograms.length > 1 && (
+          <section className="mb-8">
+            <label htmlFor="program-selector" className="section-label mb-2 block">
+              Programa
+            </label>
+            <select
+              id="program-selector"
+              value={effectiveInstanceId ?? ''}
+              onChange={(e: React.ChangeEvent<HTMLSelectElement>) =>
+                setSelectedInstanceId(e.target.value || undefined)
+              }
+              className="w-full bg-[var(--bg-card)] border border-[var(--border-color)] text-sm text-[var(--text-header)] px-4 py-3 font-mono appearance-none cursor-pointer focus:outline-none focus:border-[var(--fill-progress)] transition-colors"
+            >
+              {allPrograms.map((p) => (
+                <option key={p.id} value={p.id}>
+                  {p.name}
+                  {p.status === 'active' ? ' (Activo)' : ''}
+                </option>
+              ))}
+            </select>
+          </section>
+        )}
 
         {/* Account settings (authenticated users only) */}
         {user && (
@@ -245,7 +331,7 @@ export function ProfilePage({ programId, instanceId, onBack }: ProfilePageProps)
 
             {/* Summary stats */}
             <section className="mb-12">
-              <div className="grid grid-cols-3 gap-3">
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                 <ProfileStatCard
                   value={String(profileData.completion.workoutsCompleted)}
                   label="Entrenamientos"
@@ -254,6 +340,11 @@ export function ProfilePage({ programId, instanceId, onBack }: ProfilePageProps)
                 <ProfileStatCard
                   value={`${profileData.completion.overallSuccessRate}%`}
                   label="Tasa de Éxito"
+                />
+                <ProfileStatCard
+                  value={`${formatVolume(profileData.volume.totalVolume)} kg`}
+                  label="Volumen Total"
+                  sublabel={`${profileData.volume.totalSets} series / ${profileData.volume.totalReps} reps`}
                 />
                 <ProfileStatCard
                   value={`${profileData.completion.completionPct}%`}
@@ -338,6 +429,37 @@ export function ProfilePage({ programId, instanceId, onBack }: ProfilePageProps)
               </div>
             </section>
 
+            {/* 1RM Estimates */}
+            {profileData.oneRMEstimates.length > 0 && (
+              <section className="mb-12">
+                <h2 className="section-label mb-4">1RM Estimado (Epley)</h2>
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                  {profileData.oneRMEstimates.map((e) => (
+                    <ProfileStatCard
+                      key={e.exercise}
+                      value={`${e.estimatedKg} kg`}
+                      label={e.displayName}
+                      sublabel={`${e.sourceWeight} kg \u00D7 ${e.sourceAmrapReps} reps`}
+                    />
+                  ))}
+                </div>
+                <p className="text-[10px] text-[var(--text-muted)] mt-2 text-center">
+                  Estimaci{'\u00F3'}n basada en la f{'\u00F3'}rmula de Epley
+                </p>
+              </section>
+            )}
+
+            {/* Lifetime volume (all programs) */}
+            {allPrograms.length > 1 && (
+              <section className="mb-12">
+                <ProfileStatCard
+                  value={lifetimeVolume !== null ? `${formatVolume(lifetimeVolume)} kg` : '...'}
+                  label="Volumen Total (Todos los Programas)"
+                  sublabel={`${allPrograms.length} programas`}
+                />
+              </section>
+            )}
+
             {/* Weight Progression Charts */}
             {chartData && (
               <section className="mb-10">
@@ -398,16 +520,30 @@ export function ProfilePage({ programId, instanceId, onBack }: ProfilePageProps)
                       })}
                     </p>
                   </div>
-                  <span
-                    className="shrink-0 font-mono text-[9px] tracking-widest uppercase px-2 py-1"
-                    style={{
-                      background: 'rgba(200,168,78,0.08)',
-                      border: '1px solid rgba(200,168,78,0.2)',
-                      color: 'var(--text-header)',
-                    }}
-                  >
-                    Completado
-                  </span>
+                  <div className="flex items-center gap-2 shrink-0">
+                    {p.id !== effectiveInstanceId && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setSelectedInstanceId(p.id);
+                          window.scrollTo({ top: 0, behavior: 'smooth' });
+                        }}
+                        className="text-[10px] font-bold text-[var(--text-muted)] hover:text-[var(--text-header)] transition-colors cursor-pointer border border-[var(--border-color)] px-2.5 py-1.5 hover:border-[var(--border-light)]"
+                      >
+                        Ver estad{'\u00ED'}sticas
+                      </button>
+                    )}
+                    <span
+                      className="shrink-0 font-mono text-[9px] tracking-widest uppercase px-2 py-1"
+                      style={{
+                        background: 'rgba(200,168,78,0.08)',
+                        border: '1px solid rgba(200,168,78,0.2)',
+                        color: 'var(--text-header)',
+                      }}
+                    >
+                      Completado
+                    </span>
+                  </div>
                 </div>
               ))}
             </div>

@@ -63,12 +63,23 @@ export interface MonthlyReport {
   readonly totalReps: number;
 }
 
+export interface OneRMEstimate {
+  readonly exercise: string;
+  readonly displayName: string;
+  readonly estimatedKg: number;
+  readonly sourceWeight: number;
+  readonly sourceAmrapReps: number;
+  readonly workoutIndex: number;
+}
+
 export interface ProfileData {
   readonly personalRecords: readonly PersonalRecord[];
   readonly streak: StreakInfo;
   readonly volume: VolumeStats;
   readonly completion: CompletionStats;
   readonly monthlyReport: MonthlyReport | null;
+  readonly oneRMEstimates: readonly OneRMEstimate[];
+  readonly lifetimeVolumeKg: number;
 }
 
 // ─── Row-level helpers (generic slot-based) ─────────────────────────
@@ -181,13 +192,12 @@ function computeStreak(rows: readonly GenericWorkoutRow[], totalWorkouts: number
     if (tick.isComplete) {
       streak += 1;
       if (streak > longest) longest = streak;
-    } else {
-      if (tick.marks === 0) {
-        current = streak;
-        break;
-      }
-      streak = 0;
+    } else if (tick.marks === 0) {
+      // Fully untouched workout — streak ends
+      current = streak;
+      break;
     }
+    // else: partial workout (marks > 0 but not complete) — streak-neutral, skip
 
     if (i === totalWorkouts - 1) {
       current = streak;
@@ -197,7 +207,7 @@ function computeStreak(rows: readonly GenericWorkoutRow[], totalWorkouts: number
   return { current, longest };
 }
 
-function computeVolume(rows: readonly GenericWorkoutRow[]): VolumeStats {
+export function computeVolume(rows: readonly GenericWorkoutRow[]): VolumeStats {
   let totalVolume = 0;
   let totalSets = 0;
   let totalReps = 0;
@@ -252,6 +262,85 @@ function computeCompletion(
   };
 }
 
+// ─── 1RM Estimation (Epley formula) ─────────────────────────────────
+
+const HALF_KG = 0.5;
+
+/** Round to the nearest 0.5 kg. */
+function roundToHalfKg(value: number): number {
+  return Math.round(value / HALF_KG) * HALF_KG;
+}
+
+/** Check whether a slot qualifies for 1RM estimation. */
+function isQualifyingAmrap(slot: GenericWorkoutRow['slots'][number], exerciseId: string): boolean {
+  return (
+    slot.exerciseId === exerciseId &&
+    slot.tier === 't1' &&
+    slot.isAmrap &&
+    slot.amrapReps !== undefined &&
+    slot.amrapReps >= 1 &&
+    slot.result === 'success'
+  );
+}
+
+/** Find the best 1RM estimate for a single exercise across all rows. */
+function findBestEstimate(
+  rows: readonly GenericWorkoutRow[],
+  exerciseId: string
+): { estimate: number; weight: number; reps: number; index: number } | undefined {
+  let bestEstimate = -1;
+  let bestWeight = 0;
+  let bestReps = 0;
+  let bestIndex = -1;
+
+  for (const row of rows) {
+    const slot = row.slots.find((s) => isQualifyingAmrap(s, exerciseId));
+    if (!slot || slot.amrapReps === undefined) continue;
+
+    const estimated = slot.weight * (1 + slot.amrapReps / 30);
+    if (estimated > bestEstimate) {
+      bestEstimate = estimated;
+      bestWeight = slot.weight;
+      bestReps = slot.amrapReps;
+      bestIndex = row.index;
+    }
+  }
+
+  return bestEstimate > 0
+    ? { estimate: bestEstimate, weight: bestWeight, reps: bestReps, index: bestIndex }
+    : undefined;
+}
+
+/**
+ * Compute best estimated 1RM for each T1 exercise using the Epley formula.
+ * Scans ALL successful AMRAP results and picks the highest estimate per exercise.
+ * Returns one entry per qualifying exercise; empty array when no AMRAP data exists.
+ */
+export function compute1RMData(
+  rows: readonly GenericWorkoutRow[],
+  definition: ProgramDefinition
+): readonly OneRMEstimate[] {
+  const names = deriveNames(definition);
+  const primaryExercises = derivePrimaryExercises(definition);
+  const estimates: OneRMEstimate[] = [];
+
+  for (const exerciseId of primaryExercises) {
+    const best = findBestEstimate(rows, exerciseId);
+    if (!best) continue;
+
+    estimates.push({
+      exercise: exerciseId,
+      displayName: names[exerciseId] ?? exerciseId,
+      estimatedKg: roundToHalfKg(best.estimate),
+      sourceWeight: best.weight,
+      sourceAmrapReps: best.reps,
+      workoutIndex: best.index,
+    });
+  }
+
+  return estimates;
+}
+
 /** Find the best pre-month weight for a primary exercise from prior rows. */
 function findPriorBest(
   rows: readonly GenericWorkoutRow[],
@@ -301,27 +390,29 @@ function countMonthlyPRs(
   return count;
 }
 
+const ROLLING_WINDOW_LABEL = 'Últimos 30 días';
+const ROLLING_WINDOW_DAYS = 30;
+
 function computeMonthlyReport(
   rows: readonly GenericWorkoutRow[],
   config: Record<string, number>,
   resultTimestamps: Readonly<Record<string, string>>
 ): MonthlyReport | null {
   const now = new Date();
-  const currentMonth = now.getMonth();
-  const currentYear = now.getFullYear();
-  const monthLabel = now.toLocaleString('es-ES', { month: 'long', year: 'numeric' });
+  const cutoff = new Date(now);
+  cutoff.setDate(cutoff.getDate() - ROLLING_WINDOW_DAYS);
+  const cutoffTime = cutoff.getTime();
 
-  const monthIndices = new Set<number>();
+  const windowIndices = new Set<number>();
   for (const [indexStr, ts] of Object.entries(resultTimestamps)) {
-    const date = new Date(ts);
-    if (date.getMonth() === currentMonth && date.getFullYear() === currentYear) {
-      monthIndices.add(Number(indexStr));
+    if (new Date(ts).getTime() >= cutoffTime) {
+      windowIndices.add(Number(indexStr));
     }
   }
 
-  if (monthIndices.size === 0) return null;
+  if (windowIndices.size === 0) return null;
 
-  const monthRows = rows.filter((r) => monthIndices.has(r.index));
+  const windowRows = rows.filter((r) => windowIndices.has(r.index));
 
   let completed = 0;
   let successes = 0;
@@ -330,7 +421,7 @@ function computeMonthlyReport(
   let sets = 0;
   let reps = 0;
 
-  for (const row of monthRows) {
+  for (const row of windowRows) {
     const st = rowSuccessTick(row);
     if (st.isComplete) completed += 1;
     successes += st.successes;
@@ -342,11 +433,10 @@ function computeMonthlyReport(
     reps += vt.reps;
   }
 
-  // Count PRs: primary slot successes this month that exceed pre-month best
-  const prCount = countMonthlyPRs(monthRows, rows, monthIndices, config);
+  const prCount = countMonthlyPRs(windowRows, rows, windowIndices, config);
 
   return {
-    monthLabel,
+    monthLabel: ROLLING_WINDOW_LABEL,
     workoutsCompleted: completed,
     personalRecords: prCount,
     totalVolume: Math.round(volume),
@@ -389,6 +479,8 @@ export function computeProfileData(
         totalWeightGained: 0,
       },
       monthlyReport: null,
+      oneRMEstimates: [],
+      lifetimeVolumeKg: 0,
     };
   }
 
@@ -399,12 +491,21 @@ export function computeProfileData(
   const monthlyReport = resultTimestamps
     ? computeMonthlyReport(rows, config, resultTimestamps)
     : null;
+  const oneRMEstimates = compute1RMData(rows, definition);
 
-  return { personalRecords, streak, volume, completion, monthlyReport };
+  return {
+    personalRecords,
+    streak,
+    volume,
+    completion,
+    monthlyReport,
+    oneRMEstimates,
+    lifetimeVolumeKg: volume.totalVolume,
+  };
 }
 
-// en-US locale ensures comma as thousands separator (e.g. 75,264) regardless of browser locale.
-const volumeFormatter = new Intl.NumberFormat('en-US', { maximumFractionDigits: 0 });
+// es-ES locale uses dot as thousands separator (e.g. 75.264) matching the Spanish UI.
+const volumeFormatter = new Intl.NumberFormat('es-ES', { maximumFractionDigits: 0 });
 
 export function formatVolume(kg: number): string {
   return volumeFormatter.format(kg);

@@ -54,4 +54,30 @@ describe('AmrapInput', () => {
       expect(onChange).toHaveBeenCalledWith(1);
     });
   });
+
+  describe('inline 1RM estimate', () => {
+    it('should show "1RM est." when result=success and weight provided and value > 0', () => {
+      render(<AmrapInput value={5} onChange={mock()} result="success" weight={60} />);
+
+      const estimateText = screen.getByText(/1RM est\./);
+
+      expect(estimateText).toBeDefined();
+    });
+
+    it('should NOT show 1RM estimate when result=fail', () => {
+      render(<AmrapInput value={5} onChange={mock()} result="fail" weight={60} />);
+
+      const estimateTexts = screen.queryByText(/1RM est\./);
+
+      expect(estimateTexts).toBeNull();
+    });
+
+    it('should NOT show 1RM estimate when value is undefined', () => {
+      render(<AmrapInput value={undefined} onChange={mock()} result="success" weight={60} />);
+
+      const estimateTexts = screen.queryByText(/1RM est\./);
+
+      expect(estimateTexts).toBeNull();
+    });
+  });
 });

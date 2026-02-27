@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'bun:test';
 import { computeGenericProgram } from '@gzclp/shared/generic-engine';
 import type { GenericResults } from '@gzclp/shared/types/program';
-import { computeProfileData, formatVolume } from './profile-stats';
+import { computeProfileData, compute1RMData, formatVolume } from './profile-stats';
 import {
   GZCLP_DEFINITION_FIXTURE,
   DEFAULT_WEIGHTS,
@@ -96,7 +96,7 @@ describe('computeProfileData', () => {
       expect(profile.streak.longest).toBe(4);
     });
 
-    it('should break streak on partial completion', () => {
+    it('should treat partial workouts as streak-neutral', () => {
       const results = buildGenericResults([
         [
           0,
@@ -106,7 +106,7 @@ describe('computeProfileData', () => {
             'latpulldown-t3': { result: 'success' },
           },
         ],
-        [1, { 'd2-t1': { result: 'success' } }], // partial
+        [1, { 'd2-t1': { result: 'success' } }], // partial — streak-neutral
         [
           2,
           {
@@ -119,10 +119,14 @@ describe('computeProfileData', () => {
       const rows = computeGenericProgram(DEF, CONFIG, results);
       const profile = computeProfileData(rows, DEF, CONFIG);
 
-      expect(profile.streak.longest).toBe(1);
+      // Partial workout does not break or reset the streak
+      expect(profile.streak.longest).toBe(2);
+      expect(profile.streak.current).toBe(2);
     });
 
-    it('should track longest streak separately from current', () => {
+    it('should continue streak through partial workouts', () => {
+      // Partial workout (marks > 0 but not complete) should not break the streak.
+      // Workouts 0-2 complete, workout 3 partial (1/3 slots), workout 4 complete.
       const results = buildGenericResults([
         [
           0,
@@ -148,7 +152,7 @@ describe('computeProfileData', () => {
             'latpulldown-t3': { result: 'success' },
           },
         ],
-        [3, { 'd4-t1': { result: 'success' } }], // breaks streak
+        [3, { 'd4-t1': { result: 'success' } }], // partial — streak-neutral
         [
           4,
           {
@@ -161,8 +165,9 @@ describe('computeProfileData', () => {
       const rows = computeGenericProgram(DEF, CONFIG, results);
       const profile = computeProfileData(rows, DEF, CONFIG);
 
-      expect(profile.streak.longest).toBe(3);
-      expect(profile.streak.current).toBe(1);
+      // Streak of 4 completed workouts (0, 1, 2, 4) — partial at 3 is skipped
+      expect(profile.streak.longest).toBe(4);
+      expect(profile.streak.current).toBe(4);
     });
   });
 
@@ -267,15 +272,205 @@ describe('computeProfileData', () => {
 // formatVolume — locale-aware formatting
 // ---------------------------------------------------------------------------
 describe('formatVolume', () => {
-  it('should use comma as thousands separator regardless of locale', () => {
-    expect(formatVolume(75264)).toBe('75,264');
+  it('should use dot as thousands separator (es-ES locale)', () => {
+    expect(formatVolume(75264)).toBe('75.264');
   });
 
   it('should strip fractional digits', () => {
-    expect(formatVolume(12345.6)).toBe('12,346');
+    expect(formatVolume(12345.6)).toBe('12.346');
   });
 
   it('should format zero', () => {
     expect(formatVolume(0)).toBe('0');
+  });
+});
+
+// ---------------------------------------------------------------------------
+// compute1RMData — Epley 1RM estimation
+// ---------------------------------------------------------------------------
+describe('compute1RMData', () => {
+  it('should return correct 1RM using Epley formula for a single T1 AMRAP exercise', () => {
+    // Squat T1 at index 0 (Day 1), 60 kg * (1 + 5/30) = 70 kg
+    const results = buildGenericResults([
+      [
+        0,
+        {
+          'd1-t1': { result: 'success', amrapReps: 5 },
+          'd1-t2': { result: 'success' },
+          'latpulldown-t3': { result: 'success' },
+        },
+      ],
+    ]);
+    const rows = computeGenericProgram(DEF, CONFIG, results);
+    const estimates = compute1RMData(rows, DEF);
+
+    const squat = estimates.find((e) => e.exercise === 'squat');
+
+    // Epley: 60 * (1 + 5/30) = 60 * 1.1667 = 70.0 → rounded to nearest 0.5 = 70.0
+    expect(squat).toBeDefined();
+    expect(squat?.estimatedKg).toBe(70);
+    expect(squat?.sourceWeight).toBe(60);
+    expect(squat?.sourceAmrapReps).toBe(5);
+  });
+
+  it('should pick highest estimate across multiple workouts (not most recent)', () => {
+    // Workout 0: squat 60 kg x 8 AMRAP => 60*(1+8/30) = 76.0
+    // Workout 4: squat 65 kg x 3 AMRAP => 65*(1+3/30) = 71.5
+    // Should pick workout 0 (higher estimate) even though workout 4 is more recent
+    const results = buildGenericResults([
+      [
+        0,
+        {
+          'd1-t1': { result: 'success', amrapReps: 8 },
+          'd1-t2': { result: 'success' },
+          'latpulldown-t3': { result: 'success' },
+        },
+      ],
+      [
+        1,
+        {
+          'd2-t1': { result: 'success' },
+          'd2-t2': { result: 'success' },
+          'dbrow-t3': { result: 'success' },
+        },
+      ],
+      [
+        2,
+        {
+          'd3-t1': { result: 'success' },
+          'd3-t2': { result: 'success' },
+          'latpulldown-t3': { result: 'success' },
+        },
+      ],
+      [
+        3,
+        {
+          'd4-t1': { result: 'success' },
+          'd4-t2': { result: 'success' },
+          'dbrow-t3': { result: 'success' },
+        },
+      ],
+      [
+        4,
+        {
+          'd1-t1': { result: 'success', amrapReps: 3 },
+          'd1-t2': { result: 'success' },
+          'latpulldown-t3': { result: 'success' },
+        },
+      ],
+    ]);
+    const rows = computeGenericProgram(DEF, CONFIG, results);
+    const estimates = compute1RMData(rows, DEF);
+
+    const squat = estimates.find((e) => e.exercise === 'squat');
+
+    // 60*(1+8/30)=76.0 > 65*(1+3/30)=71.5 → picks workout 0
+    expect(squat).toBeDefined();
+    expect(squat?.estimatedKg).toBe(76);
+    expect(squat?.workoutIndex).toBe(0);
+  });
+
+  it('should return empty array when no qualifying AMRAP exercises exist', () => {
+    // All results succeed but no amrapReps provided → no qualifying AMRAP
+    const results = buildGenericSuccessResults(4);
+    const rows = computeGenericProgram(DEF, CONFIG, results);
+    const estimates = compute1RMData(rows, DEF);
+
+    expect(estimates).toEqual([]);
+  });
+
+  it('should round to nearest 0.5 kg', () => {
+    // OHP T1 at index 1 (Day 2), 25 kg * (1 + 7/30) = 25 * 1.2333 = 30.833...
+    // Rounded to nearest 0.5 = 31.0
+    const results = buildGenericResults([
+      [
+        1,
+        {
+          'd2-t1': { result: 'success', amrapReps: 7 },
+          'd2-t2': { result: 'success' },
+          'dbrow-t3': { result: 'success' },
+        },
+      ],
+    ]);
+    const rows = computeGenericProgram(DEF, CONFIG, results);
+    const estimates = compute1RMData(rows, DEF);
+
+    const ohp = estimates.find((e) => e.exercise === 'ohp');
+
+    // 25 * (1 + 7/30) = 30.8333... → round(30.8333/0.5)*0.5 = round(61.6667)*0.5 = 62*0.5 = 31.0
+    expect(ohp).toBeDefined();
+    expect(ohp?.estimatedKg).toBe(31);
+    // Verify it's a multiple of 0.5
+    expect(ohp?.estimatedKg ? ohp.estimatedKg % 0.5 : -1).toBe(0);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// computeMonthlyReport — rolling 30-day window (via computeProfileData)
+// ---------------------------------------------------------------------------
+describe('computeMonthlyReport', () => {
+  it('should use 30-day rolling window based on timestamps', () => {
+    const now = new Date();
+    const withinWindow = new Date(now);
+    withinWindow.setDate(withinWindow.getDate() - 10);
+    const outsideWindow = new Date(now);
+    outsideWindow.setDate(outsideWindow.getDate() - 40);
+
+    const results = buildGenericResults([
+      [
+        0,
+        {
+          'd1-t1': { result: 'success' },
+          'd1-t2': { result: 'success' },
+          'latpulldown-t3': { result: 'success' },
+        },
+      ],
+      [
+        1,
+        {
+          'd2-t1': { result: 'success' },
+          'd2-t2': { result: 'success' },
+          'dbrow-t3': { result: 'success' },
+        },
+      ],
+    ]);
+
+    const timestamps: Record<string, string> = {
+      '0': outsideWindow.toISOString(), // 40 days ago — outside window
+      '1': withinWindow.toISOString(), // 10 days ago — inside window
+    };
+
+    const rows = computeGenericProgram(DEF, CONFIG, results);
+    const profile = computeProfileData(rows, DEF, CONFIG, timestamps);
+
+    // Only workout 1 falls within the 30-day window
+    expect(profile.monthlyReport).not.toBeNull();
+    expect(profile.monthlyReport?.workoutsCompleted).toBe(1);
+  });
+
+  it('should have monthLabel "Últimos 30 días"', () => {
+    const now = new Date();
+    const recentDate = new Date(now);
+    recentDate.setDate(recentDate.getDate() - 5);
+
+    const results = buildGenericResults([
+      [
+        0,
+        {
+          'd1-t1': { result: 'success' },
+          'd1-t2': { result: 'success' },
+          'latpulldown-t3': { result: 'success' },
+        },
+      ],
+    ]);
+
+    const timestamps: Record<string, string> = {
+      '0': recentDate.toISOString(),
+    };
+
+    const rows = computeGenericProgram(DEF, CONFIG, results);
+    const profile = computeProfileData(rows, DEF, CONFIG, timestamps);
+
+    expect(profile.monthlyReport?.monthLabel).toBe('Últimos 30 días');
   });
 });

@@ -6,6 +6,7 @@ import { useProgram } from '@/hooks/use-program';
 import { useAuth } from '@/contexts/auth-context';
 import { useToast } from '@/contexts/toast-context';
 import { detectGenericPersonalRecord } from '@/lib/pr-detection';
+import { computeProfileData, compute1RMData } from '@/lib/profile-stats';
 import { useWebMcp } from '@/hooks/use-webmcp';
 import { useViewMode } from '@/hooks/use-view-mode';
 import { useWakeLock } from '@/hooks/use-wake-lock';
@@ -15,6 +16,7 @@ import { ConfirmDialog } from './confirm-dialog';
 import { DayNavigator } from './day-navigator';
 import { DayView } from './day-view';
 import { ErrorBoundary } from './error-boundary';
+import { ProgramCompletionScreen } from './program-completion-screen';
 import { SetupForm } from './setup-form';
 import { StatsSkeleton } from './stats-skeleton';
 import { TabButton } from './tab-button';
@@ -93,6 +95,8 @@ export function ProgramApp({
     value: ResultValue;
     rpeTarget: string;
   } | null>(null);
+
+  const [showCompletion, setShowCompletion] = useState(false);
 
   const workoutsPerWeek = definition?.workoutsPerWeek ?? 4;
   const totalWorkouts = definition?.totalWorkouts ?? 0;
@@ -237,9 +241,33 @@ export function ProgramApp({
     setRpeReminder(null);
   };
 
+  const completionSessionKey = instanceId !== undefined ? `completion-shown-${instanceId}` : null;
+
   const handleFinishProgram = async (): Promise<void> => {
+    // Check sessionStorage suppression: skip the screen if already shown
+    if (completionSessionKey && sessionStorage.getItem(completionSessionKey) === '1') {
+      await finishProgram();
+      onBackToDashboard?.();
+      return;
+    }
+
     await finishProgram();
+
+    // Mark as shown so refresh won't re-trigger
+    if (completionSessionKey) {
+      sessionStorage.setItem(completionSessionKey, '1');
+    }
+    setShowCompletion(true);
+  };
+
+  const handleCompletionDismiss = (): void => {
+    setShowCompletion(false);
     onBackToDashboard?.();
+  };
+
+  const handleViewProfile = (): void => {
+    setShowCompletion(false);
+    onGoToProfile?.();
   };
 
   const handleResetAll = (): void => {
@@ -492,6 +520,25 @@ export function ProgramApp({
       />
 
       <ToastContainer />
+
+      {showCompletion &&
+        definition &&
+        config &&
+        (() => {
+          const profileData = computeProfileData(rows, definition, config, resultTimestamps);
+          const oneRMEstimates = compute1RMData(rows, definition);
+          return (
+            <ProgramCompletionScreen
+              programName={definition.name}
+              completion={profileData.completion}
+              personalRecords={profileData.personalRecords}
+              oneRMEstimates={oneRMEstimates}
+              totalVolume={profileData.volume.totalVolume}
+              onViewProfile={handleViewProfile}
+              onBackToDashboard={handleCompletionDismiss}
+            />
+          );
+        })()}
     </>
   );
 }

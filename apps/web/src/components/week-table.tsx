@@ -221,6 +221,8 @@ export function WeekTable({
                               value={slot.amrapReps}
                               onChange={(reps) => onSetAmrapReps(row.index, slot.slotId, reps)}
                               variant="table"
+                              weight={slot.weight}
+                              result={slot.result}
                             />
                           ) : (
                             <span className="text-[var(--text-muted)] text-xs">{'\u2014'}</span>

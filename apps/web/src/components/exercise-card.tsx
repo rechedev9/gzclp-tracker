@@ -116,6 +116,8 @@ export function ExerciseCard({
             value={amrapReps}
             onChange={(reps: number | undefined) => onSetAmrapReps(workoutIndex, slotKey, reps)}
             variant="card"
+            weight={weight}
+            result={result}
           />
         </div>
       )}
