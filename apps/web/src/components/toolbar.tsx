@@ -7,8 +7,9 @@ export interface ToolbarProps {
   readonly completedCount: number;
   readonly totalWorkouts: number;
   readonly undoCount: number;
+  readonly isFinishing: boolean;
   readonly onUndo: () => void;
-  readonly onFinish: () => void;
+  readonly onFinish: () => Promise<void>;
   readonly onReset: () => void;
   readonly onExportCsv: () => void;
 }
@@ -49,6 +50,7 @@ export function Toolbar({
   completedCount,
   totalWorkouts,
   undoCount,
+  isFinishing,
   onUndo,
   onFinish,
   onReset,
@@ -146,9 +148,9 @@ export function Toolbar({
         title="Finalizar Programa"
         message="Tu progreso y estadísticas se guardarán. Podrás consultarlos en cualquier momento desde el dashboard."
         confirmLabel="Finalizar"
+        loading={isFinishing}
         onConfirm={() => {
-          onFinish();
-          setFinishConfirmOpen(false);
+          void onFinish().finally(() => setFinishConfirmOpen(false));
         }}
         onCancel={() => setFinishConfirmOpen(false)}
       />

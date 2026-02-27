@@ -132,6 +132,14 @@ export async function createInstance(
     throw new ApiError(400, `Unknown program: ${programId}`, 'INVALID_PROGRAM');
   }
 
+  // Auto-complete any existing active program for this user (self-healing guard).
+  // The DB also enforces this via a unique partial index, but handling it here
+  // lets us resolve the conflict gracefully instead of throwing a constraint error.
+  await getDb()
+    .update(programInstances)
+    .set({ status: 'completed', updatedAt: new Date() })
+    .where(and(eq(programInstances.userId, userId), eq(programInstances.status, 'active')));
+
   const [instance] = await getDb()
     .insert(programInstances)
     .values({

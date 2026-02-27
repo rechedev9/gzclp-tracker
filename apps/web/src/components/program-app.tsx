@@ -74,6 +74,7 @@ export function ProgramApp({
     undoSpecific,
     undoLast,
     finishProgram,
+    isFinishing,
     resetAll,
   } = useProgram(programId, instanceId);
 
@@ -364,6 +365,7 @@ export function ProgramApp({
             completedCount={completedCount}
             totalWorkouts={totalWorkouts}
             undoCount={undoHistory.length}
+            isFinishing={isFinishing}
             onUndo={undoLast}
             onFinish={handleFinishProgram}
             onReset={handleResetAll}

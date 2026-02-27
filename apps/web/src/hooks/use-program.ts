@@ -376,6 +376,10 @@ export function useProgram(programId: string, instanceId?: string): UseProgramRe
     },
     onSettled: () => {
       void queryClient.invalidateQueries({ queryKey: queryKeys.programs.all });
+      // Clean up the detail cache so stale 'active' status can't be served
+      if (activeInstanceId) {
+        queryClient.removeQueries({ queryKey: queryKeys.programs.detail(activeInstanceId) });
+      }
     },
   });
 

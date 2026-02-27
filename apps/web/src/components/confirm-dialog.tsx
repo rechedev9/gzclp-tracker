@@ -8,6 +8,7 @@ interface ConfirmDialogProps {
   confirmLabel?: string;
   cancelLabel?: string;
   variant?: 'danger' | 'default';
+  loading?: boolean;
   onConfirm: () => void;
   onCancel: () => void;
 }
@@ -19,6 +20,7 @@ export function ConfirmDialog({
   confirmLabel = 'Confirmar',
   cancelLabel = 'Cancelar',
   variant = 'default',
+  loading = false,
   onConfirm,
   onCancel,
 }: ConfirmDialogProps): React.ReactNode {
@@ -81,11 +83,11 @@ export function ConfirmDialog({
         </h3>
         <div className="text-xs text-muted leading-relaxed">{message}</div>
         <div className="border-t border-rule pt-4 mt-5 flex justify-end gap-3">
-          <Button ref={cancelRef} variant="ghost" onClick={onCancel}>
+          <Button ref={cancelRef} variant="ghost" onClick={onCancel} disabled={loading}>
             {cancelLabel}
           </Button>
-          <Button ref={confirmRef} variant={variant} onClick={onConfirm}>
-            {confirmLabel}
+          <Button ref={confirmRef} variant={variant} onClick={onConfirm} disabled={loading}>
+            {loading ? 'Procesando…' : confirmLabel}
           </Button>
         </div>
       </div>
