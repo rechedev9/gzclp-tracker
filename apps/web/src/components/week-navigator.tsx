@@ -55,8 +55,12 @@ export function WeekNavigator({
             aria-label={`${weekDoneCount} de ${weekTotalCount} entrenamientos completados`}
             title={`${weekDoneCount} de ${weekTotalCount} entrenamientos completados`}
           >
-            <span className="text-accent">{'\u25CF'.repeat(weekDoneCount)}</span>
-            <span className="text-info">{'\u25CB'.repeat(weekTotalCount - weekDoneCount)}</span>
+            <span className="text-accent" aria-hidden="true">
+              {'\u25CF'.repeat(weekDoneCount)}
+            </span>
+            <span className="text-info" aria-hidden="true">
+              {'\u25CB'.repeat(weekTotalCount - weekDoneCount)}
+            </span>
           </span>
           {selectedWeek !== currentWeekNumber && (
             <button

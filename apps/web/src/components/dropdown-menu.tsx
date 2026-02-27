@@ -1,4 +1,4 @@
-import { useRef } from 'react';
+import { useRef, useEffect, useCallback } from 'react';
 import { useClickOutside } from '@/hooks/use-click-outside';
 
 interface DropdownMenuProps {
@@ -16,6 +16,24 @@ export function DropdownMenu({
 }: DropdownMenuProps): React.ReactNode {
   const ref = useRef<HTMLDivElement>(null);
   useClickOutside(ref, onClose);
+
+  const handleKeyDown = useCallback(
+    (e: KeyboardEvent): void => {
+      if (e.key === 'Escape') {
+        e.stopPropagation();
+        onClose();
+      }
+    },
+    [onClose]
+  );
+
+  useEffect(() => {
+    if (!open) return;
+    document.addEventListener('keydown', handleKeyDown);
+    return (): void => {
+      document.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [open, handleKeyDown]);
 
   if (!open) return null;
 
