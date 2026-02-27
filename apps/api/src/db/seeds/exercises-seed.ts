@@ -18,7 +18,7 @@ interface ExerciseSeed {
 }
 
 /**
- * Canonical exercise list — deduplicated across GZCLP, PPL 5/3/1, and Nivel 7.
+ * Canonical exercise list — deduplicated across all preset programs.
  * Shared exercises (squat, bench, deadlift, ohp, face_pull, etc.) appear once.
  */
 const CANONICAL_EXERCISES: readonly ExerciseSeed[] = [
@@ -344,6 +344,29 @@ const CANONICAL_EXERCISES: readonly ExerciseSeed[] = [
     muscleGroupId: 'shoulders',
     equipment: 'dumbbell',
     isCompound: false,
+  },
+
+  // ── PHUL exercises (unique to PHUL) ──
+  {
+    id: 'skullcrusher',
+    name: 'Skull Crusher',
+    muscleGroupId: 'arms',
+    equipment: 'barbell',
+    isCompound: false,
+  },
+  {
+    id: 'incline_bench',
+    name: 'Press Inclinado con Barra',
+    muscleGroupId: 'chest',
+    equipment: 'barbell',
+    isCompound: true,
+  },
+  {
+    id: 'front_squat',
+    name: 'Sentadilla Frontal',
+    muscleGroupId: 'legs',
+    equipment: 'barbell',
+    isCompound: true,
   },
 ] as const;
 
