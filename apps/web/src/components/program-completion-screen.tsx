@@ -1,3 +1,4 @@
+import { useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import type { CompletionStats, PersonalRecord, OneRMEstimate } from '@/lib/profile-stats';
 import { formatVolume } from '@/lib/profile-stats';
@@ -22,6 +23,14 @@ export function ProgramCompletionScreen({
   onViewProfile,
   onBackToDashboard,
 }: ProgramCompletionScreenProps): React.ReactNode {
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent): void => {
+      if (e.key === 'Escape') onBackToDashboard();
+    };
+    document.addEventListener('keydown', handleKeyDown);
+    return (): void => document.removeEventListener('keydown', handleKeyDown);
+  }, [onBackToDashboard]);
+
   return createPortal(
     <div className="fixed inset-0 z-[100] bg-body overflow-y-auto">
       <div className="max-w-2xl mx-auto px-5 sm:px-8 py-12 sm:py-20">
