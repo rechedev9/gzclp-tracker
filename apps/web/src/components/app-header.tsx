@@ -31,18 +31,31 @@ export function AppHeader({
       }}
     >
       <div className="flex items-center gap-4">
-        {onBack && (
-          <button
-            onClick={onBack}
-            className="font-mono text-xs font-medium tracking-widest uppercase transition-colors cursor-pointer mr-2 hover:text-heading inline-flex items-center min-h-[44px] px-2 text-muted"
-          >
-            ← {backLabel ?? 'Volver'}
-          </button>
+        {onBack ? (
+          <>
+            <button
+              onClick={onBack}
+              className="font-mono text-xs font-medium tracking-widest uppercase transition-colors cursor-pointer mr-2 hover:text-heading inline-flex items-center min-h-[44px] px-2 text-muted"
+            >
+              ← {backLabel ?? 'Volver'}
+            </button>
+            <div className="flex items-center gap-4" aria-hidden="true">
+              <img src="/logo.webp" alt="" width={32} height={32} className="rounded-sm" />
+              <span className="text-sm font-bold tracking-tight text-heading">Gravity Room</span>
+            </div>
+          </>
+        ) : (
+          <Link to="/app" className="flex items-center gap-4">
+            <img
+              src="/logo.webp"
+              alt="Gravity Room"
+              width={32}
+              height={32}
+              className="rounded-sm"
+            />
+            <span className="text-sm font-bold tracking-tight text-heading">Gravity Room</span>
+          </Link>
         )}
-        <Link to="/app" className="flex items-center gap-4">
-          <img src="/logo.webp" alt="Logo" width={32} height={32} className="rounded-sm" />
-          <span className="text-sm font-bold tracking-tight text-heading">Gravity Room</span>
-        </Link>
       </div>
 
       <AvatarDropdown
