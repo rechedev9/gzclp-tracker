@@ -17,7 +17,7 @@ interface RpeInputProps {
 
 export function RpeInput({ value, onChange, label }: RpeInputProps): React.ReactNode {
   return (
-    <div className="flex items-center gap-1.5">
+    <div className="flex items-center gap-1.5 flex-wrap">
       <span
         className="text-xs text-muted mr-0.5"
         title="Rate of Perceived Exertion (esfuerzo percibido)"

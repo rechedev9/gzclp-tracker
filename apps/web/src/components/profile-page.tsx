@@ -518,7 +518,7 @@ export function ProfilePage({ programId, instanceId, onBack }: ProfilePageProps)
                           setSelectedInstanceId(p.id);
                           window.scrollTo({ top: 0, behavior: 'smooth' });
                         }}
-                        className="text-[10px] font-bold text-muted hover:text-heading transition-colors cursor-pointer border border-rule px-2.5 py-1.5 hover:border-rule-light"
+                        className="text-[10px] font-bold text-muted hover:text-heading transition-colors cursor-pointer border border-rule px-2.5 py-1.5 min-h-[44px] inline-flex items-center hover:border-rule-light"
                       >
                         Ver estad{'\u00ED'}sticas
                       </button>
