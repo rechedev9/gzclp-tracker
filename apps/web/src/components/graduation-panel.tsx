@@ -55,7 +55,7 @@ export function GraduationPanel({
 
   return (
     <div className="bg-card border border-rule p-4 sm:p-6 card">
-      <h3 className="font-display text-xl text-heading mb-1">
+      <h3 className="font-display text-xl text-title mb-1">
         {achieved.allPassed ? 'Graduacion Completada' : 'Objetivos de Graduacion'}
       </h3>
       <p className="text-[13px] text-muted mb-4">
@@ -79,7 +79,7 @@ export function GraduationPanel({
                 {done ? '\u2713' : '\u25CB'}
               </span>
               <div className="flex-1 min-w-0">
-                <p className="text-sm font-bold text-heading">
+                <p className="text-sm font-bold text-title">
                   {EXERCISE_LABELS[target.exercise] ?? target.exercise}
                 </p>
                 <p className="text-[12px] text-muted">
@@ -99,7 +99,7 @@ export function GraduationPanel({
       {/* Celebration + CTAs when all passed */}
       {achieved.allPassed && (
         <div className="border-t border-rule pt-4">
-          <p className="text-sm font-bold text-heading mb-3">Tus 1RM estimados (Epley):</p>
+          <p className="text-sm font-bold text-title mb-3">Tus 1RM estimados (Epley):</p>
           <div className="flex flex-wrap gap-3 mb-4">
             {Object.entries(estimatedOneRMs).map(([exercise, oneRM]) => (
               <div
@@ -117,7 +117,7 @@ export function GraduationPanel({
           <div className="flex gap-3">
             <button
               onClick={handleStartJaw}
-              className="flex-1 py-3.5 border-none bg-header text-heading text-base font-bold cursor-pointer hover:opacity-85 transition-opacity"
+              className="flex-1 py-3.5 border-none bg-header text-title text-base font-bold cursor-pointer hover:opacity-85 transition-opacity"
             >
               Empezar Protocollo JAW
             </button>

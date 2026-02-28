@@ -31,7 +31,7 @@ export function PlateCalculator({
       data-testid="plate-calculator-popover"
       className="absolute left-0 top-full mt-1 z-50 bg-card border border-rule shadow-lg p-4 min-w-[180px]"
     >
-      <p className="text-sm font-bold text-heading mb-2">{weight} kg</p>
+      <p className="text-sm font-bold text-title mb-2">{weight} kg</p>
       <p className="text-[11px] text-muted mb-3">Barra: {BAR_KG} kg</p>
 
       <ul className="space-y-1 mb-3">

@@ -143,7 +143,7 @@ export function DayView({
     >
       {/* Day header */}
       <div className="flex items-baseline gap-3 mb-5">
-        <span className="font-display text-3xl text-heading">#{workoutNumber}</span>
+        <span className="font-display text-3xl text-title">#{workoutNumber}</span>
         <span className="font-mono text-[11px] font-bold text-muted uppercase tracking-widest">
           {dayName}
         </span>
@@ -156,7 +156,7 @@ export function DayView({
               {/* Block header */}
               <div className="flex items-center justify-between mb-3">
                 <div className="flex items-baseline gap-2">
-                  <h3 className="text-[13px] font-bold text-heading">{group.header.name}</h3>
+                  <h3 className="text-[13px] font-bold text-title">{group.header.name}</h3>
                   {group.header.duration && (
                     <span className="text-[11px] text-muted">{group.header.duration}</span>
                   )}

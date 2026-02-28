@@ -68,7 +68,7 @@ export function ConfirmDialog({
       className="modal-box bg-card border border-rule p-6 max-w-sm w-[calc(100%-2rem)] shadow-dialog backdrop:bg-black/60 backdrop:backdrop-blur-sm"
       onClick={handleBackdropClick}
     >
-      <h3 id={titleId} className="text-sm font-bold text-heading mb-2">
+      <h3 id={titleId} className="text-sm font-bold text-title mb-2">
         {title}
       </h3>
       <div className="text-xs text-muted leading-relaxed">{message}</div>

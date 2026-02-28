@@ -35,13 +35,13 @@ export function AppHeader({
           <>
             <button
               onClick={onBack}
-              className="font-mono text-xs font-medium tracking-widest uppercase transition-colors cursor-pointer mr-2 hover:text-heading inline-flex items-center min-h-[44px] px-2 text-muted"
+              className="font-mono text-xs font-medium tracking-widest uppercase transition-colors cursor-pointer mr-2 hover:text-title inline-flex items-center min-h-[44px] px-2 text-muted"
             >
               ← {backLabel ?? 'Volver'}
             </button>
             <div className="flex items-center gap-4" aria-hidden="true">
               <img src="/logo.webp" alt="" width={32} height={32} className="rounded-sm" />
-              <span className="text-sm font-bold tracking-tight text-heading">Gravity Room</span>
+              <span className="text-sm font-bold tracking-tight text-title">Gravity Room</span>
             </div>
           </>
         ) : (
@@ -53,7 +53,7 @@ export function AppHeader({
               height={32}
               className="rounded-sm"
             />
-            <span className="text-sm font-bold tracking-tight text-heading">Gravity Room</span>
+            <span className="text-sm font-bold tracking-tight text-title">Gravity Room</span>
           </Link>
         )}
       </div>

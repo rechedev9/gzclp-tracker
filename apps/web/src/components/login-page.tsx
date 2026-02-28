@@ -93,7 +93,7 @@ export function LoginPage(): React.ReactNode {
 
       {/* Hero title */}
       <h1
-        className="font-display text-center leading-[0.88] mb-1 text-heading"
+        className="font-display text-center leading-[0.88] mb-1 text-title"
         style={{
           fontSize: 'clamp(50px, 12vw, 88px)',
           letterSpacing: '0.03em',
@@ -115,7 +115,7 @@ export function LoginPage(): React.ReactNode {
           style={{ background: 'linear-gradient(to right, transparent, rgba(200,168,78,0.6))' }}
         />
         <span
-          className="font-mono text-[9px] tracking-[0.35em] uppercase flex-shrink-0 text-heading"
+          className="font-mono text-[9px] tracking-[0.35em] uppercase flex-shrink-0 text-title"
           style={{ textShadow: '0 0 10px rgba(200,168,78,0.5)' }}
         >
           Entra a la Cámara
@@ -151,12 +151,12 @@ export function LoginPage(): React.ReactNode {
             borderTop: '1px solid rgba(200,168,78,0.2)',
             borderRight: '1px solid rgba(200,168,78,0.08)',
             borderBottom: '1px solid rgba(200,168,78,0.08)',
-            borderLeft: '3px solid var(--color-heading)',
+            borderLeft: '3px solid var(--color-title)',
             boxShadow: '-8px 0 40px rgba(200,168,78,0.07), 0 24px 64px rgba(0,0,0,0.7)',
             padding: '22px 22px 20px',
           }}
         >
-          <p className="font-mono text-[9px] tracking-[0.35em] uppercase mb-5 text-heading">
+          <p className="font-mono text-[9px] tracking-[0.35em] uppercase mb-5 text-title">
             Autenticar
           </p>
 

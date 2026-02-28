@@ -37,7 +37,7 @@ export function ProgramCompletionScreen({
         {/* Celebration header */}
         <div className="text-center mb-12">
           <h1
-            className="font-display text-5xl sm:text-7xl text-heading leading-none mb-3"
+            className="font-display text-5xl sm:text-7xl text-title leading-none mb-3"
             style={{ textShadow: '0 0 40px rgba(240, 192, 64, 0.25)' }}
           >
             {'\u00A1'}COMPLETADO!
@@ -126,7 +126,7 @@ export function ProgramCompletionScreen({
           <button
             type="button"
             onClick={onBackToDashboard}
-            className="px-8 py-3 text-sm font-bold border-2 border-btn-ring bg-transparent text-heading cursor-pointer transition-all hover:bg-btn-active active:scale-95"
+            className="px-8 py-3 text-sm font-bold border-2 border-btn-ring bg-transparent text-title cursor-pointer transition-all hover:bg-btn-active active:scale-95"
           >
             Volver al Dashboard
           </button>

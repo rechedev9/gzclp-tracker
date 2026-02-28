@@ -249,7 +249,7 @@ export function SetupForm({
 
   const formContent = (
     <>
-      <h2 className="font-display mb-1.5 leading-none text-heading" style={{ fontSize: '28px' }}>
+      <h2 className="font-display mb-1.5 leading-none text-title" style={{ fontSize: '28px' }}>
         {isEditMode
           ? (definition.configEditTitle ?? 'Editar Pesos Iniciales (kg)')
           : (definition.configTitle ?? 'Pesos Iniciales (kg)')}
@@ -347,7 +347,7 @@ export function SetupForm({
         <button
           onClick={handleSubmit}
           disabled={isGenerating}
-          className="flex-1 py-3.5 border-none bg-header text-heading text-base font-bold cursor-pointer hover:opacity-85 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed"
+          className="flex-1 py-3.5 border-none bg-header text-title text-base font-bold cursor-pointer hover:opacity-85 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed"
         >
           {isGenerating
             ? 'Generando...'
@@ -369,7 +369,7 @@ export function SetupForm({
             <div className="flex items-center justify-between flex-wrap gap-3">
               <div>
                 <h2
-                  className="font-display mb-1 leading-none text-heading"
+                  className="font-display mb-1 leading-none text-title"
                   style={{ fontSize: '22px' }}
                 >
                   {definition.configTitle ?? 'Pesos Iniciales'}
@@ -402,7 +402,7 @@ export function SetupForm({
             <button
               type="button"
               onClick={() => setIsExpanded(false)}
-              className="absolute top-3 right-3 w-8 h-8 flex items-center justify-center text-muted hover:text-heading transition-colors cursor-pointer"
+              className="absolute top-3 right-3 w-8 h-8 flex items-center justify-center text-muted hover:text-title transition-colors cursor-pointer"
               aria-label="Cerrar"
             >
               &#10005;

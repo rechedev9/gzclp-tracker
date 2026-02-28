@@ -126,7 +126,7 @@ export function WeekTable({
                     colSpan={colCount}
                     className="px-3 py-2.5 font-mono text-[12px] font-bold tracking-wider"
                   >
-                    <span className="text-heading">#{row.index + 1}</span>
+                    <span className="text-title">#{row.index + 1}</span>
                     <span className="text-muted mx-2">{'\u2014'}</span>
                     <span className="text-main uppercase">{row.dayName}</span>
                     <span className="ml-3 text-sm">

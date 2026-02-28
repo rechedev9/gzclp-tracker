@@ -19,8 +19,8 @@ export function ToastContainer(): React.ReactNode {
           : 'animate-[fadeSlideUp_0.2s_ease-out]';
         const variantStyle =
           t.variant === 'pr'
-            ? 'bg-changed text-heading border-2 border-accent'
-            : 'bg-header text-heading border border-rule';
+            ? 'bg-changed text-title border-2 border-accent'
+            : 'bg-header text-title border border-rule';
 
         return (
           <div
@@ -43,7 +43,7 @@ export function ToastContainer(): React.ReactNode {
             )}
             <button
               onClick={() => dismiss(t.id)}
-              className="min-h-[44px] min-w-[44px] flex items-center justify-center text-muted hover:text-heading bg-transparent border-none cursor-pointer transition-colors"
+              className="min-h-[44px] min-w-[44px] flex items-center justify-center text-muted hover:text-title bg-transparent border-none cursor-pointer transition-colors"
               aria-label="Cerrar notificación"
             >
               &#10005;

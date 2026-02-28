@@ -41,7 +41,7 @@ export function WeightField({
         <button
           type="button"
           onClick={() => onAdjust(fieldKey, -step)}
-          className="px-3 min-h-[44px] border-2 border-r-0 border-rule bg-card text-btn-text text-lg font-bold cursor-pointer hover:bg-hover-row hover:text-heading transition-all duration-150 active:scale-95 focus-visible:ring-2 focus-visible:ring-accent focus-visible:outline-none"
+          className="px-3 min-h-[44px] border-2 border-r-0 border-rule bg-card text-btn-text text-lg font-bold cursor-pointer hover:bg-hover-row hover:text-title transition-all duration-150 active:scale-95 focus-visible:ring-2 focus-visible:ring-accent focus-visible:outline-none"
           aria-label={`Disminuir ${label}`}
         >
           &minus;
@@ -70,7 +70,7 @@ export function WeightField({
         <button
           type="button"
           onClick={() => onAdjust(fieldKey, step)}
-          className="px-3 min-h-[44px] border-2 border-l-0 border-rule bg-card text-btn-text text-lg font-bold cursor-pointer hover:bg-hover-row hover:text-heading transition-all duration-150 active:scale-95 focus-visible:ring-2 focus-visible:ring-accent focus-visible:outline-none"
+          className="px-3 min-h-[44px] border-2 border-l-0 border-rule bg-card text-btn-text text-lg font-bold cursor-pointer hover:bg-hover-row hover:text-title transition-all duration-150 active:scale-95 focus-visible:ring-2 focus-visible:ring-accent focus-visible:outline-none"
           aria-label={`Aumentar ${label}`}
         >
           +

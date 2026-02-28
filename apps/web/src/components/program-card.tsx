@@ -38,7 +38,7 @@ export function ProgramCard({
     >
       {/* Header: name + category badge */}
       <div className="flex items-start justify-between gap-2">
-        <h3 className="text-sm sm:text-base font-extrabold text-heading leading-tight">
+        <h3 className="text-sm sm:text-base font-extrabold text-title leading-tight">
           {definition.name}
         </h3>
         <span className="shrink-0 text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 border border-rule text-muted">

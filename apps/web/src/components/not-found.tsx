@@ -20,7 +20,7 @@ export function NotFound(): React.ReactNode {
         style={{ boxShadow: '0 0 20px rgba(232, 170, 32, 0.15)' }}
       />
       <h1
-        className="font-display text-7xl sm:text-8xl text-heading mb-3 relative"
+        className="font-display text-7xl sm:text-8xl text-title mb-3 relative"
         style={{ textShadow: '0 0 40px rgba(240, 192, 64, 0.2)' }}
       >
         404

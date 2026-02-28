@@ -224,7 +224,7 @@ export function ProfilePage({ programId, instanceId, onBack }: ProfilePageProps)
         {/* Page title */}
         <section className="mb-12">
           <h1
-            className="font-display text-4xl sm:text-5xl text-heading leading-none"
+            className="font-display text-4xl sm:text-5xl text-title leading-none"
             style={{ textShadow: '0 0 30px rgba(240, 192, 64, 0.12)' }}
           >
             Perfil
@@ -243,7 +243,7 @@ export function ProfilePage({ programId, instanceId, onBack }: ProfilePageProps)
               onChange={(e: React.ChangeEvent<HTMLSelectElement>) =>
                 setSelectedInstanceId(e.target.value || undefined)
               }
-              className="w-full bg-card border border-rule text-sm text-heading px-4 py-3 font-mono appearance-none cursor-pointer focus:outline-none focus:border-accent transition-colors"
+              className="w-full bg-card border border-rule text-sm text-title px-4 py-3 font-mono appearance-none cursor-pointer focus:outline-none focus:border-accent transition-colors"
             >
               {allPrograms.map((p) => (
                 <option key={p.id} value={p.id}>
@@ -291,7 +291,7 @@ export function ProfilePage({ programId, instanceId, onBack }: ProfilePageProps)
 
                 {/* User info */}
                 <div className="min-w-0 flex-1">
-                  <p className="text-sm font-bold text-heading truncate">{displayName}</p>
+                  <p className="text-sm font-bold text-title truncate">{displayName}</p>
                   <p className="text-xs text-muted truncate">{user.email}</p>
                   {user.avatarUrl && (
                     <button
@@ -479,7 +479,7 @@ export function ProfilePage({ programId, instanceId, onBack }: ProfilePageProps)
                     const hasMark = stats.total > 0;
                     return (
                       <div key={ex} className="bg-card border border-rule p-4 card">
-                        <h3 className="text-sm font-bold text-heading mb-1">{names[ex] ?? ex}</h3>
+                        <h3 className="text-sm font-bold text-title mb-1">{names[ex] ?? ex}</h3>
                         {hasMark && (
                           <p className="text-[11px] text-muted mb-3">
                             {stats.currentWeight} kg
@@ -509,7 +509,7 @@ export function ProfilePage({ programId, instanceId, onBack }: ProfilePageProps)
                   className="bg-card border border-rule px-5 py-3.5 card flex items-center justify-between gap-4"
                 >
                   <div className="min-w-0">
-                    <p className="text-sm font-bold text-heading truncate">{p.name}</p>
+                    <p className="text-sm font-bold text-title truncate">{p.name}</p>
                     <p className="text-[11px] text-muted mt-0.5">
                       Completado el{' '}
                       {new Date(p.updatedAt).toLocaleDateString('es-ES', {
@@ -527,13 +527,13 @@ export function ProfilePage({ programId, instanceId, onBack }: ProfilePageProps)
                           setSelectedInstanceId(p.id);
                           window.scrollTo({ top: 0, behavior: 'smooth' });
                         }}
-                        className="text-[10px] font-bold text-muted hover:text-heading transition-colors cursor-pointer border border-rule px-2.5 py-1.5 min-h-[44px] inline-flex items-center hover:border-rule-light"
+                        className="text-[10px] font-bold text-muted hover:text-title transition-colors cursor-pointer border border-rule px-2.5 py-1.5 min-h-[44px] inline-flex items-center hover:border-rule-light"
                       >
                         Ver estad{'\u00ED'}sticas
                       </button>
                     )}
                     <span
-                      className="shrink-0 font-mono text-[9px] tracking-widest uppercase px-2 py-1 text-heading"
+                      className="shrink-0 font-mono text-[9px] tracking-widest uppercase px-2 py-1 text-title"
                       style={{
                         background: 'rgba(200,168,78,0.08)',
                         border: '1px solid rgba(200,168,78,0.2)',

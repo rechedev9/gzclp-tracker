@@ -123,7 +123,7 @@ function StatCard({
       <h4 className="font-mono text-[11px] font-bold uppercase tracking-widest text-muted mb-2">
         {name}
       </h4>
-      <div className="font-display-data text-3xl mb-1 text-heading">{currentWeight} kg</div>
+      <div className="font-display-data text-3xl mb-1 text-title">{currentWeight} kg</div>
       <div className="text-xs text-muted">
         Inicio: {startWeight} kg | {gained >= 0 ? '+' : ''}
         {gained} kg ganados
