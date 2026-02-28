@@ -226,7 +226,6 @@ export async function update(
     .set({
       definition: parsed,
       status: newStatus,
-      updatedAt: new Date(),
     })
     .where(
       and(
@@ -250,7 +249,6 @@ export async function softDelete(userId: string, id: string): Promise<boolean> {
     .update(programDefinitions)
     .set({
       deletedAt: new Date(),
-      updatedAt: new Date(),
     })
     .where(
       and(
@@ -296,7 +294,6 @@ export async function updateStatus(
     .update(programDefinitions)
     .set({
       status: newStatus,
-      updatedAt: new Date(),
     })
     .where(eq(programDefinitions.id, id))
     .returning();

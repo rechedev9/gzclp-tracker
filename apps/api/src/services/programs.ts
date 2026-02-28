@@ -122,7 +122,7 @@ export async function createInstance(
   config: Record<string, number>
 ): Promise<ProgramInstanceResponse> {
   // Validate program exists in the curated catalog (program_templates).
-  // TODO: When program_definitions approval flow is complete, also allow
+  // TODO(#17): When program_definitions approval flow is complete, also allow
   // instantiation from approved definitions (check program_definitions
   // WHERE status = 'approved' as fallback). See schema.ts architecture note
   // on program_templates vs program_definitions duality.
@@ -141,7 +141,7 @@ export async function createInstance(
   // lets us resolve the conflict gracefully instead of throwing a constraint error.
   await getDb()
     .update(programInstances)
-    .set({ status: 'completed', updatedAt: new Date() })
+    .set({ status: 'completed' })
     .where(and(eq(programInstances.userId, userId), eq(programInstances.status, 'active')));
 
   const [instance] = await getDb()
@@ -255,6 +255,7 @@ export async function updateInstance(
     status?: 'active' | 'completed' | 'archived';
     config?: Record<string, number>;
   };
+  // Value overridden by set_updated_at trigger; kept to ensure valid UPDATE
   const updateValues: ProgramInstanceUpdate = { updatedAt: new Date() };
   if (updates.name !== undefined) updateValues.name = updates.name;
   if (updates.status !== undefined) updateValues.status = updates.status;

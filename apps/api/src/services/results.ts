@@ -30,6 +30,7 @@ const MAX_UNDO_STACK = 50;
 
 type Tx = Parameters<Parameters<ReturnType<typeof getDb>['transaction']>[0]>[0];
 
+// Value overridden by set_updated_at trigger; kept to ensure valid UPDATE
 async function touchInstanceTimestamp(tx: Tx, instanceId: string): Promise<void> {
   await tx
     .update(programInstances)
@@ -182,10 +183,7 @@ export async function deleteResult(
 
     await tx.delete(workoutResults).where(eq(workoutResults.id, existing.id));
 
-    await tx
-      .update(programInstances)
-      .set({ updatedAt: new Date() })
-      .where(eq(programInstances.id, instanceId));
+    await touchInstanceTimestamp(tx, instanceId);
 
     await trimUndoStack(tx, instanceId);
   });
@@ -246,10 +244,7 @@ export async function undoLast(userId: string, instanceId: string): Promise<Undo
         });
     }
 
-    await tx
-      .update(programInstances)
-      .set({ updatedAt: new Date() })
-      .where(eq(programInstances.id, instanceId));
+    await touchInstanceTimestamp(tx, instanceId);
 
     return entry;
   });

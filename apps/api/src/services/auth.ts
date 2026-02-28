@@ -73,7 +73,7 @@ export async function findOrCreateGoogleUser(
     if (name !== undefined && existing.name !== name) {
       const [updated] = await db
         .update(users)
-        .set({ name, updatedAt: new Date() })
+        .set({ name })
         .where(eq(users.id, existing.id))
         .returning();
       if (!updated) throw new ApiError(500, 'Failed to update user name', 'DB_WRITE_ERROR');
@@ -97,6 +97,7 @@ export async function updateUserProfile(
   fields: { name?: string; avatarUrl?: string | null }
 ): Promise<UserRow> {
   const db = getDb();
+  // Value overridden by set_updated_at trigger; kept to ensure valid UPDATE
   const updates: Record<string, unknown> = { updatedAt: new Date() };
   if (fields.name !== undefined) updates['name'] = fields.name;
   if (fields.avatarUrl !== undefined) updates['avatarUrl'] = fields.avatarUrl;
@@ -116,7 +117,7 @@ export async function softDeleteUser(userId: string): Promise<void> {
   const db = getDb();
   const [updated] = await db
     .update(users)
-    .set({ deletedAt: new Date(), updatedAt: new Date() })
+    .set({ deletedAt: new Date() })
     .where(and(eq(users.id, userId), isNull(users.deletedAt)))
     .returning();
 
