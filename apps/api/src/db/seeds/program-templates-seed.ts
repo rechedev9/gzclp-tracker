@@ -21,6 +21,11 @@ import {
   BRUNETTI365_DEFINITION_JSONB,
   BRUNETTI365_EXP_DEFINITION_JSONB,
 } from './programs/brunetti-365';
+import { SHEIKO_7_1_DEFINITION } from './programs/sheiko-7-1';
+import { SHEIKO_7_2_DEFINITION } from './programs/sheiko-7-2';
+import { SHEIKO_7_3_DEFINITION } from './programs/sheiko-7-3';
+import { SHEIKO_7_4_DEFINITION } from './programs/sheiko-7-4';
+import { SHEIKO_7_5_DEFINITION } from './programs/sheiko-7-5';
 
 type DbClient = PostgresJsDatabase<typeof schema>;
 
@@ -190,6 +195,76 @@ export async function seedProgramTemplates(db: DbClient): Promise<void> {
         category: 'hypertrophy',
         source: 'preset',
         definition: BRUNETTI365_EXP_DEFINITION_JSONB,
+        isActive: true,
+      },
+      {
+        id: 'sheiko-7-1',
+        name: 'Sheiko 7.1 — Sentadilla',
+        description:
+          'Programa Sheiko de 16 semanas con enfasis en sentadilla. ' +
+          'Tres levantamientos de competicion con mayor volumen de sentadilla. ' +
+          '4 entrenamientos por semana. Basado en el libro "Powerlifting: Foundations and Methods".',
+        author: 'Boris Sheiko',
+        version: 1,
+        category: 'powerlifting',
+        source: 'preset',
+        definition: SHEIKO_7_1_DEFINITION,
+        isActive: true,
+      },
+      {
+        id: 'sheiko-7-2',
+        name: 'Sheiko 7.2 — Press Banca',
+        description:
+          'Programa Sheiko de 16 semanas con enfasis en press banca. ' +
+          'Tres levantamientos de competicion con mayor volumen de press banca. ' +
+          '4 entrenamientos por semana. Basado en el libro "Powerlifting: Foundations and Methods".',
+        author: 'Boris Sheiko',
+        version: 1,
+        category: 'powerlifting',
+        source: 'preset',
+        definition: SHEIKO_7_2_DEFINITION,
+        isActive: true,
+      },
+      {
+        id: 'sheiko-7-3',
+        name: 'Sheiko 7.3 — Peso Muerto',
+        description:
+          'Programa Sheiko de 16 semanas con enfasis en peso muerto. ' +
+          'Tres levantamientos de competicion con mayor volumen de peso muerto y variaciones. ' +
+          '4 entrenamientos por semana. Basado en el libro "Powerlifting: Foundations and Methods".',
+        author: 'Boris Sheiko',
+        version: 1,
+        category: 'powerlifting',
+        source: 'preset',
+        definition: SHEIKO_7_3_DEFINITION,
+        isActive: true,
+      },
+      {
+        id: 'sheiko-7-4',
+        name: 'Sheiko 7.4 — Solo Press Banca',
+        description:
+          'Programa Sheiko de 18 semanas exclusivo para press banca. ' +
+          'Sin sentadilla ni peso muerto de competicion. ' +
+          '4 entrenamientos por semana. Basado en el libro "Powerlifting: Foundations and Methods".',
+        author: 'Boris Sheiko',
+        version: 1,
+        category: 'powerlifting',
+        source: 'preset',
+        definition: SHEIKO_7_4_DEFINITION,
+        isActive: true,
+      },
+      {
+        id: 'sheiko-7-5',
+        name: 'Sheiko 7.5 — Volumen Medio (Experto)',
+        description:
+          'Programa Sheiko de ~16 semanas (4 mesociclos) con volumen medio para atletas experimentados. ' +
+          'Periodizacion por mesociclos con test de 1RM integrado. ' +
+          '4 entrenamientos por semana. Basado en el libro "Powerlifting: Foundations and Methods".',
+        author: 'Boris Sheiko',
+        version: 1,
+        category: 'powerlifting',
+        source: 'preset',
+        definition: SHEIKO_7_5_DEFINITION,
         isActive: true,
       },
     ])

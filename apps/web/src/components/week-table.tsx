@@ -1,5 +1,5 @@
 import { Fragment, useMemo, useEffect, useRef } from 'react';
-import type { ResultValue, GenericWorkoutRow } from '@gzclp/shared/types';
+import type { ResultValue, GenericWorkoutRow, GenericSlotRow } from '@gzclp/shared/types';
 import { ResultCell } from './result-cell';
 import { AmrapInput } from './amrap-input';
 import { RPE_VALUES } from './rpe-input';
@@ -55,6 +55,47 @@ const TH =
   'text-left font-mono text-[11px] font-bold uppercase tracking-widest text-muted px-2.5 py-2 whitespace-nowrap border border-rule';
 const TD = 'px-2.5 py-2 border border-rule-light';
 
+/** Render prescription ladder: warm-ups -> working set separated by | */
+function renderPrescriptionScheme(slot: GenericSlotRow): React.ReactNode {
+  const prescriptions = slot.prescriptions;
+  if (prescriptions === undefined || prescriptions.length === 0) {
+    return null;
+  }
+
+  const warmups = prescriptions.slice(0, -1);
+  const workingSet = prescriptions[prescriptions.length - 1];
+
+  return (
+    <span className="text-[11px]">
+      {warmups.map((entry, i) => (
+        <Fragment key={i}>
+          {i > 0 && <span className="text-muted mx-0.5">{'\u2192'}</span>}
+          <span className="text-muted">
+            {`${entry.percent}%\u00d7${slot.complexReps ?? entry.reps}`}
+          </span>
+        </Fragment>
+      ))}
+      {warmups.length > 0 && <span className="text-muted mx-1">|</span>}
+      <span className="font-bold text-main">
+        {`${workingSet.percent}%\u00d7${slot.complexReps ?? workingSet.reps}\u00d7${workingSet.sets}`}
+      </span>
+    </span>
+  );
+}
+
+/** Render standard scheme: sets x reps with optional range and AMRAP indicator */
+function renderStandardScheme(slot: GenericSlotRow): React.ReactNode {
+  return (
+    <>
+      {slot.sets}
+      {'\u00d7'}
+      {slot.complexReps ?? slot.reps}
+      {slot.repsMax !== undefined ? `\u2013${slot.repsMax}` : ''}
+      {slot.isAmrap && <span className="text-[10px] ml-0.5 text-accent">+</span>}
+    </>
+  );
+}
+
 export function WeekTable({
   weekRows,
   firstPendingIndex,
@@ -66,7 +107,10 @@ export function WeekTable({
   // Derive column visibility from the current week's data
   const { showStage, showAmrap, showRpe, colCount } = useMemo(() => {
     const allSlots = weekRows.flatMap((r) => r.slots);
-    const stage = allSlots.some((s) => s.stagesCount > 1);
+    // Exclude prescription and GPP slots from stage check — they never have meaningful stages
+    const stage = allSlots.some(
+      (s) => s.stagesCount > 1 && s.prescriptions === undefined && !s.isGpp
+    );
     const amrap = allSlots.some((s) => s.isAmrap);
     const rpe = allSlots.some((s) => s.role === 'primary');
     // 4 always-visible: Tier + Ejercicio + Peso + Esquema
@@ -177,9 +221,24 @@ export function WeekTable({
                       <td
                         className={`${TD} text-right tabular-nums whitespace-nowrap font-bold text-[13px]`}
                       >
-                        {slot.weight > 0 ? `${slot.weight} kg` : '\u2014'}
-                        {slot.isDeload && (
-                          <span className="block text-[10px] text-muted">{'\u2193'} Deload</span>
+                        {slot.prescriptions !== undefined && !slot.isGpp ? (
+                          <>
+                            {`${slot.weight} kg`}
+                            <span className="block text-[10px] text-muted">
+                              {`(${slot.prescriptions[slot.prescriptions.length - 1].percent}%)`}
+                            </span>
+                          </>
+                        ) : slot.isGpp ? (
+                          '\u2014'
+                        ) : (
+                          <>
+                            {slot.weight > 0 ? `${slot.weight} kg` : '\u2014'}
+                            {slot.isDeload && (
+                              <span className="block text-[10px] text-muted">
+                                {'\u2193'} Deload
+                              </span>
+                            )}
+                          </>
                         )}
                       </td>
 
@@ -187,17 +246,17 @@ export function WeekTable({
                       <td
                         className={`${TD} text-center text-[12px] font-semibold text-muted tabular-nums whitespace-nowrap`}
                       >
-                        {slot.sets}
-                        {'\u00d7'}
-                        {slot.reps}
-                        {slot.repsMax !== undefined ? `\u2013${slot.repsMax}` : ''}
-                        {slot.isAmrap && <span className="text-[10px] ml-0.5 text-accent">+</span>}
+                        {slot.prescriptions !== undefined
+                          ? renderPrescriptionScheme(slot)
+                          : renderStandardScheme(slot)}
                       </td>
 
                       {/* Stage (conditional) */}
                       {showStage && (
                         <td className={`${TD} text-center`}>
-                          {slot.stage > 0 ? (
+                          {slot.prescriptions !== undefined || slot.isGpp ? (
+                            <span className="text-muted text-xs">{'\u2014'}</span>
+                          ) : slot.stage > 0 ? (
                             <StageTag stage={slot.stage} size="sm" />
                           ) : (
                             <span className="text-muted text-xs">{'\u2014'}</span>

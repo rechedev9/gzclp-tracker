@@ -878,6 +878,63 @@ const CANONICAL_EXERCISES: readonly ExerciseSeed[] = [
     equipment: 'barbell',
     isCompound: true,
   },
+  // ── Sheiko exercises — Additional GPP (7.4 / 7.5) ──
+  {
+    id: 'dips',
+    name: 'Fondos en paralelas',
+    muscleGroupId: 'chest',
+    equipment: 'bodyweight',
+    isCompound: true,
+  },
+  {
+    id: 'seated-rowing',
+    name: 'Remo sentado',
+    muscleGroupId: 'back',
+    equipment: 'cable',
+    isCompound: true,
+  },
+  {
+    id: 'bench-close-grip',
+    name: 'Press Banca agarre cerrado',
+    muscleGroupId: 'chest',
+    equipment: 'barbell',
+    isCompound: true,
+  },
+  {
+    id: 'bench-middle-grip',
+    name: 'Press Banca agarre medio',
+    muscleGroupId: 'chest',
+    equipment: 'barbell',
+    isCompound: true,
+  },
+  {
+    id: 'front-squat',
+    name: 'Sentadilla frontal',
+    muscleGroupId: 'legs',
+    equipment: 'barbell',
+    isCompound: true,
+  },
+  {
+    id: 'rear-delts',
+    name: 'Deltoides posteriores',
+    muscleGroupId: 'shoulders',
+    equipment: null,
+    isCompound: false,
+  },
+  {
+    id: 'biceps',
+    name: 'Biceps',
+    muscleGroupId: 'arms',
+    equipment: null,
+    isCompound: false,
+  },
+  {
+    id: 'french-press',
+    name: 'Press Frances',
+    muscleGroupId: 'arms',
+    equipment: 'barbell',
+    isCompound: false,
+  },
 ] as const;
 
 export async function seedExercises(db: DbClient): Promise<void> {

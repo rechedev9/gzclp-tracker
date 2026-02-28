@@ -40,6 +40,8 @@ export const BP = {
   speed: 'speed-bench',
   dumbbell: 'dumbbell-bench',
   inclineShoulder: 'incline-shoulder-press',
+  closeGrip: 'bench-close-grip',
+  middleGrip: 'bench-middle-grip',
 } as const;
 
 export const DL = {
@@ -61,6 +63,7 @@ export const GPP = {
   pecs: 'pecs',
   frontDelts: 'front-delts',
   medialDelts: 'medial-delts',
+  rearDelts: 'rear-delts',
   tricepsPushdowns: 'triceps-pushdowns',
   tricepsStanding: 'triceps-standing',
   lats: 'lats',
@@ -72,6 +75,12 @@ export const GPP = {
   legPress: 'leg-press',
   goodmorning: 'goodmorning',
   goodmorningSeat: 'goodmorning-seated',
+  dips: 'dips',
+  seatedRowing: 'seated-rowing',
+  biceps: 'biceps',
+  frenchPress: 'french-press',
+  frontSquat: 'front-squat',
+  squatGpp: 'squat',
 } as const;
 
 // ── Slot factory functions ──
@@ -162,6 +171,8 @@ export function buildExerciseMap(
     [BP.speed]: 'Press Banca velocidad',
     [BP.dumbbell]: 'Press Banca mancuernas',
     [BP.inclineShoulder]: 'Press hombro inclinado',
+    [BP.closeGrip]: 'Press Banca agarre cerrado',
+    [BP.middleGrip]: 'Press Banca agarre medio',
     // Deadlift variations
     [DL.competition]: 'Peso Muerto',
     [DL.bands]: 'Peso Muerto con bandas',
@@ -179,6 +190,7 @@ export function buildExerciseMap(
     [GPP.pecs]: 'Pectorales',
     [GPP.frontDelts]: 'Deltoides frontales',
     [GPP.medialDelts]: 'Deltoides laterales',
+    [GPP.rearDelts]: 'Deltoides posteriores',
     [GPP.tricepsPushdowns]: 'Extension triceps polea',
     [GPP.tricepsStanding]: 'Triceps de pie',
     [GPP.lats]: 'Dorsales',
@@ -190,6 +202,12 @@ export function buildExerciseMap(
     [GPP.legPress]: 'Prensa de piernas',
     [GPP.goodmorning]: 'Buenos dias',
     [GPP.goodmorningSeat]: 'Buenos dias sentado',
+    [GPP.dips]: 'Fondos en paralelas',
+    [GPP.seatedRowing]: 'Remo sentado',
+    [GPP.biceps]: 'Biceps',
+    [GPP.frenchPress]: 'Press Frances',
+    [GPP.frontSquat]: 'Sentadilla frontal',
+    // GPP.squatGpp ('squat') shares the same exercise ID as SQ.competition — already mapped above
   };
 
   const result: Record<string, { readonly name: string }> = {};
