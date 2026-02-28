@@ -1,4 +1,4 @@
-const RPE_VALUES = [5, 6, 7, 8, 9, 10] as const;
+export const RPE_VALUES = [5, 6, 7, 8, 9, 10] as const;
 
 const RPE_DESCRIPTIONS: Readonly<Record<number, string>> = {
   5: 'Muy fácil — 5+ reps en reserva',

@@ -2,6 +2,7 @@ import { Fragment, useMemo, useEffect, useRef } from 'react';
 import type { ResultValue, GenericWorkoutRow } from '@gzclp/shared/types';
 import { ResultCell } from './result-cell';
 import { AmrapInput } from './amrap-input';
+import { RPE_VALUES } from './rpe-input';
 import { StageTag } from './stage-tag';
 
 interface WeekTableProps {
@@ -41,18 +42,18 @@ function RpeSelect({
       className="bg-card text-main border border-rule text-xs font-bold px-1.5 py-1.5 min-h-[36px] min-w-[52px] cursor-pointer rounded-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:outline-none"
     >
       <option value="">{'\u2014'}</option>
-      <option value="5">5</option>
-      <option value="6">6</option>
-      <option value="7">7</option>
-      <option value="8">8</option>
-      <option value="9">9</option>
-      <option value="10">10</option>
+      {RPE_VALUES.map((v) => (
+        <option key={v} value={v}>
+          {v}
+        </option>
+      ))}
     </select>
   );
 }
 
 const TH =
   'text-left font-mono text-[11px] font-bold uppercase tracking-widest text-muted px-2.5 py-2 whitespace-nowrap border border-rule';
+const TD = 'px-2.5 py-2 border border-rule-light';
 
 export function WeekTable({
   weekRows,
@@ -156,7 +157,7 @@ export function WeekTable({
                     >
                       {/* Tier */}
                       <td
-                        className={`px-2.5 py-2 text-[11px] font-bold uppercase whitespace-nowrap border border-rule-light ${
+                        className={`${TD} text-[11px] font-bold uppercase whitespace-nowrap ${
                           slot.role === 'primary'
                             ? 'text-accent'
                             : slot.role === 'secondary'
@@ -168,12 +169,14 @@ export function WeekTable({
                       </td>
 
                       {/* Exercise name */}
-                      <td className="px-2.5 py-2 font-bold text-[13px] truncate max-w-[200px] border border-rule-light">
+                      <td className={`${TD} font-bold text-[13px] truncate max-w-[200px]`}>
                         {slot.exerciseName}
                       </td>
 
                       {/* Weight */}
-                      <td className="px-2.5 py-2 text-right tabular-nums whitespace-nowrap font-bold text-[13px] border border-rule-light">
+                      <td
+                        className={`${TD} text-right tabular-nums whitespace-nowrap font-bold text-[13px]`}
+                      >
                         {slot.weight > 0 ? `${slot.weight} kg` : '\u2014'}
                         {slot.isDeload && (
                           <span className="block text-[10px] text-muted">{'\u2193'} Deload</span>
@@ -181,7 +184,9 @@ export function WeekTable({
                       </td>
 
                       {/* Scheme */}
-                      <td className="px-2.5 py-2 text-center text-[12px] font-semibold text-muted tabular-nums whitespace-nowrap border border-rule-light">
+                      <td
+                        className={`${TD} text-center text-[12px] font-semibold text-muted tabular-nums whitespace-nowrap`}
+                      >
                         {slot.sets}
                         {'\u00d7'}
                         {slot.reps}
@@ -191,7 +196,7 @@ export function WeekTable({
 
                       {/* Stage (conditional) */}
                       {showStage && (
-                        <td className="px-2.5 py-2 text-center border border-rule-light">
+                        <td className={`${TD} text-center`}>
                           {slot.stage > 0 ? (
                             <StageTag stage={slot.stage} size="sm" />
                           ) : (
@@ -201,7 +206,7 @@ export function WeekTable({
                       )}
 
                       {/* Result */}
-                      <td className="px-2.5 py-2 text-center border border-rule-light">
+                      <td className={`${TD} text-center`}>
                         <ResultCell
                           index={row.index}
                           tier={slot.slotId}
@@ -214,7 +219,7 @@ export function WeekTable({
 
                       {/* AMRAP (conditional) */}
                       {showAmrap && (
-                        <td className="px-2.5 py-2 text-center border border-rule-light">
+                        <td className={`${TD} text-center`}>
                           {slot.result === 'success' && slot.isAmrap ? (
                             <AmrapInput
                               value={slot.amrapReps}
@@ -231,7 +236,7 @@ export function WeekTable({
 
                       {/* RPE (conditional) */}
                       {showRpe && (
-                        <td className="px-2.5 py-2 text-center border border-rule-light">
+                        <td className={`${TD} text-center`}>
                           {slot.result === 'success' && slotShowRpe && onSetRpe ? (
                             <RpeSelect
                               value={slot.rpe}
