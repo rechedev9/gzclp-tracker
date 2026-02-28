@@ -133,7 +133,7 @@ function ActiveProgramCard({
       <div className="bg-card border border-rule p-6 sm:p-8 card card-glow-gold accent-left-gold edge-glow-top">
         <div className="flex items-start justify-between gap-3 mb-3">
           <div>
-            <h3 className="text-base sm:text-lg font-extrabold text-heading leading-tight">
+            <h3 className="text-base sm:text-lg font-extrabold text-title leading-tight">
               {definition.name}
             </h3>
             <p className="text-xs text-muted mt-1">{definition.description.split('.')[0]}.</p>
@@ -191,7 +191,7 @@ function ActiveProgramCard({
           {onGoToProfile && (
             <button
               onClick={onGoToProfile}
-              className="px-5 py-2.5 text-xs font-bold text-muted hover:text-heading cursor-pointer transition-colors border border-rule hover:border-rule-light"
+              className="px-5 py-2.5 text-xs font-bold text-muted hover:text-title cursor-pointer transition-colors border border-rule hover:border-rule-light"
             >
               Ver Perfil de Entrenamiento
             </button>
@@ -206,9 +206,7 @@ function ActiveProgramCard({
             Último Entrenamiento
           </h4>
           <div className="flex items-baseline gap-2 mb-2">
-            <span className="text-sm font-bold text-heading">
-              #{lastCompletedWorkout.index + 1}
-            </span>
+            <span className="text-sm font-bold text-title">#{lastCompletedWorkout.index + 1}</span>
             <span className="text-xs text-muted uppercase">{lastCompletedWorkout.dayName}</span>
             {lastSessionDate !== null && (
               <span className="text-[11px] text-info ml-auto">{lastSessionDate}</span>

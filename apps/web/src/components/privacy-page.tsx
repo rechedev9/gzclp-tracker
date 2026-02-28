@@ -5,18 +5,15 @@ export function PrivacyPage(): React.ReactNode {
     <div className="min-h-dvh bg-body">
       <header className="bg-header border-b border-rule px-6 sm:px-10 py-5">
         <div className="max-w-3xl mx-auto flex items-center justify-between">
-          <Link
-            to="/"
-            className="text-sm font-bold text-heading hover:opacity-80 transition-opacity"
-          >
+          <Link to="/" className="text-sm font-bold text-title hover:opacity-80 transition-opacity">
             &larr; Volver
           </Link>
-          <span className="text-sm font-bold text-heading">Gravity Room</span>
+          <span className="text-sm font-bold text-title">Gravity Room</span>
         </div>
       </header>
 
       <main className="max-w-3xl mx-auto px-6 sm:px-10 py-10 sm:py-16">
-        <h1 className="text-2xl sm:text-3xl font-extrabold text-heading mb-8">
+        <h1 className="text-2xl sm:text-3xl font-extrabold text-title mb-8">
           Política de Privacidad
         </h1>
 

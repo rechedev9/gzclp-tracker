@@ -107,7 +107,7 @@ export function LandingPage(): React.ReactNode {
             height={32}
             className="rounded-full"
           />
-          <span className="text-sm font-bold tracking-tight text-heading">Gravity Room</span>
+          <span className="text-sm font-bold tracking-tight text-title">Gravity Room</span>
         </div>
         <div className="hidden md:flex items-center gap-8">
           {NAV_LINKS.map((link) => (
@@ -115,9 +115,7 @@ export function LandingPage(): React.ReactNode {
               key={link.href}
               href={link.href}
               className={`font-mono text-xs font-semibold tracking-widest uppercase transition-colors duration-200 ${
-                activeSection === link.href.slice(1)
-                  ? 'text-heading'
-                  : 'text-muted hover:text-heading'
+                activeSection === link.href.slice(1) ? 'text-title' : 'text-muted hover:text-title'
               }`}
               style={{ fontSize: '11px' }}
             >
@@ -176,7 +174,7 @@ export function LandingPage(): React.ReactNode {
             {/* Main headline — Bebas Neue massive */}
             <h1
               id="hero-heading"
-              className="font-display mb-6 leading-none tracking-wide text-heading"
+              className="font-display mb-6 leading-none tracking-wide text-title"
               style={{
                 fontSize: 'clamp(72px, 12vw, 140px)',
                 letterSpacing: '0.02em',
@@ -254,7 +252,7 @@ export function LandingPage(): React.ReactNode {
             ].map((m) => (
               <div key={m.label} className="text-center px-6 sm:px-10 py-5 sm:py-0">
                 <div
-                  className="font-display hero-number-glow leading-none mb-2 text-heading"
+                  className="font-display hero-number-glow leading-none mb-2 text-title"
                   style={{
                     fontSize: 'clamp(52px, 7vw, 88px)',
                     letterSpacing: '0.02em',
@@ -285,7 +283,7 @@ export function LandingPage(): React.ReactNode {
           <SectionLabel>Características</SectionLabel>
           <h2
             id="features-heading"
-            className="font-display text-center mb-4 leading-none text-heading"
+            className="font-display text-center mb-4 leading-none text-title"
             style={{
               fontSize: 'clamp(40px, 6vw, 72px)',
               letterSpacing: '0.02em',
@@ -340,7 +338,7 @@ export function LandingPage(): React.ReactNode {
             <SectionLabel>Cómo Funciona</SectionLabel>
             <h2
               id="how-it-works-heading"
-              className="font-display text-center mb-4 leading-none text-heading"
+              className="font-display text-center mb-4 leading-none text-title"
               style={{
                 fontSize: 'clamp(40px, 6vw, 72px)',
                 letterSpacing: '0.02em',
@@ -411,7 +409,7 @@ export function LandingPage(): React.ReactNode {
           <SectionLabel>La Ciencia</SectionLabel>
           <h2
             id="smart-training-heading"
-            className="font-display text-center mb-4 leading-none text-heading"
+            className="font-display text-center mb-4 leading-none text-title"
             style={{
               fontSize: 'clamp(40px, 6vw, 72px)',
               letterSpacing: '0.02em',
@@ -461,7 +459,7 @@ export function LandingPage(): React.ReactNode {
             <SectionLabel>Catálogo</SectionLabel>
             <h2
               id="programs-heading"
-              className="font-display text-center mb-4 leading-none text-heading"
+              className="font-display text-center mb-4 leading-none text-title"
               style={{
                 fontSize: 'clamp(40px, 6vw, 72px)',
                 letterSpacing: '0.02em',
@@ -507,7 +505,7 @@ export function LandingPage(): React.ReactNode {
                       </div>
 
                       {/* Name (Bebas Neue) */}
-                      <h3 className="font-display text-center text-3xl mb-1 tracking-wide text-heading">
+                      <h3 className="font-display text-center text-3xl mb-1 tracking-wide text-title">
                         {program.name}
                       </h3>
 
@@ -579,7 +577,7 @@ export function LandingPage(): React.ReactNode {
               ¿Listo para subir la gravedad?
             </p>
             <h2
-              className="font-display mb-10 leading-none text-heading"
+              className="font-display mb-10 leading-none text-title"
               style={{
                 fontSize: 'clamp(52px, 8vw, 100px)',
                 letterSpacing: '0.02em',
@@ -605,7 +603,7 @@ export function LandingPage(): React.ReactNode {
       <footer className="px-6 sm:px-10 py-10 bg-header border-t border-rule">
         <div className="max-w-5xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4">
           <div>
-            <p className="text-sm font-bold mb-1 text-heading">Gravity Room</p>
+            <p className="text-sm font-bold mb-1 text-title">Gravity Room</p>
             <p className="text-xs text-muted">Para atletas que se niegan a estancarse.</p>
           </div>
           <div className="font-mono flex items-center gap-5 text-[11px] text-muted">
