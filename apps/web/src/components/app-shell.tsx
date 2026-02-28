@@ -84,6 +84,12 @@ export function AppShell(): React.ReactNode {
     setView('profile');
   };
 
+  const handleProgramReset = (): void => {
+    const pid = selectedProgramId;
+    setSelectedInstanceId(undefined);
+    setPendingProgramId(pid);
+  };
+
   // URL guard: redirect to dashboard if tracker view is reached with no program selected
   useEffect(() => {
     if (view === 'tracker' && !pendingProgramId && !selectedProgramId) {
@@ -115,6 +121,7 @@ export function AppShell(): React.ReactNode {
             instanceId={selectedInstanceId}
             isActive={view === 'tracker'}
             onBackToDashboard={handleBackToDashboard}
+            onProgramReset={handleProgramReset}
             onGoToProfile={handleGoToProfile}
           />
         ) : null;
