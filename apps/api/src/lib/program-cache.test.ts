@@ -139,7 +139,7 @@ describe('setCachedInstance', () => {
       `program:${USER_ID}:${INSTANCE_ID}`,
       JSON.stringify(CACHED_RESPONSE),
       'EX',
-      60
+      300
     );
   });
 

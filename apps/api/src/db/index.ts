@@ -46,8 +46,9 @@ export function getDb(): DbInstance {
     if (!url) {
       throw new Error('DATABASE_URL environment variable is required');
     }
+    const poolSize = Number(process.env['DB_POOL_SIZE']) || 50;
     _client = postgres(url, {
-      max: 20,
+      max: poolSize,
       idle_timeout: 30,
       connect_timeout: 10,
       ssl: process.env['NODE_ENV'] === 'production' ? 'require' : false,

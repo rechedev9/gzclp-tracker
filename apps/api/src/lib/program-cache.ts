@@ -7,7 +7,7 @@ import { logger } from './logger';
 import { isRecord } from '@gzclp/shared/type-guards';
 import type { ProgramInstanceResponse } from '../services/programs';
 
-const CACHE_TTL_SECONDS = 60;
+const CACHE_TTL_SECONDS = 300; // 5 minutes — writes actively invalidate, so longer TTL is safe
 
 /** Minimal shape check — the data was serialized by us, so id presence suffices. */
 function isProgramInstanceResponse(value: unknown): value is ProgramInstanceResponse {
