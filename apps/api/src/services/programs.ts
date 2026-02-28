@@ -121,7 +121,11 @@ export async function createInstance(
   name: string,
   config: Record<string, number>
 ): Promise<ProgramInstanceResponse> {
-  // Validate program exists in DB
+  // Validate program exists in the curated catalog (program_templates).
+  // TODO: When program_definitions approval flow is complete, also allow
+  // instantiation from approved definitions (check program_definitions
+  // WHERE status = 'approved' as fallback). See schema.ts architecture note
+  // on program_templates vs program_definitions duality.
   const [template] = await getDb()
     .select({ id: programTemplates.id })
     .from(programTemplates)

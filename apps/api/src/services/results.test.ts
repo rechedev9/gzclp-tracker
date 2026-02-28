@@ -24,6 +24,7 @@ interface WorkoutResultRow {
   readonly amrapReps: number | null;
   readonly rpe: number | null;
   readonly createdAt: Date;
+  readonly updatedAt: Date;
 }
 
 interface UndoEntryRow {
@@ -53,6 +54,7 @@ function makeResultRow(overrides: Partial<WorkoutResultRow> = {}): WorkoutResult
     amrapReps: null,
     rpe: null,
     createdAt: NOW,
+    updatedAt: NOW,
     ...overrides,
   };
 }

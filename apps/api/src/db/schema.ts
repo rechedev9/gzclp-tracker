@@ -39,6 +39,13 @@ export const users = pgTable('users', {
   googleId: varchar('google_id', { length: 255 }).unique().notNull(),
   name: varchar({ length: 100 }),
   avatarUrl: text('avatar_url'),
+  /**
+   * Soft-delete timestamp. When set, the user is in a 30-day grace period
+   * before `purge-deleted-users.ts` hard-deletes (CASCADE) the row and all
+   * related data. The JWT middleware's `findUserById()` filters
+   * `WHERE deleted_at IS NULL`, so soft-deleted users cannot authenticate.
+   * Short-lived access tokens (~15 min) naturally expire within the window.
+   */
   deletedAt: timestamp('deleted_at', { withTimezone: true }),
   createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
   updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
@@ -131,6 +138,7 @@ export const workoutResults = pgTable(
     amrapReps: smallint('amrap_reps'),
     rpe: smallint('rpe'),
     createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
   },
   (table) => [
     unique('workout_results_instance_slot_idx').on(
@@ -139,6 +147,7 @@ export const workoutResults = pgTable(
       table.slotId
     ),
     index('workout_results_instance_id_idx').on(table.instanceId),
+    index('workout_results_instance_workout_idx').on(table.instanceId, table.workoutIndex),
   ]
 );
 
@@ -183,6 +192,23 @@ export const undoEntriesRelations = relations(undoEntries, ({ one }) => ({
 // ---------------------------------------------------------------------------
 // program_definitions — user-created program definitions
 // ---------------------------------------------------------------------------
+//
+// ARCHITECTURE NOTE: program_templates vs program_definitions
+//
+// These two tables serve different roles in the program lifecycle:
+//
+//   program_templates  — Curated catalog of programs (GZCLP, 5/3/1 BBB, etc.).
+//                        Seeded by admins. `program_instances.programId` FK
+//                        points here — only catalog programs can be instantiated.
+//
+//   program_definitions — User-submitted custom programs going through an
+//                         approval workflow (draft → pending_review → approved).
+//                         Once approved, a program_definition is promoted into
+//                         program_templates to become instantiable.
+//
+// Long-term: these may unify into a single table with a `source` discriminator.
+// For now, keep them separate to maintain the admin approval gate.
+//
 
 export const programDefinitions = pgTable(
   'program_definitions',
@@ -234,6 +260,11 @@ export const exercises = pgTable(
     equipment: varchar({ length: 50 }),
     isCompound: boolean('is_compound').notNull().default(false),
     isPreset: boolean('is_preset').notNull().default(true),
+    /**
+     * Owner of custom exercises. `onDelete: 'set null'` means user deletion
+     * orphans the exercise (is_preset=false, created_by=NULL). The partial
+     * index `exercises_orphaned_idx` enables efficient cleanup queries.
+     */
     createdBy: uuid('created_by').references(() => users.id, { onDelete: 'set null' }),
     createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
     force: varchar({ length: 20 }),
@@ -255,6 +286,8 @@ export const exercises = pgTable(
     index('exercises_is_compound_true_idx').on(table.isCompound),
     // NOTE: exercises_name_trgm_idx (GIN pg_trgm) is migration-only —
     // Drizzle's index() builder does not support GIN indexes.
+    // NOTE: exercises_orphaned_idx (partial index WHERE is_preset=false AND created_by IS NULL)
+    // is migration-only (0021) — finds orphaned custom exercises after user deletion.
   ]
 );
 

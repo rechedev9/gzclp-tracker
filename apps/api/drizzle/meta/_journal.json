@@ -141,6 +141,34 @@
       "when": 1772600000000,
       "tag": "0019_one_active_program_per_user",
       "breakpoints": true
+    },
+    {
+      "idx": 20,
+      "version": "7",
+      "when": 1772700000000,
+      "tag": "0020_auto_updated_at_trigger",
+      "breakpoints": true
+    },
+    {
+      "idx": 21,
+      "version": "7",
+      "when": 1772700000001,
+      "tag": "0021_add_exercises_orphan_index",
+      "breakpoints": true
+    },
+    {
+      "idx": 22,
+      "version": "7",
+      "when": 1772700000002,
+      "tag": "0022_add_workout_results_compound_index",
+      "breakpoints": true
+    },
+    {
+      "idx": 23,
+      "version": "7",
+      "when": 1772700000003,
+      "tag": "0023_add_workout_results_updated_at",
+      "breakpoints": true
     }
   ]
 }
