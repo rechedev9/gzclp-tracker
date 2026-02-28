@@ -12,6 +12,36 @@
 process.env['LOG_LEVEL'] = 'silent';
 
 import { describe, it, expect } from 'bun:test';
+import { ProgramDefinitionSchema } from '@gzclp/shared/schemas/program-definition';
+import { SHEIKO_7_1_DEFINITION } from './programs/sheiko-7-1';
+import { SHEIKO_7_2_DEFINITION } from './programs/sheiko-7-2';
+import { SHEIKO_7_3_DEFINITION } from './programs/sheiko-7-3';
+import { SHEIKO_7_4_DEFINITION } from './programs/sheiko-7-4';
+import { SHEIKO_7_5_DEFINITION } from './programs/sheiko-7-5';
+
+// ---------------------------------------------------------------------------
+// Sheiko seed schema validation (REQ-SEED-008)
+// ---------------------------------------------------------------------------
+describe('Sheiko seed schema validation', () => {
+  const sheikoDefinitions = [
+    { name: 'Sheiko 7.1', def: SHEIKO_7_1_DEFINITION },
+    { name: 'Sheiko 7.2', def: SHEIKO_7_2_DEFINITION },
+    { name: 'Sheiko 7.3', def: SHEIKO_7_3_DEFINITION },
+    { name: 'Sheiko 7.4', def: SHEIKO_7_4_DEFINITION },
+    { name: 'Sheiko 7.5', def: SHEIKO_7_5_DEFINITION },
+  ];
+
+  for (const { name, def } of sheikoDefinitions) {
+    it(`${name} passes ProgramDefinitionSchema with zero errors`, () => {
+      const result = ProgramDefinitionSchema.safeParse(def);
+
+      if (!result.success) {
+        console.error(`${name} failed:`, JSON.stringify(result.error.issues, null, 2));
+      }
+      expect(result.success).toBe(true);
+    });
+  }
+});
 
 // Detect if DATABASE_URL is set — skip if not
 const hasDb = typeof process.env['DATABASE_URL'] === 'string' && process.env['DATABASE_URL'] !== '';

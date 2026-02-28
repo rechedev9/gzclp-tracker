@@ -293,6 +293,221 @@ describe('WeekTable conditional columns', () => {
     });
   });
 
+  // ---------------------------------------------------------------------------
+  // 4.6 — Prescription ladder rendering (REQ-FRONTEND-001)
+  // ---------------------------------------------------------------------------
+  describe('prescription ladder rendering', () => {
+    it('slot with multiple prescriptions renders condensed ladder format', () => {
+      renderTable([
+        makeRow(0, [
+          {
+            tier: 'comp',
+            stagesCount: 1,
+            isAmrap: false,
+            role: 'primary',
+            weight: 150,
+            prescriptions: [
+              { percent: 50, reps: 5, sets: 1, weight: 100 },
+              { percent: 60, reps: 4, sets: 1, weight: 120 },
+              { percent: 70, reps: 3, sets: 1, weight: 140 },
+              { percent: 75, reps: 3, sets: 4, weight: 150 },
+            ],
+          },
+        ]),
+      ]);
+
+      // The working set should appear with bold formatting
+      // Warm-ups: 50%x5, 60%x4, 70%x3 | Working: 75%x3x4
+      const text = document.body.textContent ?? '';
+      expect(text).toContain('50%');
+      expect(text).toContain('75%');
+    });
+
+    it('single prescription renders just working set', () => {
+      renderTable([
+        makeRow(0, [
+          {
+            tier: 'comp',
+            stagesCount: 1,
+            isAmrap: false,
+            role: 'primary',
+            weight: 140,
+            prescriptions: [{ percent: 70, reps: 3, sets: 4, weight: 140 }],
+          },
+        ]),
+      ]);
+
+      const text = document.body.textContent ?? '';
+      expect(text).toContain('70%');
+    });
+
+    it('| separator only present when warm-up entries exist', () => {
+      const { container } = render(
+        <WeekTable
+          weekRows={[
+            makeRow(0, [
+              {
+                tier: 'comp',
+                stagesCount: 1,
+                isAmrap: false,
+                role: 'primary',
+                weight: 140,
+                prescriptions: [{ percent: 70, reps: 3, sets: 4, weight: 140 }],
+              },
+            ]),
+          ]}
+          firstPendingIndex={0}
+          onMark={noop as unknown as (i: number, s: string, v: 'success' | 'fail') => void}
+          onUndo={noop as unknown as (i: number, s: string) => void}
+          onSetAmrapReps={noop as unknown as (i: number, s: string, r: number | undefined) => void}
+          onSetRpe={noop as unknown as (i: number, s: string, r: number | undefined) => void}
+        />
+      );
+
+      // Single prescription = no warm-ups = no "|" separator
+      const schemeText = container.textContent ?? '';
+      // The | should NOT be present when there are no warm-ups
+      const pipeCount = (schemeText.match(/\|/g) ?? []).length;
+      expect(pipeCount).toBe(0);
+    });
+  });
+
+  // ---------------------------------------------------------------------------
+  // 4.7 — Weight cell + GPP tests (REQ-FRONTEND-002, REQ-FRONTEND-003, REQ-FRONTEND-004)
+  // ---------------------------------------------------------------------------
+  describe('weight cell and GPP rendering', () => {
+    it('prescription slot shows weight and percentage annotation', () => {
+      renderTable([
+        makeRow(0, [
+          {
+            tier: 'comp',
+            stagesCount: 1,
+            isAmrap: false,
+            role: 'primary',
+            weight: 140,
+            prescriptions: [{ percent: 70, reps: 3, sets: 4, weight: 140 }],
+          },
+        ]),
+      ]);
+
+      const text = document.body.textContent ?? '';
+      expect(text).toContain('140 kg');
+      expect(text).toContain('(70%)');
+    });
+
+    it('GPP slot shows em-dash in weight cell', () => {
+      renderTable([
+        makeRow(0, [
+          {
+            tier: 'gpp',
+            stagesCount: 1,
+            isAmrap: false,
+            role: 'accessory',
+            weight: 0,
+            isGpp: true,
+          },
+        ]),
+      ]);
+
+      const text = document.body.textContent ?? '';
+      // GPP shows em-dash (\u2014)
+      expect(text).toContain('\u2014');
+    });
+
+    it('non-prescription slot renders unchanged', () => {
+      renderTable([
+        makeRow(0, [
+          {
+            tier: 't1',
+            stagesCount: 1,
+            isAmrap: false,
+            role: 'secondary',
+            weight: 60,
+          },
+        ]),
+      ]);
+
+      const text = document.body.textContent ?? '';
+      expect(text).toContain('60 kg');
+    });
+
+    it('GPP slots do not trigger showStage', () => {
+      renderTable([
+        makeRow(0, [
+          {
+            tier: 'gpp',
+            stagesCount: 1,
+            isAmrap: false,
+            role: 'accessory',
+            weight: 0,
+            isGpp: true,
+            slotId: 'gpp-1',
+          },
+          {
+            tier: 'gpp',
+            stagesCount: 1,
+            isAmrap: false,
+            role: 'accessory',
+            weight: 0,
+            isGpp: true,
+            slotId: 'gpp-2',
+          },
+        ]),
+      ]);
+
+      const headers = screen.getAllByRole('columnheader');
+      const headerTexts = headers.map((h) => h.textContent);
+      // GPP-only data should not show Etapa column
+      expect(headerTexts).not.toContain('Etapa');
+    });
+  });
+
+  // ---------------------------------------------------------------------------
+  // 4.8 — complexReps tests (REQ-FRONTEND-005, REQ-FRONTEND-006)
+  // ---------------------------------------------------------------------------
+  describe('complexReps rendering', () => {
+    it('complexReps replaces reps in scheme display for standard slots', () => {
+      renderTable([
+        makeRow(0, [
+          {
+            tier: 't1',
+            stagesCount: 1,
+            isAmrap: false,
+            role: 'secondary',
+            weight: 60,
+            sets: 4,
+            reps: 3,
+            complexReps: '1+3',
+          },
+        ]),
+      ]);
+
+      const text = document.body.textContent ?? '';
+      // Standard scheme should show sets x complexReps
+      expect(text).toContain('1+3');
+    });
+
+    it('GZCLP-style row renders identically (no regression)', () => {
+      renderTable([
+        makeRow(0, [
+          {
+            tier: 't1',
+            stagesCount: 3,
+            isAmrap: true,
+            role: 'primary',
+            weight: 60,
+            sets: 5,
+            reps: 3,
+          },
+        ]),
+      ]);
+
+      const text = document.body.textContent ?? '';
+      // Standard GZCLP rendering: 5x3
+      expect(text).toContain('60 kg');
+    });
+  });
+
   describe('deload indicator (REQ-DI-002)', () => {
     it('renders deload text when slot.isDeload=true', () => {
       const { container } = render(

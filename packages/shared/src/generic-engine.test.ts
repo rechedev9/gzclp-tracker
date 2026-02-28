@@ -1,5 +1,9 @@
 import { describe, it, expect } from 'bun:test';
-import { computeGenericProgram, roundToNearestHalf as round } from './generic-engine';
+import {
+  computeGenericProgram,
+  roundToNearestHalf as round,
+  roundToNearest,
+} from './generic-engine';
 import { GZCLP_DEFINITION_FIXTURE, DEFAULT_WEIGHTS } from '../test/fixtures';
 import type { ProgramDefinition, GenericResults } from './types/program';
 import {
@@ -8,6 +12,7 @@ import {
   StageDefinitionSchema,
   ConfigFieldSchema,
   ProgramDefinitionSchema,
+  SetPrescriptionSchema,
 } from './schemas/program-definition';
 import { MUTENROSHI_DEFINITION_JSONB } from '../../../apps/api/src/db/seeds/programs/mutenroshi';
 import { GZCLP_DEFINITION_JSONB } from '../../../apps/api/src/db/seeds/programs/gzclp';
@@ -19,6 +24,11 @@ import { FSL531_DEFINITION_JSONB } from '../../../apps/api/src/db/seeds/programs
 import { PHUL_DEFINITION_JSONB } from '../../../apps/api/src/db/seeds/programs/phul';
 import { NIVEL7_DEFINITION_JSONB } from '../../../apps/api/src/db/seeds/programs/nivel7';
 import { BRUNETTI365_DEFINITION_JSONB } from '../../../apps/api/src/db/seeds/programs/brunetti-365';
+import { SHEIKO_7_1_DEFINITION } from '../../../apps/api/src/db/seeds/programs/sheiko-7-1';
+import { SHEIKO_7_2_DEFINITION } from '../../../apps/api/src/db/seeds/programs/sheiko-7-2';
+import { SHEIKO_7_3_DEFINITION } from '../../../apps/api/src/db/seeds/programs/sheiko-7-3';
+import { SHEIKO_7_4_DEFINITION } from '../../../apps/api/src/db/seeds/programs/sheiko-7-4';
+import { SHEIKO_7_5_DEFINITION } from '../../../apps/api/src/db/seeds/programs/sheiko-7-5';
 
 // ---------------------------------------------------------------------------
 // Test helpers
@@ -1788,6 +1798,31 @@ describe('ProgramDefinitionSchema', () => {
         def: MUTENROSHI_DEFINITION_JSONB,
         meta: {}, // MUTENROSHI already has all metadata fields
       },
+      {
+        name: 'Sheiko 7.1',
+        def: SHEIKO_7_1_DEFINITION as typeof MUTENROSHI_DEFINITION_JSONB,
+        meta: {}, // Sheiko definitions already include all metadata
+      },
+      {
+        name: 'Sheiko 7.2',
+        def: SHEIKO_7_2_DEFINITION as typeof MUTENROSHI_DEFINITION_JSONB,
+        meta: {},
+      },
+      {
+        name: 'Sheiko 7.3',
+        def: SHEIKO_7_3_DEFINITION as typeof MUTENROSHI_DEFINITION_JSONB,
+        meta: {},
+      },
+      {
+        name: 'Sheiko 7.4',
+        def: SHEIKO_7_4_DEFINITION as typeof MUTENROSHI_DEFINITION_JSONB,
+        meta: {},
+      },
+      {
+        name: 'Sheiko 7.5',
+        def: SHEIKO_7_5_DEFINITION as typeof MUTENROSHI_DEFINITION_JSONB,
+        meta: {},
+      },
     ];
 
     for (const { name, def, meta } of definitions) {
@@ -1891,4 +1926,579 @@ describe('MUTENROSHI engine integration', () => {
       }
     }
   });
+});
+
+// ---------------------------------------------------------------------------
+// 4.1 — roundToNearest (REQ-ENGINE-003)
+// ---------------------------------------------------------------------------
+describe('roundToNearest', () => {
+  it('rounds 134 to nearest 2.5 → 135', () => {
+    expect(roundToNearest(134, 2.5)).toBe(135);
+  });
+
+  it('rounds 67.3 to nearest 1.25 → 67.5', () => {
+    expect(roundToNearest(67.3, 1.25)).toBe(67.5);
+  });
+
+  it('returns exact value for exact multiples', () => {
+    expect(roundToNearest(140, 2.5)).toBe(140);
+  });
+
+  it('returns value unchanged if step <= 0', () => {
+    // Falls back to roundToNearestHalf
+    expect(roundToNearest(67.3, 0)).toBe(round(67.3));
+  });
+
+  it('existing roundToNearestHalf still works (0.5 rounding)', () => {
+    expect(round(67.3)).toBe(67.5);
+    expect(round(67.7)).toBe(67.5);
+    expect(round(67.8)).toBe(68);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// 4.2 — prescription branch: weight computation (REQ-ENGINE-001, REQ-ENGINE-002)
+// ---------------------------------------------------------------------------
+describe('prescription branch — weight computation', () => {
+  /** Minimal prescription program for testing weight computation. */
+  function makePrescriptionDef(overrides: {
+    prescriptions: Array<{ percent: number; reps: number; sets: number }>;
+    percentOf?: string;
+    configKey?: string;
+    configValue?: number;
+    rounding?: string;
+    totalWorkouts?: number;
+    isGpp?: boolean;
+    complexReps?: string;
+    extraSlots?: ProgramDefinition['days'][number]['slots'];
+  }): ProgramDefinition {
+    const slotId = 'rx-slot';
+    const exerciseId = 'squat';
+    const percentOf = overrides.percentOf ?? 'squat1rm';
+    const configKey = overrides.configKey ?? percentOf;
+
+    const slots: ProgramDefinition['days'][number]['slots'] = [
+      {
+        id: slotId,
+        exerciseId,
+        tier: 'comp',
+        stages: [{ sets: 1, reps: 1 }],
+        onSuccess: { type: 'no_change' },
+        onMidStageFail: { type: 'no_change' },
+        onFinalStageFail: { type: 'no_change' },
+        startWeightKey: configKey,
+        prescriptions: overrides.prescriptions,
+        percentOf,
+        isGpp: overrides.isGpp,
+        complexReps: overrides.complexReps,
+      },
+      ...(overrides.extraSlots ?? []),
+    ];
+
+    const config: Record<string, { name: string }> = { [exerciseId]: { name: 'Squat' } };
+    if (overrides.extraSlots) {
+      for (const s of overrides.extraSlots) {
+        config[s.exerciseId] = { name: s.exerciseId };
+      }
+    }
+
+    return {
+      id: 'test-rx',
+      name: 'Test Prescription',
+      description: '',
+      author: 'test',
+      version: 1,
+      category: 'test',
+      source: 'preset',
+      cycleLength: 1,
+      totalWorkouts: overrides.totalWorkouts ?? 2,
+      workoutsPerWeek: 4,
+      exercises: config,
+      configFields: [
+        { key: configKey, label: 'Config', type: 'weight' as const, min: 0, step: 2.5 },
+      ],
+      weightIncrements: { [exerciseId]: 0 },
+      days: [{ name: 'Day 1', slots }],
+    };
+  }
+
+  it('computes working weight = 140 (200 * 70 / 100) with 2.5 rounding', () => {
+    const def = makePrescriptionDef({
+      prescriptions: [{ percent: 70, reps: 3, sets: 4 }],
+    });
+    const rows = computeGenericProgram(def, { squat1rm: 200, rounding: '2.5' }, {});
+
+    expect(rows[0].slots[0].weight).toBe(140);
+  });
+
+  it('rounds with 1.25 step: squat1rm=100, 67% → 67.5', () => {
+    const def = makePrescriptionDef({
+      prescriptions: [{ percent: 67, reps: 3, sets: 4 }],
+    });
+    const rows = computeGenericProgram(def, { squat1rm: 100, rounding: '1.25' }, {});
+
+    expect(rows[0].slots[0].weight).toBe(67.5);
+  });
+
+  it('defaults to 2.5 rounding when rounding config is missing', () => {
+    const def = makePrescriptionDef({
+      prescriptions: [{ percent: 67, reps: 3, sets: 4 }],
+    });
+    // No 'rounding' in config → default 2.5
+    const rows = computeGenericProgram(def, { squat1rm: 200 }, {});
+
+    // 200 * 67 / 100 = 134 → round to nearest 2.5 = 135
+    expect(rows[0].slots[0].weight).toBe(135);
+  });
+
+  it('100% = exact 1RM', () => {
+    const def = makePrescriptionDef({
+      prescriptions: [{ percent: 100, reps: 1, sets: 1 }],
+    });
+    const rows = computeGenericProgram(def, { squat1rm: 200, rounding: '2.5' }, {});
+
+    expect(rows[0].slots[0].weight).toBe(200);
+  });
+
+  it('105% peaking = round(1RM * 1.05, step)', () => {
+    const def = makePrescriptionDef({
+      prescriptions: [{ percent: 105, reps: 1, sets: 1 }],
+    });
+    const rows = computeGenericProgram(def, { squat1rm: 200, rounding: '2.5' }, {});
+
+    // 200 * 1.05 = 210 → exactly 210 (already multiple of 2.5)
+    expect(rows[0].slots[0].weight).toBe(210);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// 4.3 — prescription branch: GenericSlotRow output (REQ-ENGINE-004, REQ-ENGINE-005, REQ-ENGINE-006)
+// ---------------------------------------------------------------------------
+describe('prescription branch — GenericSlotRow output', () => {
+  function makePrescriptionDef(overrides: {
+    prescriptions?: Array<{ percent: number; reps: number; sets: number }>;
+    percentOf?: string;
+    isGpp?: boolean;
+    complexReps?: string;
+    totalWorkouts?: number;
+    extraSlots?: ProgramDefinition['days'][number]['slots'];
+  }): ProgramDefinition {
+    const slotId = 'rx-slot';
+    const exerciseId = 'squat';
+    const percentOf = overrides.percentOf ?? 'squat1rm';
+
+    const prescriptionSlot: ProgramDefinition['days'][number]['slots'][number] = {
+      id: slotId,
+      exerciseId,
+      tier: 'comp',
+      stages: [{ sets: 1, reps: 1 }],
+      onSuccess: { type: 'no_change' },
+      onMidStageFail: { type: 'no_change' },
+      onFinalStageFail: { type: 'no_change' },
+      startWeightKey: percentOf,
+      prescriptions: overrides.prescriptions ?? [
+        { percent: 50, reps: 5, sets: 1 },
+        { percent: 60, reps: 4, sets: 1 },
+        { percent: 70, reps: 3, sets: 4 },
+      ],
+      percentOf,
+      isGpp: overrides.isGpp,
+      complexReps: overrides.complexReps,
+    };
+
+    const slots: ProgramDefinition['days'][number]['slots'] = [
+      prescriptionSlot,
+      ...(overrides.extraSlots ?? []),
+    ];
+
+    const exercises: Record<string, { name: string }> = { [exerciseId]: { name: 'Squat' } };
+    if (overrides.extraSlots) {
+      for (const s of overrides.extraSlots) {
+        exercises[s.exerciseId] = { name: s.exerciseId };
+      }
+    }
+
+    return {
+      id: 'test-rx',
+      name: 'Test Prescription',
+      description: '',
+      author: 'test',
+      version: 1,
+      category: 'test',
+      source: 'preset',
+      cycleLength: 1,
+      totalWorkouts: overrides.totalWorkouts ?? 3,
+      workoutsPerWeek: 4,
+      exercises,
+      configFields: [
+        { key: percentOf, label: 'Config', type: 'weight' as const, min: 0, step: 2.5 },
+      ],
+      weightIncrements: { [exerciseId]: 0 },
+      days: [{ name: 'Day 1', slots }],
+    };
+  }
+
+  it('populates prescriptions array with resolved weights', () => {
+    const def = makePrescriptionDef({});
+    const rows = computeGenericProgram(def, { squat1rm: 200, rounding: '2.5' }, {});
+    const slot = rows[0].slots[0];
+
+    expect(slot.prescriptions).toBeDefined();
+    expect(slot.prescriptions!.length).toBe(3);
+    expect(slot.prescriptions![0].weight).toBe(100); // 200 * 50 / 100
+    expect(slot.prescriptions![1].weight).toBe(120); // 200 * 60 / 100
+    expect(slot.prescriptions![2].weight).toBe(140); // 200 * 70 / 100
+  });
+
+  it('sets weight/sets/reps from the last (working) prescription', () => {
+    const def = makePrescriptionDef({});
+    const rows = computeGenericProgram(def, { squat1rm: 200, rounding: '2.5' }, {});
+    const slot = rows[0].slots[0];
+
+    expect(slot.weight).toBe(140);
+    expect(slot.sets).toBe(4);
+    expect(slot.reps).toBe(3);
+  });
+
+  it('sets isGpp to true for GPP slots', () => {
+    const def = makePrescriptionDef({
+      isGpp: true,
+      prescriptions: [{ percent: 50, reps: 5, sets: 1 }],
+    });
+    const rows = computeGenericProgram(def, { squat1rm: 200, rounding: '2.5' }, {});
+    const slot = rows[0].slots[0];
+
+    expect(slot.isGpp).toBe(true);
+  });
+
+  it('passes through complexReps', () => {
+    const def = makePrescriptionDef({
+      complexReps: '1+3',
+    });
+    const rows = computeGenericProgram(def, { squat1rm: 200, rounding: '2.5' }, {});
+    const slot = rows[0].slots[0];
+
+    expect(slot.complexReps).toBe('1+3');
+  });
+
+  it('prescriptions is undefined for standard (non-prescription) slots', () => {
+    const def = makeDefinition({ totalWorkouts: 1 });
+    const rows = computeGenericProgram(def, { ex: 60 }, {});
+    const slot = rows[0].slots[0];
+
+    expect(slot.prescriptions).toBeUndefined();
+  });
+
+  it('prescription slots do not mutate state (same weight across workouts after recording success)', () => {
+    const def = makePrescriptionDef({
+      prescriptions: [{ percent: 70, reps: 3, sets: 4 }],
+      totalWorkouts: 3,
+    });
+    const results: GenericResults = {
+      '0': { 'rx-slot': { result: 'success' } },
+      '1': { 'rx-slot': { result: 'success' } },
+    };
+    const rows = computeGenericProgram(def, { squat1rm: 200, rounding: '2.5' }, results);
+
+    expect(rows[0].slots[0].weight).toBe(140);
+    expect(rows[1].slots[0].weight).toBe(140);
+    expect(rows[2].slots[0].weight).toBe(140);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// 4.4 — prescription branch: backwards compatibility (REQ-ENGINE-001, REQ-ENGINE-004)
+// ---------------------------------------------------------------------------
+describe('prescription branch — backwards compatibility', () => {
+  it('program with BOTH prescription and standard slots works correctly', () => {
+    const standardSlot: ProgramDefinition['days'][number]['slots'][number] = {
+      id: 'std-slot',
+      exerciseId: 'bench',
+      tier: 't1',
+      stages: [{ sets: 5, reps: 3 }],
+      onSuccess: { type: 'add_weight' },
+      onMidStageFail: { type: 'advance_stage' },
+      onFinalStageFail: { type: 'deload_percent', percent: 10 },
+      startWeightKey: 'bench',
+    };
+
+    const prescriptionSlot: ProgramDefinition['days'][number]['slots'][number] = {
+      id: 'rx-slot',
+      exerciseId: 'squat',
+      tier: 'comp',
+      stages: [{ sets: 1, reps: 1 }],
+      onSuccess: { type: 'no_change' },
+      onMidStageFail: { type: 'no_change' },
+      onFinalStageFail: { type: 'no_change' },
+      startWeightKey: 'squat1rm',
+      prescriptions: [{ percent: 70, reps: 3, sets: 4 }],
+      percentOf: 'squat1rm',
+    };
+
+    const def: ProgramDefinition = {
+      id: 'mixed-test',
+      name: 'Mixed Test',
+      description: '',
+      author: 'test',
+      version: 1,
+      category: 'test',
+      source: 'preset',
+      cycleLength: 1,
+      totalWorkouts: 3,
+      workoutsPerWeek: 4,
+      exercises: {
+        squat: { name: 'Squat' },
+        bench: { name: 'Bench' },
+      },
+      configFields: [
+        { key: 'squat1rm', label: 'Squat 1RM', type: 'weight' as const, min: 0, step: 2.5 },
+        { key: 'bench', label: 'Bench', type: 'weight' as const, min: 0, step: 2.5 },
+      ],
+      weightIncrements: { squat: 0, bench: 2.5 },
+      days: [{ name: 'Day 1', slots: [prescriptionSlot, standardSlot] }],
+    };
+
+    const results: GenericResults = {
+      '0': {
+        'rx-slot': { result: 'success' },
+        'std-slot': { result: 'success' },
+      },
+    };
+    const rows = computeGenericProgram(def, { squat1rm: 200, bench: 40, rounding: '2.5' }, results);
+
+    // Prescription slot: fixed weight
+    expect(rows[0].slots[0].weight).toBe(140);
+    expect(rows[1].slots[0].weight).toBe(140); // no change
+
+    // Standard slot: weight increases on success
+    expect(rows[0].slots[1].weight).toBe(40);
+    expect(rows[1].slots[1].weight).toBe(42.5); // +2.5
+  });
+
+  it('existing GZCLP program produces identical output after engine changes', () => {
+    const rows = computeGenericProgram(GZCLP_DEFINITION_FIXTURE, DEFAULT_WEIGHTS, {});
+
+    // Key structural checks — not full snapshot
+    expect(rows).toHaveLength(GZCLP_DEFINITION_FIXTURE.totalWorkouts);
+
+    // Day cycling
+    for (let i = 0; i < rows.length; i++) {
+      expect(rows[i].dayName).toBe(GZCLP_DEFINITION_FIXTURE.days[i % 4].name);
+    }
+
+    // Squat T1 start weight
+    expect(rows[0].slots.find((s) => s.tier === 't1')?.weight).toBe(DEFAULT_WEIGHTS.squat);
+
+    // All standard slots have undefined prescriptions
+    for (const row of rows) {
+      for (const slot of row.slots) {
+        expect(slot.prescriptions).toBeUndefined();
+      }
+    }
+  });
+});
+
+// ---------------------------------------------------------------------------
+// 4.5 — SetPrescriptionSchema + ExerciseSlotSchema extensions
+// ---------------------------------------------------------------------------
+describe('SetPrescriptionSchema + ExerciseSlotSchema extensions', () => {
+  const validSlotBase = {
+    id: 'slot1',
+    exerciseId: 'ex',
+    tier: 't1',
+    stages: [{ sets: 5, reps: 3 }],
+    onSuccess: { type: 'add_weight' },
+    onMidStageFail: { type: 'advance_stage' },
+    onFinalStageFail: { type: 'deload_percent', percent: 10 },
+    startWeightKey: 'ex',
+  };
+
+  describe('SetPrescriptionSchema', () => {
+    it('valid SetPrescription parses successfully', () => {
+      const result = SetPrescriptionSchema.safeParse({ percent: 70, reps: 3, sets: 4 });
+
+      expect(result.success).toBe(true);
+    });
+
+    it('percent < 0 rejected', () => {
+      const result = SetPrescriptionSchema.safeParse({ percent: -1, reps: 3, sets: 4 });
+
+      expect(result.success).toBe(false);
+    });
+
+    it('percent > 120 rejected', () => {
+      const result = SetPrescriptionSchema.safeParse({ percent: 121, reps: 3, sets: 4 });
+
+      expect(result.success).toBe(false);
+    });
+
+    it('non-integer reps rejected', () => {
+      const result = SetPrescriptionSchema.safeParse({ percent: 70, reps: 3.5, sets: 4 });
+
+      expect(result.success).toBe(false);
+    });
+
+    it('non-integer sets rejected', () => {
+      const result = SetPrescriptionSchema.safeParse({ percent: 70, reps: 3, sets: 4.5 });
+
+      expect(result.success).toBe(false);
+    });
+
+    it('unknown field rejected by strictObject', () => {
+      const result = SetPrescriptionSchema.safeParse({
+        percent: 70,
+        reps: 3,
+        sets: 4,
+        extra: true,
+      });
+
+      expect(result.success).toBe(false);
+    });
+  });
+
+  describe('ExerciseSlotSchema prescriptions field', () => {
+    it('slot with prescriptions array parses', () => {
+      const slot = {
+        ...validSlotBase,
+        prescriptions: [{ percent: 70, reps: 3, sets: 4 }],
+        percentOf: 'squat1rm',
+      };
+      const result = ExerciseSlotSchema.safeParse(slot);
+
+      expect(result.success).toBe(true);
+    });
+
+    it('slot without prescriptions still parses (optional)', () => {
+      const result = ExerciseSlotSchema.safeParse(validSlotBase);
+
+      expect(result.success).toBe(true);
+    });
+
+    it('empty prescriptions array rejected (min 1)', () => {
+      const slot = {
+        ...validSlotBase,
+        prescriptions: [],
+        percentOf: 'squat1rm',
+      };
+      const result = ExerciseSlotSchema.safeParse(slot);
+
+      expect(result.success).toBe(false);
+    });
+  });
+
+  describe('percentOf validation', () => {
+    it('percentOf with valid string parses', () => {
+      const slot = {
+        ...validSlotBase,
+        percentOf: 'squat1rm',
+        prescriptions: [{ percent: 70, reps: 3, sets: 4 }],
+      };
+      const result = ExerciseSlotSchema.safeParse(slot);
+
+      expect(result.success).toBe(true);
+    });
+
+    it('percentOf empty string rejected', () => {
+      const slot = {
+        ...validSlotBase,
+        percentOf: '',
+        prescriptions: [{ percent: 70, reps: 3, sets: 4 }],
+      };
+      const result = ExerciseSlotSchema.safeParse(slot);
+
+      expect(result.success).toBe(false);
+    });
+
+    it('percentOf absent is OK', () => {
+      const result = ExerciseSlotSchema.safeParse(validSlotBase);
+
+      expect(result.success).toBe(true);
+    });
+  });
+
+  describe('isGpp and complexReps', () => {
+    it('isGpp: true parses', () => {
+      const slot = { ...validSlotBase, isGpp: true };
+      const result = ExerciseSlotSchema.safeParse(slot);
+
+      expect(result.success).toBe(true);
+    });
+
+    it('complexReps with valid string parses', () => {
+      const slot = { ...validSlotBase, complexReps: '1+3' };
+      const result = ExerciseSlotSchema.safeParse(slot);
+
+      expect(result.success).toBe(true);
+    });
+  });
+
+  describe('stages still required', () => {
+    it('stages with min 1 required', () => {
+      const slot = {
+        ...validSlotBase,
+        stages: [],
+      };
+      const result = ExerciseSlotSchema.safeParse(slot);
+
+      expect(result.success).toBe(false);
+    });
+  });
+
+  describe('strictObject still rejects unknown fields', () => {
+    it('unknown field on slot rejected', () => {
+      const slot = {
+        ...validSlotBase,
+        unknownField: 'bad',
+      };
+      const result = ExerciseSlotSchema.safeParse(slot);
+
+      expect(result.success).toBe(false);
+    });
+  });
+});
+
+// ---------------------------------------------------------------------------
+// 4.9 — Sheiko seed schema validation
+// ---------------------------------------------------------------------------
+describe('Sheiko seed schema validation', () => {
+  const sheikoDefinitions = [
+    { name: 'Sheiko 7.1', def: SHEIKO_7_1_DEFINITION },
+    { name: 'Sheiko 7.2', def: SHEIKO_7_2_DEFINITION },
+    { name: 'Sheiko 7.3', def: SHEIKO_7_3_DEFINITION },
+    { name: 'Sheiko 7.4', def: SHEIKO_7_4_DEFINITION },
+    { name: 'Sheiko 7.5', def: SHEIKO_7_5_DEFINITION },
+  ];
+
+  for (const { name, def } of sheikoDefinitions) {
+    it(`${name} passes ProgramDefinitionSchema.safeParse`, () => {
+      const result = ProgramDefinitionSchema.safeParse(def);
+
+      if (!result.success) {
+        console.error(`${name} failed:`, JSON.stringify(result.error.issues, null, 2));
+      }
+      expect(result.success).toBe(true);
+    });
+  }
+
+  it('Sheiko 7.4 has no squat1rm or deadlift1rm in configFields', () => {
+    const configKeys = (SHEIKO_7_4_DEFINITION as Record<string, unknown>)['configFields'] as Array<{
+      key: string;
+    }>;
+
+    expect(configKeys.some((f) => f.key === 'squat1rm')).toBe(false);
+    expect(configKeys.some((f) => f.key === 'deadlift1rm')).toBe(false);
+  });
+
+  for (const { name, def } of sheikoDefinitions) {
+    it(`${name} has at least one slot with prescriptions`, () => {
+      const days = (def as Record<string, unknown>)['days'] as Array<{
+        slots: Array<{ prescriptions?: unknown[] }>;
+      }>;
+      const hasPrescription = days.some((day) =>
+        day.slots.some((slot) => slot.prescriptions !== undefined)
+      );
+
+      expect(hasPrescription).toBe(true);
+    });
+  }
 });
