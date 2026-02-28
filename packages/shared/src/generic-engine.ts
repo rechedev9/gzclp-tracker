@@ -249,6 +249,9 @@ export function computeGenericProgram(
         isDeload,
         role,
         notes: slot.notes,
+        prescriptions: undefined,
+        isGpp: undefined,
+        complexReps: undefined,
       };
     });
 

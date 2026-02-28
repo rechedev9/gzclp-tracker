@@ -61,6 +61,18 @@ export const TierSchema = z.string().min(1);
 
 const RoleSchema = z.enum(['primary', 'secondary', 'accessory']);
 
+// --- Set Prescription (percentage-based loading) ---
+
+/** A single set prescription within a percentage-based exercise slot. */
+export const SetPrescriptionSchema = z.strictObject({
+  /** Percentage of 1RM (0-120). 0 is valid for GPP/bodyweight. */
+  percent: z.number().min(0).max(120),
+  /** Reps per set. */
+  reps: z.number().int().positive(),
+  /** Number of sets at this percentage. */
+  sets: z.number().int().positive(),
+});
+
 // --- Exercise Slot ---
 
 export const ExerciseSlotSchema = z.strictObject({
@@ -80,6 +92,14 @@ export const ExerciseSlotSchema = z.strictObject({
   tmPercent: z.number().positive().max(1).optional(),
   role: RoleSchema.optional(),
   notes: z.string().min(1).optional(),
+  /** Percentage-based set prescriptions (replaces stages for %1RM programs). */
+  prescriptions: z.array(SetPrescriptionSchema).min(1).optional(),
+  /** Config key for the 1RM to derive weights from (e.g., 'squat1rm'). */
+  percentOf: z.string().min(1).optional(),
+  /** True for GPP slots where the athlete picks their own weight. */
+  isGpp: z.boolean().optional(),
+  /** Complex rep scheme display string (e.g., '1+3'). */
+  complexReps: z.string().min(1).optional(),
 });
 
 // --- Program Day ---

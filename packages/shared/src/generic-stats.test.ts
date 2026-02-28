@@ -110,6 +110,9 @@ function makeSlot(
     isDeload: overrides.isDeload ?? false,
     role: overrides.role ?? 'primary',
     notes: overrides.notes ?? undefined,
+    prescriptions: overrides.prescriptions ?? undefined,
+    isGpp: overrides.isGpp ?? undefined,
+    complexReps: overrides.complexReps ?? undefined,
     ...overrides,
   };
 }

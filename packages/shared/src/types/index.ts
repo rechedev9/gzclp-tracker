@@ -1,6 +1,14 @@
 export type ResultValue = 'success' | 'fail';
 export type Tier = string;
 
+/** A resolved prescription with computed weight (output of engine). */
+export interface ResolvedPrescription {
+  readonly percent: number;
+  readonly reps: number;
+  readonly sets: number;
+  readonly weight: number;
+}
+
 export interface GenericSlotRow {
   readonly slotId: string;
   readonly exerciseId: string;
@@ -20,6 +28,12 @@ export interface GenericSlotRow {
   readonly isDeload: boolean;
   readonly role: 'primary' | 'secondary' | 'accessory' | undefined;
   readonly notes: string | undefined;
+  /** Resolved prescription ladder with computed weights (prescription slots only). */
+  readonly prescriptions: readonly ResolvedPrescription[] | undefined;
+  /** True for GPP/accessory slots where the athlete picks their own weight. */
+  readonly isGpp: boolean | undefined;
+  /** Complex rep scheme display string (e.g., '1+3') for compound sets. */
+  readonly complexReps: string | undefined;
 }
 
 export interface GenericWorkoutRow {
