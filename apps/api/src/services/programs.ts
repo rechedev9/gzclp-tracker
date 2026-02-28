@@ -15,8 +15,25 @@ import { ApiError } from '../middleware/error-handler';
 // ---------------------------------------------------------------------------
 
 type InstanceRow = typeof programInstances.$inferSelect;
-type WorkoutResultRow = typeof workoutResults.$inferSelect;
-type UndoEntryRow = typeof undoEntries.$inferSelect;
+
+/** Projected columns from workout_results — only what helpers actually use. */
+interface ResultProjection {
+  readonly workoutIndex: number;
+  readonly slotId: string;
+  readonly result: 'success' | 'fail';
+  readonly amrapReps: number | null;
+  readonly rpe: number | null;
+  readonly createdAt: Date;
+}
+
+/** Projected columns from undo_entries — only what buildUndoHistory uses. */
+interface UndoProjection {
+  readonly workoutIndex: number;
+  readonly slotId: string;
+  readonly prevResult: 'success' | 'fail' | null;
+  readonly prevAmrapReps: number | null;
+  readonly prevRpe: number | null;
+}
 
 export interface ProgramInstanceResponse {
   readonly id: string;
@@ -36,7 +53,7 @@ export interface ProgramInstanceResponse {
 // ---------------------------------------------------------------------------
 
 /** Maps each workoutIndex to the earliest createdAt timestamp for that workout. */
-function buildResultTimestamps(rows: readonly WorkoutResultRow[]): Record<string, string> {
+function buildResultTimestamps(rows: readonly ResultProjection[]): Record<string, string> {
   const timestamps: Record<string, string> = {};
   for (const row of rows) {
     const key = String(row.workoutIndex);
@@ -49,7 +66,7 @@ function buildResultTimestamps(rows: readonly WorkoutResultRow[]): Record<string
 }
 
 /** Reconstructs GenericResults from normalized workout_results rows. */
-function buildGenericResults(rows: readonly WorkoutResultRow[]): GenericResults {
+function buildGenericResults(rows: readonly ResultProjection[]): GenericResults {
   const results: GenericResults = {};
 
   for (const row of rows) {
@@ -68,7 +85,7 @@ function buildGenericResults(rows: readonly WorkoutResultRow[]): GenericResults 
 }
 
 /** Reconstructs GenericUndoHistory from undo_entries rows. */
-function buildUndoHistory(rows: readonly UndoEntryRow[]): GenericUndoHistory {
+function buildUndoHistory(rows: readonly UndoProjection[]): GenericUndoHistory {
   return rows.map((row) => ({
     i: row.workoutIndex,
     slotId: row.slotId,
@@ -80,8 +97,8 @@ function buildUndoHistory(rows: readonly UndoEntryRow[]): GenericUndoHistory {
 
 function toResponse(
   instance: InstanceRow,
-  resultRows: readonly WorkoutResultRow[],
-  undoRows: readonly UndoEntryRow[]
+  resultRows: readonly ResultProjection[],
+  undoRows: readonly UndoProjection[]
 ): ProgramInstanceResponse {
   return {
     id: instance.id,
@@ -97,14 +114,30 @@ function toResponse(
   };
 }
 
-/** Fetches results + undo rows in parallel for a given instance. */
+/** Fetches results + undo rows in parallel with column projection (no SELECT *). */
 async function fetchResultsAndUndo(
   instanceId: string
-): Promise<readonly [readonly WorkoutResultRow[], readonly UndoEntryRow[]]> {
+): Promise<readonly [readonly ResultProjection[], readonly UndoProjection[]]> {
   return Promise.all([
-    getDb().select().from(workoutResults).where(eq(workoutResults.instanceId, instanceId)),
     getDb()
-      .select()
+      .select({
+        workoutIndex: workoutResults.workoutIndex,
+        slotId: workoutResults.slotId,
+        result: workoutResults.result,
+        amrapReps: workoutResults.amrapReps,
+        rpe: workoutResults.rpe,
+        createdAt: workoutResults.createdAt,
+      })
+      .from(workoutResults)
+      .where(eq(workoutResults.instanceId, instanceId)),
+    getDb()
+      .select({
+        workoutIndex: undoEntries.workoutIndex,
+        slotId: undoEntries.slotId,
+        prevResult: undoEntries.prevResult,
+        prevAmrapReps: undoEntries.prevAmrapReps,
+        prevRpe: undoEntries.prevRpe,
+      })
       .from(undoEntries)
       .where(eq(undoEntries.instanceId, instanceId))
       .orderBy(undoEntries.id),
