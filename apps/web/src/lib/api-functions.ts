@@ -305,6 +305,19 @@ export async function deleteAccount(): Promise<void> {
   await apiFetch('/auth/me', { method: 'DELETE' });
 }
 
+/** Fetch the count of users active in the last 60 seconds. Public endpoint — no auth required. */
+export async function fetchOnlineCount(): Promise<number | null> {
+  try {
+    const res = await fetch(`${API_URL}/stats/online`);
+    if (!res.ok) return null;
+    const data: unknown = await res.json();
+    if (isRecord(data) && typeof data.count === 'number') return data.count;
+    return null;
+  } catch {
+    return null;
+  }
+}
+
 // ---------------------------------------------------------------------------
 // Generic API Functions (slot-keyed, no legacy conversion)
 // ---------------------------------------------------------------------------

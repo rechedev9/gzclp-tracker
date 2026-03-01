@@ -20,6 +20,7 @@ import { catalogRoutes } from './routes/catalog';
 import { exerciseRoutes } from './routes/exercises';
 import { resultRoutes } from './routes/results';
 import { programDefinitionRoutes } from './routes/program-definitions';
+import { statsRoutes } from './routes/stats';
 import { getDb, closeDb } from './db';
 import { getRedis } from './lib/redis';
 import { logger } from './lib/logger';
@@ -248,6 +249,7 @@ export const app = new Elysia()
   .use(exerciseRoutes)
   .use(resultRoutes)
   .use(programDefinitionRoutes)
+  .use(statsRoutes)
   .get(
     '/health',
     async ({ set }) => {

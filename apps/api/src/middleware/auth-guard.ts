@@ -12,6 +12,8 @@ import { Elysia } from 'elysia';
 import { jwt } from '@elysiajs/jwt';
 import { ApiError } from './error-handler';
 import { logger } from '../lib/logger';
+import { getRedis } from '../lib/redis';
+import { trackPresence } from '../lib/presence';
 
 const BEARER_PREFIX = 'Bearer ';
 const DEV_SECRET = 'dev-secret-change-me';
@@ -75,6 +77,13 @@ export async function resolveUserId({
   const userId = payload['sub'];
   if (typeof userId !== 'string') {
     throw new ApiError(401, 'Invalid token payload', 'TOKEN_INVALID');
+  }
+
+  const redis = getRedis();
+  if (redis) {
+    void trackPresence(userId, redis).catch((err: unknown) => {
+      logger.warn({ err }, 'presence track failed');
+    });
   }
 
   return { userId };

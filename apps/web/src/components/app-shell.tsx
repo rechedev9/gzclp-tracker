@@ -5,6 +5,7 @@ import { Dashboard } from './dashboard';
 import { ProgramApp } from './program-app';
 import { ProfilePage } from './profile-page';
 import { AppSkeleton } from './app-skeleton';
+import { OnlineIndicator } from './online-indicator';
 
 type View = 'dashboard' | 'tracker' | 'profile';
 
@@ -139,6 +140,7 @@ export function AppShell(): React.ReactNode {
 
   return (
     <>
+      <OnlineIndicator />
       {ALL_VIEWS.map((v) => {
         if (!mountedViews.has(v)) return null;
         const isActive = v === view;

@@ -1,4 +1,7 @@
 export const queryKeys = {
+  stats: {
+    online: ['stats', 'online'] as const,
+  },
   programs: {
     all: ['programs'] as const,
     detail: (id: string): readonly ['programs', string] => ['programs', id] as const,
