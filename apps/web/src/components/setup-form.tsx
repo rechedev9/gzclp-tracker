@@ -10,6 +10,10 @@ interface SetupFormProps {
   readonly isGenerating?: boolean;
   readonly onGenerate: (config: Record<string, number | string>) => Promise<void>;
   readonly onUpdateConfig?: (config: Record<string, number | string>) => void;
+  /** Short status line shown in the collapsed card (e.g. current JAW block context). */
+  readonly statusNote?: string;
+  /** Group label to highlight in the edit modal as the currently active group. */
+  readonly activeGroup?: string;
 }
 
 type ConfigField = ProgramDefinition['configFields'][number];
@@ -64,6 +68,8 @@ export function SetupForm({
   isGenerating,
   onGenerate,
   onUpdateConfig,
+  statusNote,
+  activeGroup,
 }: SetupFormProps): React.ReactNode {
   const fields = definition.configFields;
   const isEditMode = initialConfig !== null && initialConfig !== undefined;
@@ -266,12 +272,20 @@ export function SetupForm({
           const groupHint = group.fields
             .filter((f): f is ConfigField & { type: 'weight' } => f.type === 'weight')
             .find((f) => f.groupHint !== undefined)?.groupHint;
+          const isActive = activeGroup !== undefined && group.label === activeGroup;
           return (
             <div key={group.label ?? '_ungrouped'}>
               {group.label && (
-                <div className="mb-2">
-                  <h3 className="text-[11px] font-bold uppercase tracking-widest text-muted">
+                <div className={`mb-2${isActive ? ' border-l-2 border-accent pl-2.5' : ''}`}>
+                  <h3
+                    className={`text-[11px] font-bold uppercase tracking-widest ${isActive ? 'text-accent' : 'text-muted'}`}
+                  >
                     {group.label}
+                    {isActive && (
+                      <span className="ml-2 normal-case tracking-normal font-bold text-[9px]">
+                        ← actualiza aquí
+                      </span>
+                    )}
                   </h3>
                   {groupHint && (
                     <p className="text-[11px] text-muted mt-0.5 leading-snug">{groupHint}</p>
@@ -385,6 +399,9 @@ export function SetupForm({
                 >
                   {definition.configTitle ?? 'Pesos Iniciales'}
                 </h2>
+                {statusNote && (
+                  <p className="text-[11px] font-bold text-accent mb-1">{statusNote}</p>
+                )}
                 <p className="text-xs text-muted flex flex-wrap gap-x-3 gap-y-0.5 leading-relaxed">
                   {fields.slice(0, 4).map((f) => (
                     <span key={f.key}>

@@ -36,6 +36,25 @@ const preloadStatsPanel = (): void => {
   void import('./stats-panel');
 };
 
+interface JawContext {
+  readonly block: 1 | 2 | 3;
+  readonly week: number | null;
+  readonly isTestWeek: boolean;
+  readonly group: string;
+}
+
+function deriveJawContext(dayName: string): JawContext | null {
+  const blockMatch = dayName.match(/JAW (?:B|Bloque )(\d)/);
+  if (!blockMatch) return null;
+  const blockStr = blockMatch[1];
+  if (blockStr !== '1' && blockStr !== '2' && blockStr !== '3') return null;
+  const block: 1 | 2 | 3 = blockStr === '1' ? 1 : blockStr === '2' ? 2 : 3;
+  const semMatch = dayName.match(/Sem\.\s*(\d+)/);
+  const isTestWeek = dayName.includes('Test Maximo') || dayName.includes('Recuperacion');
+  const week = semMatch ? Number(semMatch[1]) : isTestWeek ? block * 6 : null;
+  return { block, week, isTestWeek, group: `JAW Bloque ${block} — TM` };
+}
+
 interface ProgramAppProps {
   readonly programId: string;
   readonly instanceId?: string;
@@ -158,6 +177,16 @@ export function ProgramApp({
     const pending = rows.find((r) => r.slots.some((s) => s.result === undefined));
     return pending ? pending.index : -1;
   })();
+
+  const currentDayName = firstPendingIdx >= 0 ? (rows[firstPendingIdx]?.dayName ?? '') : '';
+  const jawContext = deriveJawContext(currentDayName);
+  const jawStatusNote = jawContext
+    ? jawContext.isTestWeek
+      ? jawContext.block < 3
+        ? `JAW Bloque ${jawContext.block} · Semana de test — actualiza los TM del Bloque ${jawContext.block + 1} al terminar.`
+        : 'JAW Bloque 3 · Semana de test final — último bloque de JAW.'
+      : `JAW Bloque ${jawContext.block} · Sem. ${jawContext.week ?? '?'}/18 · Test en sem. ${jawContext.block * 6}.`
+    : undefined;
 
   const weeks = Array.from({ length: Math.ceil(rows.length / workoutsPerWeek) }, (_, i) => ({
     week: i + 1,
@@ -413,6 +442,8 @@ export function ProgramApp({
           isGenerating={isGenerating}
           onGenerate={generateProgram}
           onUpdateConfig={updateConfig}
+          statusNote={jawStatusNote}
+          activeGroup={jawContext?.group}
         />
 
         {/* Graduation panel for MUTENROSHI programs */}
