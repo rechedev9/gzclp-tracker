@@ -271,9 +271,14 @@ export async function seedProgramTemplates(db: DbClient): Promise<void> {
     .onConflictDoUpdate({
       target: programTemplates.id,
       set: {
+        name: sql`excluded.name`,
         description: sql`excluded.description`,
         author: sql`excluded.author`,
+        version: sql`excluded.version`,
+        category: sql`excluded.category`,
+        source: sql`excluded.source`,
         definition: sql`excluded.definition`,
+        isActive: sql`excluded.is_active`,
       },
     });
 }
