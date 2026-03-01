@@ -78,12 +78,13 @@ export async function seedProgramTemplates(db: DbClient): Promise<void> {
       },
       {
         id: 'phraks-gslp',
-        name: 'El Zenkai',
+        name: "Phrak's Greyskull LP",
         description:
-          'Como un Saiyan: empuja hasta el fallo t\u00e9cnico (AMRAP), descarga un 10% ' +
-          'y vuelve m\u00e1s fuerte. Dos entrenamientos alternos (A/B), 3 d\u00edas por semana. ' +
-          'Cada serie final es al m\u00e1ximo. Inspirado en Greyskull LP de Phrakture.',
-        author: 'Gravity Room',
+          'Programa de fuerza para principiantes de Phrakture. ' +
+          'Dos entrenamientos alternos (A/B), 3 d\u00edas por semana. ' +
+          'Cada ejercicio termina con una serie AMRAP (al fallo t\u00e9cnico). ' +
+          'Progresi\u00f3n lineal con descarga del 10% al fallar.',
+        author: 'Phrakture (r/Fitness)',
         version: 1,
         category: 'strength',
         source: 'preset',
