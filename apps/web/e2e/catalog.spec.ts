@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-import { authenticateOnly } from './helpers/seed';
+import { authenticateOnly, programCard } from './helpers/seed';
 
 test.describe('Catalog flow', () => {
   test.beforeEach(async ({ page }) => {
@@ -24,10 +24,7 @@ test.describe('Catalog flow', () => {
     await expect(page.getByText('GZCLP')).toBeVisible({ timeout: 10_000 });
 
     // Scope to the GZCLP card and click its specific "Iniciar Programa" button
-    const gzclpCard = page.locator('.card').filter({
-      has: page.getByRole('heading', { name: 'GZCLP', level: 3 }),
-    });
-    await gzclpCard.getByRole('button', { name: 'Iniciar Programa' }).click();
+    await programCard(page, 'GZCLP').getByRole('button', { name: 'Iniciar Programa' }).click();
 
     // After clicking, should see the GZCLP setup form heading
     await expect(page.getByText('Pesos Iniciales (kg)')).toBeVisible({ timeout: 10_000 });

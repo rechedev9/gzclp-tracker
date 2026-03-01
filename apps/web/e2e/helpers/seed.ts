@@ -34,18 +34,25 @@ export async function readStorage(page: Page, key: string): Promise<unknown> {
 }
 
 /**
+ * Returns a locator for a program catalog card by its displayed name.
+ * Used to scope interactions to a specific card without relying on DOM order.
+ */
+export function programCard(page: Page, name: string) {
+  return page.locator('.card').filter({
+    has: page.getByRole('heading', { name, level: 3 }),
+  });
+}
+
+/**
  * Navigates to the tracker view via the dashboard UI.
  * Requires a seeded active program to be present (seedProgram must be called first).
  * Gate: waits for 'Semana' text (WeekNavigator) to confirm tracker is live.
  */
 export async function navigateToTracker(page: Page): Promise<void> {
   await page.goto('/app');
-  // Wait for auth/refresh fetch to complete before asserting on authenticated content
-  await page.waitForLoadState('networkidle');
-  await expect(page.getByRole('button', { name: 'Continuar Entrenamiento' })).toBeVisible({
-    timeout: 10_000,
-  });
-  await page.getByRole('button', { name: 'Continuar Entrenamiento' }).click();
+  const continueBtn = page.getByRole('button', { name: 'Continuar Entrenamiento' });
+  await expect(continueBtn).toBeVisible({ timeout: 10_000 });
+  await continueBtn.click();
   await expect(page.getByText(/^Semana \d+$/)).toBeVisible({ timeout: 10_000 });
 }
 
@@ -57,9 +64,6 @@ export async function navigateToTracker(page: Page): Promise<void> {
 export async function navigateToGzclpSetup(page: Page): Promise<void> {
   await page.goto('/app');
   await expect(page.getByText('GZCLP')).toBeVisible({ timeout: 10_000 });
-  const gzclpCard = page.locator('.card').filter({
-    has: page.getByRole('heading', { name: 'GZCLP', level: 3 }),
-  });
-  await gzclpCard.getByRole('button', { name: 'Iniciar Programa' }).click();
+  await programCard(page, 'GZCLP').getByRole('button', { name: 'Iniciar Programa' }).click();
   await expect(page.getByText('Pesos Iniciales (kg)')).toBeVisible({ timeout: 10_000 });
 }
