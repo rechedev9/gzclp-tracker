@@ -63,13 +63,13 @@ export async function seedProgramTemplates(db: DbClient): Promise<void> {
       },
       {
         id: 'stronglifts5x5',
-        name: 'Torre de Karin',
+        name: 'StrongLifts 5x5',
         description:
-          'El rito de paso de todo guerrero: sentadilla cada sesi\u00f3n, subiendo peso ' +
-          'escal\u00f3n a escal\u00f3n como quien sube la Torre de Karin. ' +
-          'Dos entrenamientos alternos (A/B), 3 d\u00edas por semana. +2.5 kg por sesi\u00f3n. ' +
-          'Tres fallos provocan descarga del 10%. Inspirado en StrongLifts 5x5.',
-        author: 'Gravity Room',
+          'Programa cl\u00e1sico de fuerza para principiantes. ' +
+          'Dos entrenamientos alternos (A/B), 3 d\u00edas por semana. ' +
+          'Sentadilla en cada sesi\u00f3n, progresi\u00f3n lineal de +2.5 kg por entrenamiento (+5 kg en peso muerto). ' +
+          'Tres fallos consecutivos provocan una descarga del 10%.',
+        author: 'Mehdi Hadim',
         version: 1,
         category: 'strength',
         source: 'preset',
