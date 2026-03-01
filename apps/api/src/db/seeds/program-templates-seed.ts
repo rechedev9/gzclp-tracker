@@ -136,13 +136,14 @@ export async function seedProgramTemplates(db: DbClient): Promise<void> {
       },
       {
         id: 'nivel7',
-        name: 'Super Saiyan',
+        name: 'Nivel 7',
         description:
-          '12 semanas hasta la transformaci\u00f3n: configuras tu r\u00e9cord objetivo y los pesos ' +
-          'se calculan hacia atr\u00e1s hasta el momento de alcanzarlo. Bloque 1 (5\u00d75) acumula energ\u00eda, ' +
-          'Bloque 2 (3\u00d73) culmina en tu nuevo m\u00e1ximo. ' +
-          '4 d\u00edas/semana. Inspirado en Nivel 7 de musclecoop.',
-        author: 'Gravity Room',
+          'Programa de fuerza de 12 semanas con periodizaci\u00f3n inversa. ' +
+          'Configuras el r\u00e9cord objetivo (semana 6) y los pesos se calculan hacia atr\u00e1s. ' +
+          'Bloque 1 (5\u00d75) con descarga en semana 3, Bloque 2 (3\u00d73) culminando en r\u00e9cord. ' +
+          'Ciclo 2 repite la onda con +2.5kg. Accesorios con doble progresi\u00f3n 3\u00d78-12. ' +
+          '4 d\u00edas/semana: hombros/tr\u00edceps, espalda/gemelo, pecho/b\u00edceps, pierna.',
+        author: 'nivel7 (musclecoop)',
         version: 1,
         category: 'strength',
         source: 'preset',
