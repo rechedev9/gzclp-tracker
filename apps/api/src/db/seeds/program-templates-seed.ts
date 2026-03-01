@@ -49,7 +49,7 @@ export async function seedProgramTemplates(db: DbClient): Promise<void> {
       },
       {
         id: 'ppl531',
-        name: 'PPL 5/3/1',
+        name: 'PPL 5/3/1 + Double Progression',
         description:
           'Seis d\u00edas de Kaioken: empuja tu cuerpo al m\u00e1ximo con fuerza y volumen. ' +
           'Push/Pull/Legs combinando 5/3/1 para los compuestos principales con doble ' +
