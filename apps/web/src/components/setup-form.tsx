@@ -73,7 +73,12 @@ export function SetupForm({
 }: SetupFormProps): React.ReactNode {
   const fields = definition.configFields;
   const isEditMode = initialConfig !== null && initialConfig !== undefined;
-  const [isExpanded, setIsExpanded] = useState(!isEditMode);
+  // Always start closed. isExpanded only controls the edit dialog (edit mode);
+  // in create mode the form is always visible via the else branch and isExpanded
+  // has no effect on rendering. Initialising to !isEditMode caused a bug:
+  // after generating a program (create → edit mode), isExpanded stayed true so
+  // setIsExpanded(true) became a no-op and the dialog never opened.
+  const [isExpanded, setIsExpanded] = useState(false);
   const editDialogRef = useRef<HTMLDialogElement>(null);
 
   // Sync isExpanded with native dialog open/close
