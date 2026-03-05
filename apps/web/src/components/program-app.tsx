@@ -497,8 +497,28 @@ export function ProgramApp({
 
   if (!definition) {
     return (
-      <div className="min-h-dvh flex items-center justify-center text-muted">
-        Programa desconocido: {programId}
+      <div className="min-h-dvh flex flex-col items-center justify-center gap-4 px-5">
+        <p className="text-muted text-sm text-center">
+          El programa <span className="font-mono">{programId}</span> ya no existe en el catálogo.
+        </p>
+        {instanceId && (
+          <button
+            type="button"
+            onClick={handleResetAll}
+            className="px-5 py-2.5 text-xs font-bold cursor-pointer bg-btn text-btn-text border-2 border-btn-ring hover:bg-btn-active hover:text-btn-active-text transition-colors"
+          >
+            Eliminar programa y volver
+          </button>
+        )}
+        {onBackToDashboard && (
+          <button
+            type="button"
+            onClick={onBackToDashboard}
+            className="text-xs text-muted hover:text-title cursor-pointer transition-colors"
+          >
+            Volver al panel
+          </button>
+        )}
       </div>
     );
   }

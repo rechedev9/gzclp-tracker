@@ -1,14 +1,17 @@
-import { useQuery } from '@tanstack/react-query';
+import { useState } from 'react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { queryKeys } from '@/lib/query-keys';
 import {
   fetchPrograms,
   fetchGenericProgramDetail,
   fetchCatalogList,
   fetchCatalogDetail,
+  deleteProgram,
 } from '@/lib/api-functions';
 import { useAuth } from '@/contexts/auth-context';
 import { ProgramCard } from './program-card';
 import { AppHeader } from './app-header';
+import { ConfirmDialog } from './confirm-dialog';
 import type { ProgramSummary } from '@/lib/api-functions';
 
 interface DashboardProps {
@@ -25,17 +28,31 @@ interface ActiveProgramCardProps {
   readonly program: ProgramSummary;
   readonly onContinue: (instanceId: string, programId: string) => void;
   readonly onGoToProfile?: () => void;
+  readonly onOrphanDeleted?: () => void;
 }
 
 function ActiveProgramCard({
   program,
   onContinue,
   onGoToProfile,
+  onOrphanDeleted,
 }: ActiveProgramCardProps): React.ReactNode {
+  const queryClient = useQueryClient();
+  const [showOrphanConfirm, setShowOrphanConfirm] = useState(false);
+
   const catalogQuery = useQuery({
     queryKey: queryKeys.catalog.detail(program.programId),
     queryFn: () => fetchCatalogDetail(program.programId),
     staleTime: 5 * 60 * 1000,
+    retry: 1,
+  });
+
+  const deleteOrphanMutation = useMutation({
+    mutationFn: () => deleteProgram(program.id),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: queryKeys.programs.all });
+      onOrphanDeleted?.();
+    },
   });
 
   const definition = catalogQuery.data;
@@ -104,6 +121,48 @@ function ActiveProgramCard({
   })();
 
   if (!definition) {
+    // Catalog query failed or definition was deleted — show orphan recovery UI
+    if (catalogQuery.isError) {
+      return (
+        <>
+          <div className="bg-card border border-rule p-6 sm:p-8">
+            <h3 className="text-base font-extrabold text-title mb-2">Programa no disponible</h3>
+            <p className="text-xs text-muted mb-1">
+              El programa <span className="font-mono">{program.programId}</span> ya no existe en el
+              catálogo.
+            </p>
+            <p className="text-xs text-muted mb-5">
+              Elimina esta instancia para poder iniciar un programa nuevo.
+            </p>
+            <button
+              type="button"
+              onClick={() => setShowOrphanConfirm(true)}
+              disabled={deleteOrphanMutation.isPending}
+              className="px-5 py-2.5 text-xs font-bold cursor-pointer bg-btn text-btn-text border-2 border-btn-ring hover:bg-btn-active hover:text-btn-active-text transition-colors disabled:opacity-50"
+            >
+              {deleteOrphanMutation.isPending ? 'Eliminando…' : 'Eliminar programa'}
+            </button>
+            {deleteOrphanMutation.isError && (
+              <p className="text-xs text-red-500 mt-2">No se pudo eliminar. Inténtalo de nuevo.</p>
+            )}
+          </div>
+          <ConfirmDialog
+            open={showOrphanConfirm}
+            title="Eliminar programa huérfano"
+            message="Este programa hace referencia a una definición que ya no existe. Se eliminarán todos los resultados asociados. ¿Continuar?"
+            confirmLabel="Eliminar"
+            cancelLabel="Cancelar"
+            onConfirm={() => {
+              setShowOrphanConfirm(false);
+              deleteOrphanMutation.mutate();
+            }}
+            onCancel={() => setShowOrphanConfirm(false)}
+          />
+        </>
+      );
+    }
+
+    // Still loading — show skeleton
     return (
       <div className="bg-card border border-rule p-6 sm:p-8 card animate-pulse">
         <div className="flex items-start justify-between gap-3 mb-3">
@@ -288,6 +347,7 @@ export function Dashboard({
               program={activeProgram}
               onContinue={onContinueProgram}
               onGoToProfile={onGoToProfile}
+              onOrphanDeleted={() => void programsQuery.refetch()}
             />
           </section>
         )}
