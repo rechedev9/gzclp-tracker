@@ -42,6 +42,11 @@ AGENTS.md
 .claude/
 openspec/
 
+# temporary files (PDF extracts, screenshots, scripts)
+.tmp/
+.playwright-mcp/
+.railwayignore
+
 # typescript
 *.tsbuildinfo
 next-env.d.ts
