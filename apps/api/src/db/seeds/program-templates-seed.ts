@@ -3,10 +3,13 @@
  * Metadata (name, description, author, category, isActive) comes from
  * @gzclp/shared/catalog — the single source of truth.
  * JSONB definitions are kept here as a DB-layer concern.
+ *
+ * Safety: before deactivating a template, any active program instances
+ * referencing it are auto-completed to prevent orphaned programs.
  */
 import type { PostgresJsDatabase } from 'drizzle-orm/postgres-js';
-import { sql } from 'drizzle-orm';
-import { programTemplates } from '../schema';
+import { sql, eq, and, inArray } from 'drizzle-orm';
+import { programTemplates, programInstances } from '../schema';
 import type * as schema from '../schema';
 import { PROGRAM_CATALOG } from '@gzclp/shared/catalog';
 import { GZCLP_DEFINITION_JSONB } from './programs/gzclp';
@@ -56,6 +59,29 @@ const DEFINITION_MAP: Record<string, unknown> = {
 };
 
 export async function seedProgramTemplates(db: DbClient): Promise<void> {
+  // Collect template IDs that are being deactivated
+  const deactivatingIds = PROGRAM_CATALOG.filter((meta) => !meta.isActive).map((meta) => meta.id);
+
+  // Auto-complete any active instances for templates being deactivated
+  if (deactivatingIds.length > 0) {
+    const completed = await db
+      .update(programInstances)
+      .set({ status: 'completed', updatedAt: new Date() })
+      .where(
+        and(
+          eq(programInstances.status, 'active'),
+          inArray(programInstances.programId, deactivatingIds)
+        )
+      )
+      .returning({ id: programInstances.id, programId: programInstances.programId });
+
+    if (completed.length > 0) {
+      console.error(
+        `[seed] Auto-completed ${completed.length} active instance(s) for deactivated templates: ${completed.map((c) => `${c.id} (${c.programId})`).join(', ')}`
+      );
+    }
+  }
+
   await db
     .insert(programTemplates)
     .values(

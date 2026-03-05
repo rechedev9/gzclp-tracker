@@ -4,7 +4,7 @@
  */
 import { eq, and, asc, inArray, sql } from 'drizzle-orm';
 import { getDb } from '../db';
-import { programTemplates, exercises } from '../db/schema';
+import { programTemplates, programInstances, exercises } from '../db/schema';
 import { hydrateProgramDefinition } from '../lib/hydrate-program';
 import type { ProgramDefinition } from '@gzclp/shared/types/program';
 import { isRecord } from '@gzclp/shared/type-guards';
@@ -190,6 +190,49 @@ export async function getProgramDefinition(programId: string): Promise<GetProgra
     void setCachedCatalogDetail(programId, result.value);
 
     return { status: 'found' as const, definition: result.value };
+  });
+}
+
+// ---------------------------------------------------------------------------
+// Template lifecycle
+// ---------------------------------------------------------------------------
+
+export interface DeactivateResult {
+  readonly deactivated: boolean;
+  readonly completedInstances: number;
+}
+
+/**
+ * Safely deactivate a program template. Auto-completes any active instances
+ * referencing it to prevent orphaned programs.
+ */
+export async function deactivateTemplate(programId: string): Promise<DeactivateResult> {
+  return getDb().transaction(async (tx) => {
+    // Auto-complete active instances first
+    const completed = await tx
+      .update(programInstances)
+      .set({ status: 'completed', updatedAt: new Date() })
+      .where(and(eq(programInstances.status, 'active'), eq(programInstances.programId, programId)))
+      .returning({ id: programInstances.id });
+
+    if (completed.length > 0) {
+      logger.info(
+        { programId, count: completed.length },
+        'catalog: auto-completed active instances before deactivation'
+      );
+    }
+
+    // Deactivate the template
+    const [updated] = await tx
+      .update(programTemplates)
+      .set({ isActive: false, updatedAt: new Date() })
+      .where(eq(programTemplates.id, programId))
+      .returning({ id: programTemplates.id });
+
+    return {
+      deactivated: updated !== undefined,
+      completedInstances: completed.length,
+    };
   });
 }
 
