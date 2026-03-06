@@ -13,6 +13,14 @@ import { ProgramCard } from './program-card';
 import { AppHeader } from './app-header';
 import { ConfirmDialog } from './confirm-dialog';
 import type { ProgramSummary } from '@/lib/api-functions';
+import { PROGRAM_LEVELS } from '@gzclp/shared/catalog';
+import type { ProgramLevel } from '@gzclp/shared/catalog';
+
+const LEVEL_LABELS: Readonly<Record<ProgramLevel, string>> = {
+  beginner: 'Principiante',
+  intermediate: 'Intermedio',
+  advanced: 'Avanzado',
+};
 
 interface DashboardProps {
   readonly onStartNewProgram: (programId: string) => void;
@@ -391,25 +399,46 @@ export function Dashboard({
             </div>
           )}
 
-          {/* Catalog loaded — render program cards (exclude active program) */}
+          {/* Catalog loaded — render program cards grouped by level */}
           {catalogQuery.data &&
             (() => {
               const filteredCatalog = catalogQuery.data.filter(
                 (entry) => entry.id !== activeProgram?.programId
               );
               if (filteredCatalog.length === 0) return null;
+
+              const grouped = new Map<ProgramLevel, typeof filteredCatalog>();
+              for (const entry of filteredCatalog) {
+                const list = grouped.get(entry.level) ?? [];
+                list.push(entry);
+                grouped.set(entry.level, list);
+              }
+
               return (
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                  {filteredCatalog.map((entry) => (
-                    <ProgramCard
-                      key={entry.id}
-                      definition={entry}
-                      isActive={false}
-                      disabled={activeProgram !== null}
-                      disabledLabel="Finaliza tu programa actual"
-                      onSelect={() => onStartNewProgram(entry.id)}
-                    />
-                  ))}
+                <div className="space-y-8">
+                  {PROGRAM_LEVELS.map((level) => {
+                    const entries = grouped.get(level);
+                    if (!entries || entries.length === 0) return null;
+                    return (
+                      <div key={level}>
+                        <h3 className="text-xs font-mono font-bold uppercase tracking-widest text-muted mb-3">
+                          {LEVEL_LABELS[level]}
+                        </h3>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                          {entries.map((entry) => (
+                            <ProgramCard
+                              key={entry.id}
+                              definition={entry}
+                              isActive={false}
+                              disabled={activeProgram !== null}
+                              disabledLabel="Finaliza tu programa actual"
+                              onSelect={() => onStartNewProgram(entry.id)}
+                            />
+                          ))}
+                        </div>
+                      </div>
+                    );
+                  })}
                 </div>
               );
             })()}

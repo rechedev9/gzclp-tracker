@@ -7,7 +7,11 @@
  * intentionally kept separate (DB-layer concern).
  */
 
-export type ProgramCategory = 'beginner' | 'strength' | 'hypertrophy' | 'powerlifting';
+export type ProgramCategory = 'strength' | 'hypertrophy' | 'powerlifting';
+
+export const PROGRAM_LEVELS = ['beginner', 'intermediate', 'advanced'] as const;
+
+export type ProgramLevel = (typeof PROGRAM_LEVELS)[number];
 
 export type ProgramMeta = {
   readonly id: string;
@@ -15,6 +19,7 @@ export type ProgramMeta = {
   readonly description: string;
   readonly author: string;
   readonly category: ProgramCategory;
+  readonly level: ProgramLevel;
   readonly isActive: boolean;
 };
 
@@ -28,6 +33,7 @@ export const PROGRAM_CATALOG: readonly ProgramMeta[] = [
       'sigues luchando. Inspirado en el método GZCL de Cody LeFever.',
     author: 'Gravity Room',
     category: 'strength',
+    level: 'beginner',
     isActive: true,
   },
   {
@@ -39,6 +45,7 @@ export const PROGRAM_CATALOG: readonly ProgramMeta[] = [
       'progresión en accesorios. Inspirado en la metodología de HeXaN.',
     author: 'Gravity Room',
     category: 'hypertrophy',
+    level: 'intermediate',
     isActive: true,
   },
   {
@@ -51,6 +58,7 @@ export const PROGRAM_CATALOG: readonly ProgramMeta[] = [
       'Tres fallos consecutivos provocan una descarga del 10%.',
     author: 'Mehdi Hadim',
     category: 'strength',
+    level: 'beginner',
     isActive: true,
   },
   {
@@ -63,6 +71,7 @@ export const PROGRAM_CATALOG: readonly ProgramMeta[] = [
       'Progresión lineal con descarga del 10% al fallar.',
     author: 'Phrakture (r/Fitness)',
     category: 'strength',
+    level: 'beginner',
     isActive: true,
   },
   {
@@ -74,6 +83,7 @@ export const PROGRAM_CATALOG: readonly ProgramMeta[] = [
       'de volumen suplementario. 4 días por semana. Inspirado en 5/3/1 BBB de Jim Wendler.',
     author: 'Gravity Room',
     category: 'strength',
+    level: 'intermediate',
     isActive: true,
   },
   {
@@ -86,6 +96,7 @@ export const PROGRAM_CATALOG: readonly ProgramMeta[] = [
       'Inspirado en 5/3/1 for Beginners de Jim Wendler.',
     author: 'Gravity Room',
     category: 'strength',
+    level: 'beginner',
     isActive: true,
   },
   {
@@ -97,6 +108,7 @@ export const PROGRAM_CATALOG: readonly ProgramMeta[] = [
       '4 días por semana. Inspirado en PHUL de Brandon Campbell.',
     author: 'Gravity Room',
     category: 'hypertrophy',
+    level: 'intermediate',
     isActive: true,
   },
   {
@@ -110,6 +122,7 @@ export const PROGRAM_CATALOG: readonly ProgramMeta[] = [
       '4 días/semana: hombros/tríceps, espalda/gemelo, pecho/bíceps, pierna.',
     author: 'nivel7 (musclecoop)',
     category: 'strength',
+    level: 'intermediate',
     isActive: true,
   },
   {
@@ -121,7 +134,8 @@ export const PROGRAM_CATALOG: readonly ProgramMeta[] = [
       '4 bloques por sesión: Core, Activación, Propiocepción y el Ejercicio Fundamental. ' +
       'Inspirado en la metodología de Amerigo Brunetti.',
     author: 'Gravity Room',
-    category: 'beginner',
+    category: 'strength',
+    level: 'beginner',
     isActive: true,
   },
   {
@@ -137,6 +151,7 @@ export const PROGRAM_CATALOG: readonly ProgramMeta[] = [
       '4 días por semana.',
     author: 'Amerigo Brunetti',
     category: 'hypertrophy',
+    level: 'intermediate',
     isActive: false,
   },
   {
@@ -149,6 +164,7 @@ export const PROGRAM_CATALOG: readonly ProgramMeta[] = [
       'y peso muerto. 4 días por semana.',
     author: 'Gravity Room',
     category: 'hypertrophy',
+    level: 'intermediate',
     isActive: false,
   },
   {
@@ -160,6 +176,7 @@ export const PROGRAM_CATALOG: readonly ProgramMeta[] = [
       '6 semanas, 4 días/semana. Inspirado en la metodología de Amerigo Brunetti.',
     author: 'Gravity Room',
     category: 'hypertrophy',
+    level: 'intermediate',
     isActive: true,
   },
   {
@@ -171,6 +188,7 @@ export const PROGRAM_CATALOG: readonly ProgramMeta[] = [
       '13 semanas, 4 días/semana. Inspirado en la metodología de Amerigo Brunetti.',
     author: 'Gravity Room',
     category: 'hypertrophy',
+    level: 'intermediate',
     isActive: true,
   },
   {
@@ -182,6 +200,7 @@ export const PROGRAM_CATALOG: readonly ProgramMeta[] = [
       '18 semanas, 4 días/semana. Inspirado en la metodología de Amerigo Brunetti.',
     author: 'Gravity Room',
     category: 'hypertrophy',
+    level: 'intermediate',
     isActive: true,
   },
   {
@@ -193,6 +212,7 @@ export const PROGRAM_CATALOG: readonly ProgramMeta[] = [
       '4 días por semana. Inspirado en la metodología de Boris Sheiko.',
     author: 'Gravity Room',
     category: 'powerlifting',
+    level: 'advanced',
     isActive: true,
   },
   {
@@ -204,6 +224,7 @@ export const PROGRAM_CATALOG: readonly ProgramMeta[] = [
       '4 días por semana. Inspirado en la metodología de Boris Sheiko.',
     author: 'Gravity Room',
     category: 'powerlifting',
+    level: 'advanced',
     isActive: true,
   },
   {
@@ -215,6 +236,7 @@ export const PROGRAM_CATALOG: readonly ProgramMeta[] = [
       '4 días por semana. Inspirado en la metodología de Boris Sheiko.',
     author: 'Gravity Room',
     category: 'powerlifting',
+    level: 'advanced',
     isActive: true,
   },
   {
@@ -226,6 +248,7 @@ export const PROGRAM_CATALOG: readonly ProgramMeta[] = [
       '4 días por semana. Inspirado en la metodología de Boris Sheiko.',
     author: 'Gravity Room',
     category: 'powerlifting',
+    level: 'advanced',
     isActive: true,
   },
   {
@@ -238,6 +261,7 @@ export const PROGRAM_CATALOG: readonly ProgramMeta[] = [
       '4 días por semana. Inspirado en la metodología de Boris Sheiko.',
     author: 'Gravity Room',
     category: 'powerlifting',
+    level: 'advanced',
     isActive: true,
   },
 ] as const satisfies readonly ProgramMeta[];

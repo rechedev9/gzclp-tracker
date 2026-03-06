@@ -7,6 +7,8 @@ import { getDb } from '../db';
 import { programTemplates, programInstances, exercises } from '../db/schema';
 import { hydrateProgramDefinition } from '../lib/hydrate-program';
 import type { ProgramDefinition } from '@gzclp/shared/types/program';
+import { PROGRAM_LEVELS } from '@gzclp/shared/catalog';
+import type { ProgramLevel } from '@gzclp/shared/catalog';
 import { isRecord } from '@gzclp/shared/type-guards';
 import {
   getCachedCatalogList,
@@ -37,6 +39,7 @@ export interface CatalogEntry {
   readonly description: string;
   readonly author: string;
   readonly category: string;
+  readonly level: ProgramLevel;
   readonly source: string;
   readonly totalWorkouts: number;
   readonly workoutsPerWeek: number;
@@ -54,12 +57,23 @@ interface CatalogProjectedRow {
   readonly description: string;
   readonly author: string;
   readonly category: string;
+  readonly level: string;
   readonly source: string;
   readonly definition: {
     readonly totalWorkouts: number;
     readonly workoutsPerWeek: number;
     readonly cycleLength: number;
   };
+}
+
+const VALID_LEVELS: ReadonlySet<string> = new Set<string>(PROGRAM_LEVELS);
+
+function isValidLevel(value: string): value is ProgramLevel {
+  return VALID_LEVELS.has(value);
+}
+
+function toLevel(value: string): ProgramLevel {
+  return isValidLevel(value) ? value : 'intermediate';
 }
 
 function toCatalogEntry(row: CatalogProjectedRow): CatalogEntry {
@@ -69,6 +83,7 @@ function toCatalogEntry(row: CatalogProjectedRow): CatalogEntry {
     description: row.description,
     author: row.author,
     category: row.category,
+    level: toLevel(row.level),
     source: row.source,
     totalWorkouts: row.definition.totalWorkouts,
     workoutsPerWeek: row.definition.workoutsPerWeek,
@@ -109,6 +124,7 @@ export async function listPrograms(): Promise<readonly CatalogEntry[]> {
         description: programTemplates.description,
         author: programTemplates.author,
         category: programTemplates.category,
+        level: programTemplates.level,
         source: programTemplates.source,
         definition: sql<{
           totalWorkouts: number;

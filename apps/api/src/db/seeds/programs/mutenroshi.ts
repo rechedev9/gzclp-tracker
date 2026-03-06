@@ -26,7 +26,7 @@ export const MUTENROSHI_DEFINITION_JSONB = {
     'Cuando domines Sentadilla, Press de Banca y Peso Muerto, estar\u00e1s listo para el torneo.',
   author: 'Amerigo Brunetti',
   version: 1,
-  category: 'beginner',
+  category: 'strength',
   source: 'preset',
   displayMode: 'blocks',
   totalWorkouts: TOTAL_WORKOUTS,

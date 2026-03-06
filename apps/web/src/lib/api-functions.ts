@@ -9,6 +9,8 @@ import type { ResultValue } from '@gzclp/shared/types';
 import type { ProgramDefinition } from '@gzclp/shared/types/program';
 import type { GenericResults, GenericUndoHistory } from '@gzclp/shared/types/program';
 import { isRecord } from '@gzclp/shared/type-guards';
+import { PROGRAM_LEVELS } from '@gzclp/shared/catalog';
+import type { ProgramLevel } from '@gzclp/shared/catalog';
 import { z } from 'zod/v4';
 
 const API_URL = import.meta.env.VITE_API_URL ?? 'http://localhost:3001';
@@ -383,6 +385,7 @@ export interface CatalogEntry {
   readonly description: string;
   readonly author: string;
   readonly category: string;
+  readonly level: ProgramLevel;
   readonly source: string;
   readonly totalWorkouts: number;
   readonly workoutsPerWeek: number;
@@ -413,6 +416,12 @@ export interface MuscleGroupEntry {
 // Catalog API functions (public, no auth required)
 // ---------------------------------------------------------------------------
 
+const VALID_LEVELS: ReadonlySet<string> = new Set(PROGRAM_LEVELS);
+
+function isValidLevel(value: unknown): value is ProgramLevel {
+  return typeof value === 'string' && VALID_LEVELS.has(value);
+}
+
 function parseCatalogEntry(raw: unknown): CatalogEntry {
   if (!isRecord(raw)) throw new Error('Invalid catalog entry');
   return {
@@ -421,6 +430,7 @@ function parseCatalogEntry(raw: unknown): CatalogEntry {
     description: String(raw.description ?? ''),
     author: String(raw.author ?? ''),
     category: String(raw.category ?? ''),
+    level: isValidLevel(raw.level) ? raw.level : 'intermediate',
     source: String(raw.source ?? ''),
     totalWorkouts: typeof raw.totalWorkouts === 'number' ? raw.totalWorkouts : 0,
     workoutsPerWeek: typeof raw.workoutsPerWeek === 'number' ? raw.workoutsPerWeek : 0,

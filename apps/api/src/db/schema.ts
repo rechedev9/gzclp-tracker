@@ -319,6 +319,7 @@ export const programTemplates = pgTable(
     author: varchar({ length: 100 }).notNull().default(''),
     version: smallint().notNull().default(1),
     category: varchar({ length: 50 }).notNull().default('strength'),
+    level: varchar({ length: 20 }).notNull().default('intermediate'),
     source: varchar({ length: 10 }).notNull().default('preset'),
     definition: jsonb().notNull(),
     isActive: boolean('is_active').notNull().default(true),

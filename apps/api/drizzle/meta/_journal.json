@@ -190,6 +190,13 @@
       "when": 1772700000006,
       "tag": "0026_add_metadata_to_program_instances",
       "breakpoints": true
+    },
+    {
+      "idx": 27,
+      "version": "7",
+      "when": 1772827638593,
+      "tag": "0027_dear_barracuda",
+      "breakpoints": true
     }
   ]
 }
