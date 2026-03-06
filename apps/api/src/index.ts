@@ -214,6 +214,11 @@ export const app = new Elysia()
 
     if (error instanceof ApiError) {
       set.status = error.statusCode;
+      if (error.headers) {
+        for (const [key, value] of Object.entries(error.headers)) {
+          set.headers[key] = value;
+        }
+      }
       const level = error.statusCode >= 500 ? 'error' : 'warn';
       log[level]({ status: error.statusCode, code: error.code, latencyMs }, error.message);
       if (error.statusCode >= 500) captureException(error);

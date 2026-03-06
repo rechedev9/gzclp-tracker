@@ -340,7 +340,7 @@ export async function updateInstance(
 export async function updateInstanceMetadata(
   userId: string,
   instanceId: string,
-  metadata: Record<string, unknown>
+  metadata: Record<string, string | number | boolean | null>
 ): Promise<ProgramInstanceResponse> {
   // Fetch existing instance to read current metadata
   const [instance] = await getDb()
@@ -361,6 +361,12 @@ export async function updateInstanceMetadata(
       : {};
 
   const merged = { ...existing, ...metadata };
+
+  const MAX_METADATA_BYTES = 10_000;
+  const serialized = JSON.stringify(merged);
+  if (serialized.length > MAX_METADATA_BYTES) {
+    throw new ApiError(400, 'Metadata exceeds 10KB limit', 'METADATA_TOO_LARGE');
+  }
 
   const [updated] = await getDb()
     .update(programInstances)

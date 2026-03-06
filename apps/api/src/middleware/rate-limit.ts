@@ -94,6 +94,8 @@ export async function rateLimit(
   const allowed = await store.check(`rl:${endpoint}:${ip}`, windowMs, maxRequests);
   if (!allowed) {
     rateLimitHitsTotal.inc({ endpoint });
-    throw new ApiError(429, 'Too many requests', 'RATE_LIMITED');
+    throw new ApiError(429, 'Too many requests', 'RATE_LIMITED', {
+      headers: { 'Retry-After': String(Math.ceil(windowMs / 1000)) },
+    });
   }
 }

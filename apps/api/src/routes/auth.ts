@@ -32,7 +32,8 @@ const IS_PRODUCTION = process.env['NODE_ENV'] === 'production';
 
 /** Max avatar data URL size in bytes (~200KB base64 ≈ ~150KB image). */
 const MAX_AVATAR_BYTES = 200_000;
-const DATA_URL_IMAGE_RE = /^data:image\/(jpeg|png|webp);base64,[A-Za-z0-9+/=]+$/;
+const DATA_URL_IMAGE_RE =
+  /^data:image\/(jpeg|png|webp);base64,(?:[A-Za-z0-9+/]{4})*(?:[A-Za-z0-9+/]{2}==|[A-Za-z0-9+/]{3}=)?$/;
 
 const REFRESH_COOKIE_OPTIONS = {
   httpOnly: true as const,
@@ -315,6 +316,20 @@ export const authRoutes = new Elysia({ prefix: '/auth' })
         }
         if (body.avatarUrl.length > MAX_AVATAR_BYTES) {
           throw new ApiError(400, 'Avatar exceeds maximum size (200KB)', 'AVATAR_TOO_LARGE');
+        }
+        // Validate base64 roundtrip to reject corrupted/malformed payloads
+        const b64Part = body.avatarUrl.split(',')[1];
+        if (!b64Part || b64Part.length === 0) {
+          throw new ApiError(400, 'Empty avatar data', 'INVALID_AVATAR');
+        }
+        try {
+          const decoded = Buffer.from(b64Part, 'base64');
+          if (decoded.toString('base64') !== b64Part) {
+            throw new ApiError(400, 'Invalid base64 in avatar', 'INVALID_AVATAR');
+          }
+        } catch (e: unknown) {
+          if (e instanceof ApiError) throw e;
+          throw new ApiError(400, 'Invalid base64 in avatar', 'INVALID_AVATAR');
         }
       }
 

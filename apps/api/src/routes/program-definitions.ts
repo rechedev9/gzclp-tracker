@@ -113,25 +113,32 @@ export const programDefinitionRoutes = new Elysia({ prefix: '/program-definition
   )
 
   // PUT /program-definitions/:id — update a definition
-  .put('/:id', ({ userId, params, body }) => update(userId, params.id, body.definition), {
-    params: t.Object({ id: t.String() }),
-    body: t.Object({
-      definition: t.Any(),
-    }),
-    detail: {
-      tags: ['Program Definitions'],
-      summary: 'Update program definition',
-      description:
-        'Updates a program definition. Resets status to draft if currently pending_review or approved.',
-      security,
-      responses: {
-        200: { description: 'Updated program definition' },
-        401: { description: 'Missing or invalid token' },
-        404: { description: 'Not found or not owned by user' },
-        422: { description: 'Invalid definition payload' },
-      },
+  .put(
+    '/:id',
+    async ({ userId, params, body }) => {
+      await rateLimit(userId, 'PUT /program-definitions', { windowMs: HOUR_MS, maxRequests: 20 });
+      return update(userId, params.id, body.definition);
     },
-  })
+    {
+      params: t.Object({ id: t.String() }),
+      body: t.Object({
+        definition: t.Any(),
+      }),
+      detail: {
+        tags: ['Program Definitions'],
+        summary: 'Update program definition',
+        description:
+          'Updates a program definition. Resets status to draft if currently pending_review or approved.',
+        security,
+        responses: {
+          200: { description: 'Updated program definition' },
+          401: { description: 'Missing or invalid token' },
+          404: { description: 'Not found or not owned by user' },
+          422: { description: 'Invalid definition payload' },
+        },
+      },
+    }
+  )
 
   // DELETE /program-definitions/:id — soft delete
   .delete(
@@ -141,6 +148,10 @@ export const programDefinitionRoutes = new Elysia({ prefix: '/program-definition
         { event: 'programDefinition.delete', userId, id: params.id },
         'deleting program definition'
       );
+      await rateLimit(userId, 'DELETE /program-definitions', {
+        windowMs: HOUR_MS,
+        maxRequests: 20,
+      });
       const deleted = await softDelete(userId, params.id);
       if (!deleted) {
         throw new ApiError(404, 'Program definition not found', 'NOT_FOUND');
@@ -171,6 +182,10 @@ export const programDefinitionRoutes = new Elysia({ prefix: '/program-definition
         { event: 'programDefinition.statusUpdate', userId, id: params.id, newStatus: body.status },
         'updating program definition status'
       );
+      await rateLimit(userId, 'PATCH /program-definitions/status', {
+        windowMs: HOUR_MS,
+        maxRequests: 20,
+      });
       return updateStatus(userId, params.id, body.status);
     },
     {

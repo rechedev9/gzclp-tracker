@@ -186,7 +186,10 @@ export const programRoutes = new Elysia({ prefix: '/programs' })
     {
       params: t.Object({ id: t.String() }),
       body: t.Object({
-        metadata: t.Record(t.String(), t.Unknown()),
+        metadata: t.Record(
+          t.String({ maxLength: 50 }),
+          t.Union([t.String({ maxLength: 500 }), t.Number(), t.Boolean(), t.Null()])
+        ),
       }),
       detail: {
         tags: ['Programs'],
