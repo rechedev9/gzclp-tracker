@@ -2,7 +2,7 @@ name: Daily DB Backup
 
 on:
   schedule:
-    # Every day at 03:00 UTC (04:00 hora española)
+    # Every day at 03:00 UTC (04:00 hora peninsular)
     - cron: '0 3 * * *'
   workflow_dispatch: # Allow manual trigger
 
@@ -10,16 +10,36 @@ jobs:
   backup:
     runs-on: ubuntu-latest
     steps:
-      - name: Install PostgreSQL client
-        run: sudo apt-get install -y postgresql-client
+      - name: Run pg_dump via SSH
+        uses: appleboy/ssh-action@v1
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          port: ${{ secrets.VPS_SSH_PORT }}
+          script: |
+            TIMESTAMP=$(date +%Y-%m-%d_%H%M)
+            docker exec postgres pg_dump -U deploy -Fc --no-owner --no-privileges gzclp > "/tmp/backup_${TIMESTAMP}.dump"
+            ls -lh /tmp/backup_*.dump
 
-      - name: Run pg_dump
-        env:
-          DATABASE_URL: ${{ secrets.DATABASE_PUBLIC_URL }}
+      - name: Download backup from VPS
         run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.VPS_SSH_KEY }}" > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
           TIMESTAMP=$(date +%Y-%m-%d_%H%M)
-          pg_dump "$DATABASE_URL" -Fc --no-owner --no-privileges > "backup_${TIMESTAMP}.dump"
-          ls -lh backup_*.dump
+          scp -P ${{ secrets.VPS_SSH_PORT }} -i ~/.ssh/deploy_key -o StrictHostKeyChecking=no \
+            ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }}:/tmp/backup_${TIMESTAMP}.dump ./backup_${TIMESTAMP}.dump
+          rm ~/.ssh/deploy_key
+
+      - name: Clean up remote backup
+        uses: appleboy/ssh-action@v1
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          port: ${{ secrets.VPS_SSH_PORT }}
+          script: rm -f /tmp/backup_*.dump
 
       - name: Upload backup artifact
         uses: actions/upload-artifact@v4
