@@ -5,8 +5,8 @@ export interface UseKeyboardShortcutsOptions {
   readonly onSuccess: () => void;
   readonly onFail: () => void;
   readonly onUndo: () => void;
-  readonly onPrevWeek: () => void;
-  readonly onNextWeek: () => void;
+  readonly onPrevDay: () => void;
+  readonly onNextDay: () => void;
 }
 
 export function useKeyboardShortcuts(options: UseKeyboardShortcutsOptions): void {
@@ -30,10 +30,10 @@ export function useKeyboardShortcuts(options: UseKeyboardShortcutsOptions): void
 
       switch (e.key) {
         case 'ArrowLeft':
-          optionsRef.current.onPrevWeek();
+          optionsRef.current.onPrevDay();
           break;
         case 'ArrowRight':
-          optionsRef.current.onNextWeek();
+          optionsRef.current.onNextDay();
           break;
         case 's':
           optionsRef.current.onSuccess();

@@ -34,7 +34,8 @@ function applyRule(
   rule: ProgressionRule,
   state: SlotState,
   increment: number,
-  maxStageIdx: number
+  maxStageIdx: number,
+  roundingStep: number
 ): SlotState {
   switch (rule.type) {
     case 'add_weight':
@@ -50,13 +51,13 @@ function applyRule(
     case 'deload_percent':
       return {
         ...state,
-        weight: roundToNearestHalf(state.weight * (1 - rule.percent / 100)),
+        weight: roundToNearest(state.weight * (1 - rule.percent / 100), roundingStep),
         stage: 0,
       };
     case 'add_weight_reset_stage':
       return {
         ...state,
-        weight: roundToNearestHalf(state.weight + rule.amount),
+        weight: roundToNearest(state.weight + rule.amount, roundingStep),
         stage: 0,
       };
     case 'no_change':
@@ -99,14 +100,18 @@ function applyUpdateTm(
   slotResult: SlotResult,
   tmState: Record<string, number>,
   slotState: Record<string, SlotState>,
-  state: SlotState
+  state: SlotState,
+  roundingStep: number
 ): void {
   if (slot.trainingMaxKey === undefined) {
     throw new Error('update_tm rule requires trainingMaxKey on slot');
   }
   const amrapReps = slotResult.amrapReps;
   if (amrapReps !== undefined && amrapReps >= rule.minAmrapReps) {
-    tmState[slot.trainingMaxKey] = roundToNearestHalf(tmState[slot.trainingMaxKey] + rule.amount);
+    tmState[slot.trainingMaxKey] = roundToNearest(
+      tmState[slot.trainingMaxKey] + rule.amount,
+      roundingStep
+    );
     slotState[slot.id] = { ...state, everChanged: true };
   } else {
     slotState[slot.id] = { ...state, everChanged: state.everChanged };
@@ -121,18 +126,19 @@ function applySlotProgression(
   resultValue: ResultValue | undefined,
   increment: number,
   tmState: Record<string, number>,
-  slotState: Record<string, SlotState>
+  slotState: Record<string, SlotState>,
+  roundingStep: number
 ): void {
   const maxStageIdx = slot.stages.length - 1;
 
   if (resultValue === 'fail') {
     const rule = state.stage >= maxStageIdx ? slot.onFinalStageFail : slot.onMidStageFail;
     if (rule.type === 'update_tm') {
-      applyUpdateTm(rule, slot, slotResult, tmState, slotState, state);
+      applyUpdateTm(rule, slot, slotResult, tmState, slotState, state, roundingStep);
       return;
     }
     const changesState = rule.type !== 'no_change';
-    const nextState = applyRule(rule, state, increment, maxStageIdx);
+    const nextState = applyRule(rule, state, increment, maxStageIdx, roundingStep);
     slotState[slot.id] = { ...nextState, everChanged: state.everChanged || changesState };
     return;
   }
@@ -143,10 +149,10 @@ function applySlotProgression(
         ? slot.onFinalStageSuccess
         : slot.onSuccess;
     if (rule.type === 'update_tm') {
-      applyUpdateTm(rule, slot, slotResult, tmState, slotState, state);
+      applyUpdateTm(rule, slot, slotResult, tmState, slotState, state, roundingStep);
       return;
     }
-    const nextState = applyRule(rule, state, increment, maxStageIdx);
+    const nextState = applyRule(rule, state, increment, maxStageIdx, roundingStep);
     slotState[slot.id] = { ...nextState, everChanged: state.everChanged };
     return;
   }
@@ -154,10 +160,10 @@ function applySlotProgression(
   // undefined — apply onUndefined if set, else onSuccess (implicit pass)
   const rule = slot.onUndefined ?? slot.onSuccess;
   if (rule.type === 'update_tm') {
-    applyUpdateTm(rule, slot, slotResult, tmState, slotState, state);
+    applyUpdateTm(rule, slot, slotResult, tmState, slotState, state, roundingStep);
     return;
   }
-  const nextState = applyRule(rule, state, increment, maxStageIdx);
+  const nextState = applyRule(rule, state, increment, maxStageIdx, roundingStep);
   slotState[slot.id] = { ...nextState, everChanged: state.everChanged };
 }
 
@@ -185,6 +191,10 @@ export function computeGenericProgram(
   config: Record<string, number | string>,
   results: GenericResults
 ): GenericWorkoutRow[] {
+  // --- Derive rounding step once from config (default 2.5 kg) ---
+  const DEFAULT_ROUNDING_STEP = 2.5;
+  const roundingStep = configToNum(config, 'rounding') || DEFAULT_ROUNDING_STEP;
+
   // --- Initialization: one state entry per unique slot id ---
   const slotState: Record<string, SlotState> = {};
   for (const day of definition.days) {
@@ -193,11 +203,11 @@ export function computeGenericProgram(
         const base = configToNum(config, slot.startWeightKey);
         const multiplied =
           slot.startWeightMultiplier !== undefined
-            ? roundToNearestHalf(base * slot.startWeightMultiplier)
+            ? roundToNearest(base * slot.startWeightMultiplier, roundingStep)
             : base;
         const offset = slot.startWeightOffset ?? 0;
         const increment = definition.weightIncrements[slot.exerciseId] ?? 0;
-        const weight = roundToNearestHalf(multiplied - offset * increment);
+        const weight = roundToNearest(multiplied - offset * increment, roundingStep);
         slotState[slot.id] = { weight, stage: 0, everChanged: false };
       }
     }
@@ -231,7 +241,6 @@ export function computeGenericProgram(
       // --- Prescription-based slot (Sheiko-style %1RM programs) ---
       if (slot.prescriptions !== undefined && slot.percentOf !== undefined) {
         const base1rm = configToNum(config, slot.percentOf);
-        const roundingStep = configToNum(config, 'rounding') || 2.5;
 
         const resolvedPrescriptions: ResolvedPrescription[] = slot.prescriptions.map((p) => ({
           percent: p.percent,
@@ -306,7 +315,7 @@ export function computeGenericProgram(
       // TM-derived weight or absolute weight
       const weight =
         slot.trainingMaxKey !== undefined && slot.tmPercent !== undefined
-          ? roundToNearestHalf(tmState[slot.trainingMaxKey] * slot.tmPercent)
+          ? roundToNearest(tmState[slot.trainingMaxKey] * slot.tmPercent, roundingStep)
           : state.weight;
 
       // Deload detection: weight decreased vs previous occurrence of same exercise
@@ -359,7 +368,16 @@ export function computeGenericProgram(
       const slotResult = workoutResult[slot.id] ?? {};
       const resultValue: ResultValue | undefined = slotResult.result;
       const increment = definition.weightIncrements[slot.exerciseId] ?? 0;
-      applySlotProgression(slot, state, slotResult, resultValue, increment, tmState, slotState);
+      applySlotProgression(
+        slot,
+        state,
+        slotResult,
+        resultValue,
+        increment,
+        tmState,
+        slotState,
+        roundingStep
+      );
     }
   }
 

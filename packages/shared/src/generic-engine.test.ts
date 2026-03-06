@@ -287,19 +287,19 @@ describe('computeGenericProgram: GZCLP parity', () => {
     expect(rows[3].slots.find((s) => s.tier === 't1')?.weight).toBe(DEFAULT_WEIGHTS.deadlift);
   });
 
-  it('matches T2 start weights as 65% rounded to nearest 0.5', () => {
+  it('matches T2 start weights as 65% rounded to nearest 2.5', () => {
     const rows = computeGenericProgram(GZCLP_DEFINITION_FIXTURE, DEFAULT_WEIGHTS, {});
-    // Day 1 t2 = bench: 40 * 0.65 = 26
+    // Day 1 t2 = bench: 40 * 0.65 = 26 → roundToNearest(26, 2.5) = 25
     expect(rows[0].slots.find((s) => s.tier === 't2')?.weight).toBe(
-      round(DEFAULT_WEIGHTS.bench * 0.65)
+      roundToNearest(DEFAULT_WEIGHTS.bench * 0.65, 2.5)
     );
-    // Day 2 t2 = deadlift: 80 * 0.65 = 52
+    // Day 2 t2 = deadlift: 80 * 0.65 = 52 → roundToNearest(52, 2.5) = 52.5
     expect(rows[1].slots.find((s) => s.tier === 't2')?.weight).toBe(
-      round(DEFAULT_WEIGHTS.deadlift * 0.65)
+      roundToNearest(DEFAULT_WEIGHTS.deadlift * 0.65, 2.5)
     );
-    // Day 4 t2 = ohp: 25 * 0.65 = 16.25 → 16.5
+    // Day 4 t2 = ohp: 25 * 0.65 = 16.25 → roundToNearest(16.25, 2.5) = 15
     expect(rows[3].slots.find((s) => s.tier === 't2')?.weight).toBe(
-      round(DEFAULT_WEIGHTS.ohp * 0.65)
+      roundToNearest(DEFAULT_WEIGHTS.ohp * 0.65, 2.5)
     );
   });
 
@@ -361,13 +361,13 @@ describe('computeGenericProgram: GZCLP parity', () => {
     expect(t1(8)?.reps).toBe(1);
 
     expect(t1(12)?.stage).toBe(0);
-    expect(t1(12)?.weight).toBe(round(60 * 0.9)); // 54
+    expect(t1(12)?.weight).toBe(roundToNearest(60 * 0.9, 2.5)); // 55
     expect(t1(12)?.sets).toBe(5);
     expect(t1(12)?.reps).toBe(3);
   });
 
   it('T2 advances through stages then adds 15kg on final fail', () => {
-    const baseT2 = round(DEFAULT_WEIGHTS.bench * 0.65); // 26
+    const baseT2 = roundToNearest(DEFAULT_WEIGHTS.bench * 0.65, 2.5); // 25
     const results = toGenericResults([
       [0, { t2: 'fail' }],
       [4, { t2: 'fail' }],
@@ -380,7 +380,7 @@ describe('computeGenericProgram: GZCLP parity', () => {
     expect(t2(4)?.weight).toBe(baseT2);
     expect(t2(8)?.stage).toBe(2);
     expect(t2(12)?.stage).toBe(0);
-    expect(t2(12)?.weight).toBe(baseT2 + 15);
+    expect(t2(12)?.weight).toBe(roundToNearest(baseT2 + 15, 2.5));
   });
 
   it('T1 success at stage 1 increases weight without changing stage', () => {
@@ -953,7 +953,7 @@ describe('computeGenericProgram: TM weight computation', () => {
     expect(rows[0].slots[1].weight).toBe(75);
   });
 
-  it('applies roundToNearestHalf to TM-derived weight (REQ-ENGINE-002 scenario 4)', () => {
+  it('applies roundToNearest to TM-derived weight (REQ-ENGINE-002 scenario 4)', () => {
     const def = makeDefinition({
       stages: [{ sets: 1, reps: 5, amrap: true }],
       onSuccess: { type: 'no_change' },
@@ -965,8 +965,8 @@ describe('computeGenericProgram: TM weight computation', () => {
     });
     const rows = computeGenericProgram(def, { bench_tm: 92.5 }, {});
 
-    // 92.5 * 0.85 = 78.625 → roundToNearestHalf → 78.5
-    expect(rows[0].slots[0].weight).toBe(78.5);
+    // 92.5 * 0.85 = 78.625 → roundToNearest(78.625, 2.5) = 77.5
+    expect(rows[0].slots[0].weight).toBe(77.5);
   });
 });
 
@@ -989,8 +989,8 @@ describe('computeGenericProgram: update_tm progression', () => {
     };
     const rows = computeGenericProgram(def, { squat_tm: 100 }, results);
 
-    // TM goes from 100 to 105, next workout weight = round(105 * 0.85) = 89 (89.25 rounds to 89)
-    expect(rows[1].slots[0].weight).toBe(round(105 * 0.85));
+    // TM goes from 100 to 105, next workout weight = roundToNearest(105 * 0.85, 2.5) = 90
+    expect(rows[1].slots[0].weight).toBe(roundToNearest(105 * 0.85, 2.5));
   });
 
   it('TM does not increase when AMRAP falls short (REQ-ENGINE-003 scenario 2)', () => {
@@ -2627,5 +2627,130 @@ describe('propagatesTo and isTestSlot pass-through', () => {
     const rows = computeGenericProgram(def, config, {});
 
     expect(rows[0].slots[0].isTestSlot).toBeUndefined();
+  });
+});
+
+// ---------------------------------------------------------------------------
+// roundToNearest edge-case tests
+// ---------------------------------------------------------------------------
+
+describe('roundToNearest', () => {
+  it('returns 0 when value is 0', () => {
+    expect(roundToNearest(0, 2.5)).toBe(0);
+  });
+
+  it('returns value unchanged when already on boundary (62.5 with step 2.5)', () => {
+    expect(roundToNearest(62.5, 2.5)).toBe(62.5);
+  });
+
+  it('rounds midpoint up (63.75 with step 2.5 -> 65.0)', () => {
+    expect(roundToNearest(63.75, 2.5)).toBe(65.0);
+  });
+
+  it('rounds 61.25 to 62.5 with step 2.5', () => {
+    expect(roundToNearest(61.25, 2.5)).toBe(62.5);
+  });
+
+  it('returns 0 for negative values', () => {
+    expect(roundToNearest(-5, 2.5)).toBe(0);
+  });
+
+  it('falls back to roundToNearestHalf when step is 0', () => {
+    expect(roundToNearest(100, 0)).toBe(100);
+  });
+
+  it('falls back to roundToNearestHalf when step is negative', () => {
+    expect(roundToNearest(100, -1)).toBe(100);
+  });
+
+  it('returns 0 for NaN input', () => {
+    expect(roundToNearest(NaN, 2.5)).toBe(0);
+  });
+
+  it('returns 0 for Infinity input', () => {
+    expect(roundToNearest(Infinity, 2.5)).toBe(0);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Rounding normalization integration tests
+// ---------------------------------------------------------------------------
+
+describe('computeGenericProgram: rounding normalization', () => {
+  it('uses default 2.5 rounding when config has no rounding key', () => {
+    const def = makeDefinition({
+      stages: [{ sets: 5, reps: 3 }],
+      onSuccess: { type: 'add_weight' },
+      onMidStageFail: { type: 'no_change' },
+      onFinalStageFail: { type: 'no_change' },
+      weightIncrement: 5,
+      totalWorkouts: 5,
+    });
+    const rows = computeGenericProgram(def, { ex: 60 }, {});
+
+    // All weights should be multiples of 2.5
+    for (const row of rows) {
+      for (const slot of row.slots) {
+        expect(slot.weight % 2.5).toBe(0);
+      }
+    }
+  });
+
+  it('uses custom rounding step from config.rounding = 1.25', () => {
+    const def = makeDefinition({
+      stages: [{ sets: 5, reps: 3 }],
+      onSuccess: { type: 'add_weight' },
+      onMidStageFail: { type: 'no_change' },
+      onFinalStageFail: { type: 'deload_percent', percent: 10 },
+      weightIncrement: 1.25,
+      totalWorkouts: 5,
+    });
+    const results: GenericResults = {
+      '0': { slot1: { result: 'success' } },
+      '1': { slot1: { result: 'success' } },
+    };
+    const rows = computeGenericProgram(def, { ex: 60, rounding: 1.25 }, results);
+
+    // Workout 0: 60, Workout 1: 61.25, Workout 2: 62.5
+    expect(rows[0].slots[0].weight).toBe(60);
+    expect(rows[1].slots[0].weight).toBe(61.25);
+    expect(rows[2].slots[0].weight).toBe(62.5);
+  });
+
+  it('rounds deload weight to roundingStep (not 0.5)', () => {
+    const def = makeDefinition({
+      stages: [{ sets: 5, reps: 3 }],
+      onSuccess: { type: 'no_change' },
+      onMidStageFail: { type: 'no_change' },
+      onFinalStageFail: { type: 'deload_percent', percent: 10 },
+      totalWorkouts: 3,
+    });
+    const results: GenericResults = {
+      '0': { slot1: { result: 'fail' } },
+    };
+    const rows = computeGenericProgram(def, { ex: 60 }, results);
+
+    // 60 * 0.9 = 54 → roundToNearest(54, 2.5) = 55
+    expect(rows[1].slots[0].weight).toBe(55);
+  });
+
+  it('rounds TM updates to roundingStep', () => {
+    const def = makeDefinition({
+      stages: [{ sets: 1, reps: 5, amrap: true }],
+      onSuccess: { type: 'update_tm', amount: 2.5, minAmrapReps: 5 },
+      onMidStageFail: { type: 'no_change' },
+      onFinalStageFail: { type: 'no_change' },
+      trainingMaxKey: 'squat_tm',
+      tmPercent: 0.85,
+      role: 'primary',
+      totalWorkouts: 3,
+    });
+    const results: GenericResults = {
+      '0': { slot1: { result: 'success', amrapReps: 6 } },
+    };
+    const rows = computeGenericProgram(def, { squat_tm: 100 }, results);
+
+    // TM: 100 → 102.5. Weight: roundToNearest(102.5 * 0.85, 2.5) = roundToNearest(87.125, 2.5) = 87.5
+    expect(rows[1].slots[0].weight).toBe(87.5);
   });
 });

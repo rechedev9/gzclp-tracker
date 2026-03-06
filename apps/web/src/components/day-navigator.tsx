@@ -1,33 +1,35 @@
 import type { ReactNode } from 'react';
 
-interface WeekNavigatorProps {
-  readonly selectedWeek: number;
-  readonly totalWeeks: number;
-  readonly currentWeekNumber: number;
-  readonly weekDoneCount: number;
-  readonly weekTotalCount: number;
+interface DayNavigatorProps {
+  readonly selectedDayIndex: number;
+  readonly totalDays: number;
+  readonly currentDayIndex: number;
+  readonly dayName: string;
+  readonly isDayComplete: boolean;
   readonly onPrev: () => void;
   readonly onNext: () => void;
   readonly onGoToCurrent: () => void;
 }
 
-export function WeekNavigator({
-  selectedWeek,
-  totalWeeks,
-  currentWeekNumber,
-  weekDoneCount,
-  weekTotalCount,
+export function DayNavigator({
+  selectedDayIndex,
+  totalDays,
+  currentDayIndex,
+  dayName,
+  isDayComplete,
   onPrev,
   onNext,
   onGoToCurrent,
-}: WeekNavigatorProps): ReactNode {
+}: DayNavigatorProps): ReactNode {
+  const showGoToCurrent = selectedDayIndex !== currentDayIndex && currentDayIndex !== -1;
+
   return (
     <div className="flex items-center gap-4 mb-6">
       <button
         type="button"
         onClick={onPrev}
-        disabled={selectedWeek <= 1}
-        aria-label="Semana anterior"
+        disabled={selectedDayIndex <= 0}
+        aria-label="Día anterior"
         className="font-mono text-[11px] font-bold tracking-widest uppercase px-4 py-2.5 min-h-[44px] border-2 border-rule bg-card text-muted disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer transition-all duration-150 hover:bg-hover-row hover:text-main hover:border-rule-light active:scale-95"
       >
         &larr;<span className="hidden sm:inline"> Anterior</span>
@@ -39,30 +41,32 @@ export function WeekNavigator({
             className="font-display text-main"
             style={{ fontSize: '22px', letterSpacing: '0.05em' }}
           >
-            Semana {selectedWeek}
+            Día {selectedDayIndex + 1}
           </span>
           <span
             className="font-mono text-muted tabular-nums"
             style={{ fontSize: '12px', letterSpacing: '0.1em' }}
           >
-            / {totalWeeks}
+            / {totalDays}
           </span>
         </div>
         <div className="flex items-center gap-3">
-          <span
-            className="font-mono"
-            style={{ fontSize: '14px', letterSpacing: '0.3em' }}
-            aria-label={`${weekDoneCount} de ${weekTotalCount} entrenamientos completados`}
-            title={`${weekDoneCount} de ${weekTotalCount} entrenamientos completados`}
-          >
-            <span className="text-accent" aria-hidden="true">
-              {'\u25CF'.repeat(weekDoneCount)}
+          <span className="flex items-center gap-2">
+            <span
+              className="font-mono text-main uppercase"
+              style={{ fontSize: '12px', letterSpacing: '0.1em' }}
+            >
+              {dayName}
             </span>
-            <span className="text-info" aria-hidden="true">
-              {'\u25CB'.repeat(weekTotalCount - weekDoneCount)}
+            <span className="text-sm" aria-label={isDayComplete ? 'Completado' : 'Pendiente'}>
+              {isDayComplete ? (
+                <span className="text-accent">{'\u25CF'}</span>
+              ) : (
+                <span className="text-info">{'\u25CB'}</span>
+              )}
             </span>
           </span>
-          {selectedWeek !== currentWeekNumber && (
+          {showGoToCurrent && (
             <button
               type="button"
               onClick={onGoToCurrent}
@@ -77,8 +81,8 @@ export function WeekNavigator({
       <button
         type="button"
         onClick={onNext}
-        disabled={selectedWeek >= totalWeeks}
-        aria-label="Siguiente semana"
+        disabled={selectedDayIndex >= totalDays - 1}
+        aria-label="Siguiente día"
         className="font-mono text-[11px] font-bold tracking-widest uppercase px-4 py-2.5 min-h-[44px] border-2 border-rule bg-card text-muted disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer transition-all duration-150 hover:bg-hover-row hover:text-main hover:border-rule-light active:scale-95"
       >
         <span className="hidden sm:inline">Siguiente </span>&rarr;

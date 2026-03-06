@@ -15,8 +15,8 @@ function buildOptions(
     onSuccess: mock(),
     onFail: mock(),
     onUndo: mock(),
-    onPrevWeek: mock(),
-    onNextWeek: mock(),
+    onPrevDay: mock(),
+    onNextDay: mock(),
     ...overrides,
   };
 }
@@ -62,22 +62,22 @@ describe('useKeyboardShortcuts', () => {
       expect(options.onUndo).toHaveBeenCalledTimes(1);
     });
 
-    it('pressing "ArrowLeft" calls onPrevWeek', () => {
+    it('pressing "ArrowLeft" calls onPrevDay', () => {
       const options = buildOptions();
       renderHook(() => useKeyboardShortcuts(options));
 
       fireKey('ArrowLeft');
 
-      expect(options.onPrevWeek).toHaveBeenCalledTimes(1);
+      expect(options.onPrevDay).toHaveBeenCalledTimes(1);
     });
 
-    it('pressing "ArrowRight" calls onNextWeek', () => {
+    it('pressing "ArrowRight" calls onNextDay', () => {
       const options = buildOptions();
       renderHook(() => useKeyboardShortcuts(options));
 
       fireKey('ArrowRight');
 
-      expect(options.onNextWeek).toHaveBeenCalledTimes(1);
+      expect(options.onNextDay).toHaveBeenCalledTimes(1);
     });
   });
 

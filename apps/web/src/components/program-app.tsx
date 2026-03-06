@@ -27,8 +27,8 @@ import { TabButton } from './tab-button';
 import { TestWeightModal } from './test-weight-modal';
 import { ToastContainer } from './toast';
 import { Toolbar } from './toolbar';
-import { WeekNavigator } from './week-navigator';
-import { WeekTable } from './week-table';
+import { DayNavigator } from './day-navigator';
+import { DayView } from './day-view';
 import { AppSkeleton } from './app-skeleton';
 import { lazyWithRetry } from '@/lib/lazy-with-retry';
 
@@ -209,36 +209,19 @@ export function ProgramApp({
       : `JAW Bloque ${jawContext.block} · Sem. ${jawContext.week ?? '?'}/18 · Test en sem. ${jawContext.block * 6}.`
     : undefined;
 
-  const weeks = Array.from({ length: Math.ceil(rows.length / workoutsPerWeek) }, (_, i) => ({
-    week: i + 1,
-    rows: rows.slice(i * workoutsPerWeek, (i + 1) * workoutsPerWeek),
-  }));
-
-  const currentWeekNumber =
-    firstPendingIdx >= 0
-      ? Math.floor(firstPendingIdx / workoutsPerWeek) + 1
-      : Math.max(weeks.length, 1);
-
-  const [selectedWeek, setSelectedWeek] = useState<number>(1);
-
-  const currentWeekNumberRef = useRef(currentWeekNumber);
-  currentWeekNumberRef.current = currentWeekNumber;
+  const [selectedDayIndex, setSelectedDayIndex] = useState<number>(0);
+  const currentDayIndex = firstPendingIdx;
+  const selectedWorkout = rows[selectedDayIndex];
+  const isDayComplete = selectedWorkout
+    ? selectedWorkout.slots.every((s) => s.result !== undefined)
+    : false;
 
   useEffect(() => {
-    if (currentWeekNumberRef.current > 0) {
-      setSelectedWeek(currentWeekNumberRef.current);
-    }
+    if (firstPendingIdx >= 0) setSelectedDayIndex(firstPendingIdx);
   }, [config]);
-
-  const weekDoneCount = (weeks[selectedWeek - 1]?.rows ?? []).filter((r) =>
-    r.slots.every((s) => s.result !== undefined)
-  ).length;
-  const weekTotalCount = weeks[selectedWeek - 1]?.rows.length ?? workoutsPerWeek;
 
   // Wake lock: keep screen on during active tracker session (gated by isViewActive)
   useWakeLock(isViewActive && activeTab === 'program' && config !== null);
-
-  const weekRows = weeks[selectedWeek - 1]?.rows ?? [];
 
   const recordAndToast = (workoutIndex: number, slotId: string, value: ResultValue): void => {
     markResult(workoutIndex, slotId, value);
@@ -437,22 +420,10 @@ export function ProgramApp({
     downloadCsv(csv, `${definition.name}-${date}.csv`);
   };
 
-  const jumpToCurrent = (): void => {
-    setSelectedWeek(currentWeekNumber);
-    requestAnimationFrame(() => {
-      requestAnimationFrame(() => {
-        const el = document.querySelector('[data-current-row]');
-        if (el) {
-          el.scrollIntoView({ behavior: 'smooth', block: 'center' });
-          el.classList.add('highlight-current');
-          const handleEnd = (): void => {
-            el.classList.remove('highlight-current');
-            el.removeEventListener('animationend', handleEnd);
-          };
-          el.addEventListener('animationend', handleEnd);
-        }
-      });
-    });
+  const handlePrevDay = (): void => setSelectedDayIndex((i) => Math.max(0, i - 1));
+  const handleNextDay = (): void => setSelectedDayIndex((i) => Math.min(totalWorkouts - 1, i + 1));
+  const handleGoToCurrent = (): void => {
+    if (firstPendingIdx >= 0) setSelectedDayIndex(firstPendingIdx);
   };
 
   // Derive first pending slot for keyboard shortcuts
@@ -482,8 +453,8 @@ export function ProgramApp({
         undoLast();
       }
     },
-    onPrevWeek: () => setSelectedWeek((w) => Math.max(1, w - 1)),
-    onNextWeek: () => setSelectedWeek((w) => Math.min(weeks.length, w + 1)),
+    onPrevDay: handlePrevDay,
+    onNextDay: handleNextDay,
   });
 
   const handleSignOut = async (): Promise<void> => {
@@ -618,25 +589,27 @@ export function ProgramApp({
                   </div>
                 </details>
 
-                <WeekNavigator
-                  selectedWeek={selectedWeek}
-                  totalWeeks={weeks.length}
-                  currentWeekNumber={currentWeekNumber}
-                  weekDoneCount={weekDoneCount}
-                  weekTotalCount={weekTotalCount}
-                  onPrev={() => setSelectedWeek((w) => Math.max(1, w - 1))}
-                  onNext={() => setSelectedWeek((w) => Math.min(weeks.length, w + 1))}
-                  onGoToCurrent={jumpToCurrent}
+                <DayNavigator
+                  selectedDayIndex={selectedDayIndex}
+                  totalDays={totalWorkouts}
+                  currentDayIndex={currentDayIndex}
+                  dayName={selectedWorkout?.dayName ?? ''}
+                  isDayComplete={isDayComplete}
+                  onPrev={handlePrevDay}
+                  onNext={handleNextDay}
+                  onGoToCurrent={handleGoToCurrent}
                 />
 
-                <WeekTable
-                  weekRows={weekRows}
-                  firstPendingIndex={firstPendingIdx}
-                  onMark={handleMarkResult}
-                  onUndo={handleUndoSpecific}
-                  onSetAmrapReps={setAmrapReps}
-                  onSetRpe={setRpe}
-                />
+                {selectedWorkout && (
+                  <DayView
+                    workout={selectedWorkout}
+                    isCurrent={selectedDayIndex === currentDayIndex}
+                    onMark={handleMarkResult}
+                    onUndo={handleUndoSpecific}
+                    onSetAmrapReps={setAmrapReps}
+                    onSetRpe={setRpe}
+                  />
+                )}
               </div>
             )}
 

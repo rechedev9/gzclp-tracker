@@ -1,6 +1,8 @@
 // Pure graduation functions for the MUTENROSHI (Caparazón de Tortuga) program.
 // All functions are side-effect-free with explicit return types.
 
+import { roundToNearest } from './generic-engine';
+
 /** Graduation target for a single lift */
 export interface GraduationTarget {
   readonly exercise: 'squat' | 'bench' | 'deadlift';
@@ -22,17 +24,6 @@ export interface GraduationStatus {
   readonly targets: readonly GraduationTarget[];
   readonly achieved: GraduationState;
   readonly estimatedOneRMs: Readonly<Record<string, number>> | null;
-}
-
-/**
- * Round a weight to the nearest multiple of `rounding`.
- * Returns 0 if the result is not finite or negative.
- */
-function roundToNearest(value: number, rounding: number): number {
-  if (rounding <= 0) return value;
-  const rounded = Math.round(value / rounding) * rounding;
-  if (!Number.isFinite(rounded) || rounded < 0) return 0;
-  return rounded;
 }
 
 /**

@@ -46,14 +46,14 @@ export function programCard(page: Page, name: string) {
 /**
  * Navigates to the tracker view via the dashboard UI.
  * Requires a seeded active program to be present (seedProgram must be called first).
- * Gate: waits for 'Semana' text (WeekNavigator) to confirm tracker is live.
+ * Gate: waits for 'Día' text (DayNavigator) to confirm tracker is live.
  */
 export async function navigateToTracker(page: Page): Promise<void> {
   await page.goto('/app');
   const continueBtn = page.getByRole('button', { name: 'Continuar Entrenamiento' });
   await expect(continueBtn).toBeVisible({ timeout: 10_000 });
   await continueBtn.click();
-  await expect(page.getByText(/^Semana \d+$/)).toBeVisible({ timeout: 10_000 });
+  await expect(page.getByText(/^Día \d+$/)).toBeVisible({ timeout: 10_000 });
 }
 
 /**
