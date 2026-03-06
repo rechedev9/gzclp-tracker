@@ -31,9 +31,7 @@ export function SetIndicators({ sets, result, isAmrap }: SetIndicatorsProps): Re
         return (
           <span key={i} className={`relative w-5 h-5 rounded-full border-2 ${colorClass}`}>
             {showAmrapMark && (
-              <span className="absolute -top-1.5 -right-1.5 text-[9px] font-bold text-accent">
-                +
-              </span>
+              <span className="absolute -top-1.5 -right-1.5 text-2xs font-bold text-accent">+</span>
             )}
           </span>
         );

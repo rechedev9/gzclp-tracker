@@ -34,14 +34,14 @@ export function ProgramCard({
 
   return (
     <div
-      className={`bg-card border border-rule p-5 sm:p-6 flex flex-col gap-3 card card-interactive edge-glow-top ${disabled ? 'opacity-60' : ''}`}
+      className={`bg-card border border-rule p-5 sm:p-6 flex flex-col gap-3 card card-interactive ${disabled ? 'opacity-60' : ''}`}
     >
       {/* Header: name + category badge */}
       <div className="flex items-start justify-between gap-2">
         <h3 className="text-sm sm:text-base font-extrabold text-title leading-tight">
           {definition.name}
         </h3>
-        <span className="shrink-0 text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 border border-rule text-muted">
+        <span className="shrink-0 text-2xs font-bold uppercase tracking-wider px-2 py-0.5 border border-rule text-muted">
           {categoryLabel}
         </span>
       </div>
@@ -51,7 +51,7 @@ export function ProgramCard({
 
       {/* Meta: workouts, frequency, author — hidden for placeholder cards */}
       {!disabled && (
-        <div className="flex flex-wrap gap-x-4 gap-y-1 text-[11px] text-info">
+        <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-info">
           <span>{definition.totalWorkouts} entrenamientos</span>
           {definition.workoutsPerWeek > 0 && <span>{definition.workoutsPerWeek}x / semana</span>}
           {definition.author && <span>Por {definition.author}</span>}

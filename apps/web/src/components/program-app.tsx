@@ -570,18 +570,18 @@ export function ProgramApp({
               <div id="panel-program" role="tabpanel" aria-labelledby="tab-program">
                 {/* Program info */}
                 <details className="group bg-card border border-rule mb-4 sm:mb-8 overflow-hidden">
-                  <summary className="font-mono px-5 py-3.5 font-bold cursor-pointer select-none flex justify-between items-center [&::marker]:hidden list-none text-[11px] tracking-widest uppercase">
+                  <summary className="px-5 py-3.5 font-bold cursor-pointer select-none flex justify-between items-center [&::marker]:hidden list-none text-xs tracking-wide">
                     Acerca de {definition.name}
                     <span className="transition-transform duration-200 group-open:rotate-90">
                       &#9656;
                     </span>
                   </summary>
                   <div className="px-5 pb-5 border-t border-rule-light">
-                    <p className="mt-3 text-[13px] leading-7 text-info">{definition.description}</p>
+                    <p className="mt-3 text-sm leading-7 text-info">{definition.description}</p>
                     {definition.author && (
-                      <p className="mt-2 text-[11px] text-muted">Por {definition.author}</p>
+                      <p className="mt-2 text-xs text-muted">Por {definition.author}</p>
                     )}
-                    <div className="flex flex-wrap gap-x-4 gap-y-1 mt-2 text-[11px] text-muted">
+                    <div className="flex flex-wrap gap-x-4 gap-y-1 mt-2 text-xs text-muted">
                       <span>{totalWorkouts} entrenamientos en total</span>
                       <span>{workoutsPerWeek} por semana</span>
                       <span>Rotación de {definition.days.length} días</span>

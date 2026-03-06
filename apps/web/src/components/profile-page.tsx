@@ -275,7 +275,7 @@ export function ProfilePage({ programId, instanceId, onBack }: ProfilePageProps)
                     initial
                   )}
                   <div className="absolute inset-0 bg-black/0 group-hover:bg-black/30 flex items-center justify-center transition-colors pointer-events-none">
-                    <span className="text-white text-[10px] font-bold uppercase opacity-0 group-hover:opacity-100 transition-opacity">
+                    <span className="text-white text-2xs font-bold uppercase opacity-0 group-hover:opacity-100 transition-opacity">
                       Cambiar
                     </span>
                   </div>
@@ -298,7 +298,7 @@ export function ProfilePage({ programId, instanceId, onBack }: ProfilePageProps)
                       type="button"
                       onClick={() => void handleRemoveAvatar()}
                       disabled={avatarUploading}
-                      className="text-[10px] text-muted underline mt-1 cursor-pointer hover:text-main transition-colors disabled:opacity-50"
+                      className="text-2xs text-muted underline mt-1 cursor-pointer hover:text-main transition-colors disabled:opacity-50"
                     >
                       Quitar foto
                     </button>
@@ -332,13 +332,13 @@ export function ProfilePage({ programId, instanceId, onBack }: ProfilePageProps)
         {profileData && (
           <>
             {/* Training stats header */}
-            <section className="mb-4">
+            <section className="mb-6">
               <h2 className="section-label">Estadísticas de Entrenamiento</h2>
             </section>
 
             {/* Summary stats */}
-            <section className="mb-12">
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+            <section className="mb-16">
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
                 <ProfileStatCard
                   value={String(profileData.completion.workoutsCompleted)}
                   label="Entrenamientos"
@@ -366,9 +366,9 @@ export function ProfilePage({ programId, instanceId, onBack }: ProfilePageProps)
 
             {/* Streak */}
             {(profileData.streak.current > 0 || profileData.streak.longest > 0) && (
-              <section className="mb-10">
+              <section className="mb-16">
                 <h2 className="section-label mb-3">Racha</h2>
-                <div className="grid grid-cols-2 gap-3">
+                <div className="grid grid-cols-2 gap-2">
                   <ProfileStatCard
                     value={String(profileData.streak.current)}
                     label="Racha Actual"
@@ -385,9 +385,9 @@ export function ProfilePage({ programId, instanceId, onBack }: ProfilePageProps)
 
             {/* Monthly Summary */}
             {profileData.monthlyReport && (
-              <section className="mb-10">
+              <section className="mb-16">
                 <h2 className="section-label mb-3">{profileData.monthlyReport.monthLabel}</h2>
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
                   <ProfileStatCard
                     value={String(profileData.monthlyReport.workoutsCompleted)}
                     label="Entrenamientos"
@@ -414,7 +414,7 @@ export function ProfilePage({ programId, instanceId, onBack }: ProfilePageProps)
             {/* Personal Records */}
             <section className="mb-12">
               <h2 className="section-label mb-4">Récords Personales (T1)</h2>
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
                 {profileData.personalRecords.map((pr) => {
                   const delta = pr.weight - pr.startWeight;
                   return (
@@ -440,7 +440,7 @@ export function ProfilePage({ programId, instanceId, onBack }: ProfilePageProps)
             {profileData.oneRMEstimates.length > 0 && (
               <section className="mb-12">
                 <h2 className="section-label mb-4">1RM Estimado (Epley)</h2>
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
                   {profileData.oneRMEstimates.map((e) => (
                     <ProfileStatCard
                       key={e.exercise}
@@ -450,7 +450,7 @@ export function ProfilePage({ programId, instanceId, onBack }: ProfilePageProps)
                     />
                   ))}
                 </div>
-                <p className="text-[10px] text-muted mt-2 text-center">
+                <p className="text-2xs text-muted mt-2 text-center">
                   Estimaci{'\u00F3'}n basada en la f{'\u00F3'}rmula de Epley
                 </p>
               </section>
@@ -469,7 +469,7 @@ export function ProfilePage({ programId, instanceId, onBack }: ProfilePageProps)
 
             {/* Weight Progression Charts */}
             {chartData && (
-              <section className="mb-10">
+              <section className="mb-16">
                 <h2 className="section-label mb-3">Progresión de Peso</h2>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   {primaryExercises.map((ex) => {
@@ -478,10 +478,10 @@ export function ProfilePage({ programId, instanceId, onBack }: ProfilePageProps)
                     const stats = calculateStats(data);
                     const hasMark = stats.total > 0;
                     return (
-                      <div key={ex} className="bg-card border border-rule p-4 card">
+                      <div key={ex} className="bg-card border border-rule p-4">
                         <h3 className="text-sm font-bold text-title mb-1">{names[ex] ?? ex}</h3>
                         {hasMark && (
-                          <p className="text-[11px] text-muted mb-3">
+                          <p className="text-xs text-muted mb-3">
                             {stats.currentWeight} kg
                             {stats.gained > 0 && (
                               <span className="text-ok"> | +{stats.gained} kg</span>
@@ -510,7 +510,7 @@ export function ProfilePage({ programId, instanceId, onBack }: ProfilePageProps)
                 >
                   <div className="min-w-0">
                     <p className="text-sm font-bold text-title truncate">{p.name}</p>
-                    <p className="text-[11px] text-muted mt-0.5">
+                    <p className="text-xs text-muted mt-0.5">
                       Completado el{' '}
                       {new Date(p.updatedAt).toLocaleDateString('es-ES', {
                         day: 'numeric',
@@ -521,19 +521,19 @@ export function ProfilePage({ programId, instanceId, onBack }: ProfilePageProps)
                   </div>
                   <div className="flex items-center gap-2 shrink-0">
                     {p.id !== effectiveInstanceId && (
-                      <button
-                        type="button"
+                      <Button
+                        size="sm"
+                        variant="ghost"
                         onClick={() => {
                           setSelectedInstanceId(p.id);
                           window.scrollTo({ top: 0, behavior: 'smooth' });
                         }}
-                        className="text-[10px] font-bold text-muted hover:text-title transition-colors cursor-pointer border border-rule px-2.5 py-1.5 min-h-[44px] inline-flex items-center hover:border-rule-light"
                       >
                         Ver estad{'\u00ED'}sticas
-                      </button>
+                      </Button>
                     )}
                     <span
-                      className="shrink-0 font-mono text-[9px] tracking-widest uppercase px-2 py-1 text-title"
+                      className="shrink-0 font-mono text-2xs tracking-widest uppercase px-2 py-1 text-title"
                       style={{
                         background: 'rgba(200,168,78,0.08)',
                         border: '1px solid rgba(200,168,78,0.2)',

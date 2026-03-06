@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect, useMemo, type ReactNode } from 'react';
+import { useState, useMemo, type ReactNode } from 'react';
 import {
   extractGenericChartData,
   calculateStats,
@@ -119,10 +119,8 @@ function StatCard({
   readonly total: number;
 }): ReactNode {
   return (
-    <div className="bg-th border border-rule p-4 card edge-glow-top">
-      <h4 className="font-mono text-[11px] font-bold uppercase tracking-widest text-muted mb-2">
-        {name}
-      </h4>
+    <div className="bg-th/50 p-4">
+      <h4 className="font-mono text-xs font-bold text-muted mb-2">{name}</h4>
       <div className="font-display-data text-3xl mb-1 text-title">{currentWeight} kg</div>
       <div className="text-xs text-muted">
         Inicio: {startWeight} kg | {gained >= 0 ? '+' : ''}
@@ -149,21 +147,7 @@ function CollapsibleSection({
   readonly onToggle: () => void;
   readonly children: ReactNode;
 }): ReactNode {
-  const contentRef = useRef<HTMLDivElement>(null);
   const contentId = `section-${sanitizeKey(sectionKey)}-content`;
-  const [contentHeight, setContentHeight] = useState(0);
-
-  useEffect(() => {
-    const el = contentRef.current;
-    if (!el || !isOpen) return;
-
-    const update = (): void => setContentHeight(el.scrollHeight);
-    update();
-
-    const ro = new ResizeObserver(update);
-    ro.observe(el);
-    return (): void => ro.disconnect();
-  }, [isOpen]);
 
   return (
     <div className="bg-card border border-rule overflow-hidden card">
@@ -172,7 +156,7 @@ function CollapsibleSection({
         onClick={onToggle}
         aria-expanded={isOpen}
         aria-controls={contentId}
-        className="w-full font-mono px-5 py-3.5 font-bold cursor-pointer select-none flex justify-between items-center text-[11px] tracking-widest uppercase bg-transparent border-none text-inherit"
+        className="w-full px-5 py-3.5 font-bold cursor-pointer select-none flex justify-between items-center text-xs tracking-wide bg-transparent border-none text-inherit"
       >
         {label}
         <span className="flex items-center gap-3">
@@ -191,11 +175,11 @@ function CollapsibleSection({
       <div
         id={contentId}
         aria-hidden={!isOpen}
-        className="transition-[max-height] duration-300 ease-in-out overflow-hidden"
-        style={{ maxHeight: isOpen ? `${contentHeight || 2000}px` : '0' }}
+        className="grid transition-[grid-template-rows] duration-300 ease-in-out"
+        style={{ gridTemplateRows: isOpen ? '1fr' : '0fr' }}
       >
-        <div ref={contentRef} className="px-5 pb-5 border-t border-rule-light">
-          {children}
+        <div className="overflow-hidden">
+          <div className="px-5 pb-5 border-t border-rule-light">{children}</div>
         </div>
       </div>
     </div>
@@ -294,7 +278,7 @@ function StatsPanel({ definition, rows, resultTimestamps }: StatsPanelProps): Re
             onToggle={() => toggleSection(sectionKey)}
           >
             {/* Summary cards */}
-            <div className="grid grid-cols-[repeat(auto-fit,minmax(200px,1fr))] gap-4 mt-4 mb-4">
+            <div className="grid grid-cols-[repeat(auto-fit,minmax(200px,1fr))] gap-3 mt-4 mb-4">
               {exercisesWithData.map((id) => {
                 const s = calculateStats(chartData[id]);
                 const name = definition.exercises[id].name;
@@ -321,8 +305,8 @@ function StatsPanel({ definition, rows, resultTimestamps }: StatsPanelProps): Re
                   {exercisesWithData.map((id) => {
                     const name = definition.exercises[id].name;
                     return (
-                      <div key={id} className="bg-th border border-rule p-4 card">
-                        <h4 className="font-mono text-[11px] font-bold uppercase tracking-widest text-muted mb-3">
+                      <div key={id} className="bg-th/50 p-4">
+                        <h4 className="font-mono text-xs font-bold text-muted mb-3">
                           {name} — Progresión
                         </h4>
                         <LineChart
@@ -344,9 +328,9 @@ function StatsPanel({ definition, rows, resultTimestamps }: StatsPanelProps): Re
                         <div
                           key={`rpe-${id}`}
                           data-testid={`rpe-chart-${id}`}
-                          className="bg-th border border-rule p-4 card"
+                          className="bg-th/50 p-4"
                         >
-                          <h4 className="font-mono text-[11px] font-bold uppercase tracking-widest text-muted mb-3">
+                          <h4 className="font-mono text-xs font-bold text-muted mb-3">
                             {name} — RPE
                           </h4>
                           <LineChart
@@ -371,9 +355,9 @@ function StatsPanel({ definition, rows, resultTimestamps }: StatsPanelProps): Re
                         <div
                           key={`amrap-${id}`}
                           data-testid={`amrap-chart-${id}`}
-                          className="bg-th border border-rule p-4 card"
+                          className="bg-th/50 p-4"
                         >
-                          <h4 className="font-mono text-[11px] font-bold uppercase tracking-widest text-muted mb-3">
+                          <h4 className="font-mono text-xs font-bold text-muted mb-3">
                             {name} — AMRAP (reps)
                           </h4>
                           <LineChart

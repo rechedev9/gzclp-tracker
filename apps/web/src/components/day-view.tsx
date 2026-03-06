@@ -27,7 +27,7 @@ function renderPrescriptionScheme(slot: GenericSlotRow): ReactNode {
   const workingSet = prescriptions[prescriptions.length - 1];
 
   return (
-    <div className="text-[11px] leading-relaxed">
+    <div className="text-xs leading-relaxed">
       {warmups.map((entry, i) => (
         <Fragment key={i}>
           {i > 0 && <span className="text-muted mx-0.5">{'\u2192'}</span>}
@@ -47,12 +47,12 @@ function renderPrescriptionScheme(slot: GenericSlotRow): ReactNode {
 /** Render standard scheme text: sets x reps with optional range and AMRAP */
 function renderStandardScheme(slot: GenericSlotRow): ReactNode {
   return (
-    <span className="text-[12px] font-semibold text-muted tabular-nums">
+    <span className="text-xs font-semibold text-muted tabular-nums">
       {slot.sets}
       {'\u00d7'}
       {slot.complexReps ?? slot.reps}
       {slot.repsMax !== undefined ? `\u2013${slot.repsMax}` : ''}
-      {slot.isAmrap && <span className="text-[10px] ml-0.5 text-accent">+</span>}
+      {slot.isAmrap && <span className="text-2xs ml-0.5 text-accent">+</span>}
     </span>
   );
 }
@@ -97,38 +97,36 @@ export function DayView({
             {/* Row 1: Tier + Exercise + Stage */}
             <div className="flex items-center gap-2 mb-1">
               <span
-                className={`text-[11px] font-bold uppercase tracking-widest font-mono ${tierColorClass(slot.role)}`}
+                className={`text-xs font-bold uppercase tracking-widest font-mono ${tierColorClass(slot.role)}`}
               >
                 {slot.tier.toUpperCase()}
               </span>
-              <span className="font-bold text-[13px] text-main truncate">{slot.exerciseName}</span>
+              <span className="font-bold text-sm text-main truncate">{slot.exerciseName}</span>
               {showStage && slot.stage > 0 && <StageTag stage={slot.stage} size="sm" />}
               {slot.isDeload && (
-                <span className="text-[10px] font-bold text-muted tracking-wider uppercase font-mono">
+                <span className="text-2xs font-bold text-muted tracking-wider uppercase font-mono">
                   {'\u2193'} Deload
                 </span>
               )}
             </div>
 
             {/* Notes */}
-            {slot.notes !== undefined && (
-              <p className="text-[11px] text-muted mb-1.5">{slot.notes}</p>
-            )}
+            {slot.notes !== undefined && <p className="text-xs text-muted mb-1.5">{slot.notes}</p>}
 
             {/* Row 2: Weight + Scheme */}
             <div className="flex items-baseline gap-3 mb-2.5">
               {/* Weight */}
               {isGpp ? (
-                <span className="text-[13px] font-bold text-muted tabular-nums">{'\u2014'}</span>
+                <span className="text-sm font-bold text-muted tabular-nums">{'\u2014'}</span>
               ) : hasPrescriptions ? (
-                <span className="text-[13px] font-bold text-main tabular-nums">
+                <span className="text-sm font-bold text-main tabular-nums">
                   {`${slot.weight} kg`}
-                  <span className="text-[10px] text-muted ml-1">
+                  <span className="text-2xs text-muted ml-1">
                     {`(${slot.prescriptions[slot.prescriptions.length - 1].percent}%)`}
                   </span>
                 </span>
               ) : (
-                <span className="text-[13px] font-bold text-main tabular-nums">
+                <span className="text-sm font-bold text-main tabular-nums">
                   {slot.weight > 0 ? `${slot.weight} kg` : '\u2014'}
                 </span>
               )}

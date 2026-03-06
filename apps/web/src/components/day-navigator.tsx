@@ -30,7 +30,7 @@ export function DayNavigator({
         onClick={onPrev}
         disabled={selectedDayIndex <= 0}
         aria-label="Día anterior"
-        className="font-mono text-[11px] font-bold tracking-widest uppercase px-4 py-2.5 min-h-[44px] border-2 border-rule bg-card text-muted disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer transition-all duration-150 hover:bg-hover-row hover:text-main hover:border-rule-light active:scale-95"
+        className="text-xs font-bold px-4 py-2.5 min-h-[44px] border-2 border-rule bg-card text-muted disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer transition-all duration-150 hover:bg-hover-row hover:text-main hover:border-rule-light active:scale-95"
       >
         &larr;<span className="hidden sm:inline"> Anterior</span>
       </button>
@@ -43,19 +43,13 @@ export function DayNavigator({
           >
             Día {selectedDayIndex + 1}
           </span>
-          <span
-            className="font-mono text-muted tabular-nums"
-            style={{ fontSize: '12px', letterSpacing: '0.1em' }}
-          >
+          <span className="text-xs font-mono text-muted tabular-nums tracking-wide">
             / {totalDays}
           </span>
         </div>
         <div className="flex items-center gap-3">
           <span className="flex items-center gap-2">
-            <span
-              className="font-mono text-main uppercase"
-              style={{ fontSize: '12px', letterSpacing: '0.1em' }}
-            >
+            <span className="text-xs font-semibold text-main uppercase tracking-wide">
               {dayName}
             </span>
             <span className="text-sm" aria-label={isDayComplete ? 'Completado' : 'Pendiente'}>
@@ -70,7 +64,7 @@ export function DayNavigator({
             <button
               type="button"
               onClick={onGoToCurrent}
-              className="font-mono text-xs font-bold tracking-widest uppercase text-accent hover:underline cursor-pointer bg-transparent border-none min-h-[44px] px-2 inline-flex items-center"
+              className="text-xs font-bold text-accent hover:underline cursor-pointer bg-transparent border-none min-h-[44px] px-2 inline-flex items-center"
             >
               &rarr; Actual
             </button>
@@ -83,7 +77,7 @@ export function DayNavigator({
         onClick={onNext}
         disabled={selectedDayIndex >= totalDays - 1}
         aria-label="Siguiente día"
-        className="font-mono text-[11px] font-bold tracking-widest uppercase px-4 py-2.5 min-h-[44px] border-2 border-rule bg-card text-muted disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer transition-all duration-150 hover:bg-hover-row hover:text-main hover:border-rule-light active:scale-95"
+        className="text-xs font-bold px-4 py-2.5 min-h-[44px] border-2 border-rule bg-card text-muted disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer transition-all duration-150 hover:bg-hover-row hover:text-main hover:border-rule-light active:scale-95"
       >
         <span className="hidden sm:inline">Siguiente </span>&rarr;
       </button>

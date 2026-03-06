@@ -27,25 +27,22 @@ export function ProfileStatCard({
 }: ProfileStatCardProps): React.ReactNode {
   return (
     <div
-      className={`bg-card border border-rule p-4 sm:p-5 card edge-glow-top${accent ? ' border-l-2 border-l-heading' : ''}`}
+      className={`py-3 sm:py-4 border-b border-rule${accent ? ' border-l-2 border-l-heading pl-3' : ''}`}
     >
       <div className="flex items-baseline gap-2">
-        <p
-          className="font-display-data text-4xl sm:text-5xl text-title leading-none"
-          style={{ textShadow: '0 0 20px rgba(240, 192, 64, 0.15)' }}
-        >
+        <p className="font-display-data text-4xl sm:text-5xl text-title leading-none tabular-nums">
           {value}
         </p>
         {badge && (
           <span
-            className={`text-[10px] font-bold px-1.5 py-0.5 border rounded-sm ${BADGE_STYLES[badgeVariant]}`}
+            className={`text-2xs font-bold px-1.5 py-0.5 border rounded-sm ${BADGE_STYLES[badgeVariant]}`}
           >
             {badge}
           </span>
         )}
       </div>
-      <p className="text-xs font-bold text-muted mt-1.5 uppercase tracking-wide">{label}</p>
-      {sublabel && <p className="text-[11px] text-muted mt-0.5 opacity-70">{sublabel}</p>}
+      <p className="text-xs font-semibold text-muted mt-1.5">{label}</p>
+      {sublabel && <p className="text-xs text-muted mt-0.5 opacity-70">{sublabel}</p>}
       {progress && (
         <div
           className="h-1.5 bg-progress-track overflow-hidden mt-2"
