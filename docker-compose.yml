@@ -3,6 +3,8 @@ services:
     build:
       context: .
       dockerfile: Dockerfile.api
+      args:
+        COMMIT_SHA: ${COMMIT_SHA:-unknown}
     container_name: gzclp-api
     restart: unless-stopped
     ports:

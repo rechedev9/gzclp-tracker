@@ -53,6 +53,7 @@ jobs:
             cd ${{ secrets.VPS_PROJECT_PATH }}
             git fetch origin main
             git reset --hard origin/main
+            git clean -fd -e .env.production
             COMMIT_SHA=$(git rev-parse --short HEAD)
             echo "Deploying commit: $COMMIT_SHA"
             docker compose build --build-arg COMMIT_SHA=$COMMIT_SHA
