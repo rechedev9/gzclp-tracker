@@ -5,6 +5,7 @@ COPY apps/web/package.json ./apps/web/
 COPY apps/api/package.json ./apps/api/
 COPY packages/shared/package.json ./packages/shared/
 RUN bun install
+ARG COMMIT_SHA
 COPY . .
 ARG VITE_API_URL
 ARG VITE_GOOGLE_CLIENT_ID
