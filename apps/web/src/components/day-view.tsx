@@ -12,7 +12,7 @@ import { RpeSelect } from './rpe-select';
 import { StageTag } from './stage-tag';
 import { SetIndicators } from './set-indicators';
 
-interface DayViewProps {
+export interface DayViewProps {
   readonly workout: GenericWorkoutRow;
   readonly isCurrent: boolean;
   readonly onMark: (workoutIndex: number, slotId: string, value: ResultValue) => void;
@@ -24,7 +24,9 @@ interface DayViewProps {
     workoutIndex: number,
     slotId: string,
     setIndex: number,
-    reps: number
+    reps: number,
+    weight?: number,
+    rpe?: number
   ) => void;
   /** Get in-progress set logs for a slot (from useSetLogging). */
   readonly getSetLogs?: (

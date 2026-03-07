@@ -11,8 +11,15 @@ import type { ProgramDefinition } from '@gzclp/shared/types/program';
 // ---------------------------------------------------------------------------
 
 export interface UseSetLoggingReturn {
-  /** Log reps for a specific set within a slot. */
-  readonly logSet: (workoutIndex: number, slotId: string, setIndex: number, reps: number) => void;
+  /** Log reps (and optional weight/rpe) for a specific set within a slot. */
+  readonly logSet: (
+    workoutIndex: number,
+    slotId: string,
+    setIndex: number,
+    reps: number,
+    weight?: number,
+    rpe?: number
+  ) => void;
   /** Clear in-progress set logs for a slot (used on undo). */
   readonly clearSetLogs: (workoutIndex: number, slotId: string) => void;
   /** Get current in-progress set logs for a slot. */
@@ -67,7 +74,14 @@ export function useSetLogging(
   markResultRef.current = markResult;
 
   const logSet = useCallback(
-    (workoutIndex: number, slotId: string, setIndex: number, reps: number): void => {
+    (
+      workoutIndex: number,
+      slotId: string,
+      setIndex: number,
+      reps: number,
+      weight?: number,
+      rpe?: number
+    ): void => {
       setLogsMap((prev) => {
         const key = slotKey(workoutIndex, slotId);
         const existing = prev.get(key) ?? [];
@@ -79,7 +93,11 @@ export function useSetLogging(
         }
 
         // Set or overwrite the specific set index
-        updated[setIndex] = { reps };
+        updated[setIndex] = {
+          reps,
+          ...(weight !== undefined && { weight }),
+          ...(rpe !== undefined && { rpe }),
+        };
 
         const next = new Map(prev);
         next.set(key, updated);

@@ -30,7 +30,10 @@ import { ToastContainer } from './toast';
 import { Toolbar } from './toolbar';
 import { DayNavigator } from './day-navigator';
 import { DayView } from './day-view';
+import { DetailedDayView } from './detailed-day-view';
 import { AppSkeleton } from './app-skeleton';
+import { getViewPreference, saveViewPreference } from '@/lib/view-preference';
+import type { ViewMode } from '@/lib/view-preference';
 import { lazyWithRetry } from '@/lib/lazy-with-retry';
 
 const StatsPanel = lazyWithRetry(() => import('./stats-panel'));
@@ -218,6 +221,7 @@ export function ProgramApp({
     : undefined;
 
   const [selectedDayIndex, setSelectedDayIndex] = useState<number>(0);
+  const [viewMode, setViewMode] = useState<ViewMode>(() => getViewPreference());
   const currentDayIndex = firstPendingIdx;
   const selectedWorkout = rows[selectedDayIndex];
   const isDayComplete = selectedWorkout
@@ -235,9 +239,11 @@ export function ProgramApp({
     workoutIndex: number,
     slotId: string,
     setIndex: number,
-    reps: number
+    reps: number,
+    weight?: number,
+    rpe?: number
   ): void => {
-    logSet(workoutIndex, slotId, setIndex, reps);
+    logSet(workoutIndex, slotId, setIndex, reps, weight, rpe);
   };
 
   const recordAndToast = (workoutIndex: number, slotId: string, value: ResultValue): void => {
@@ -449,6 +455,12 @@ export function ProgramApp({
     if (firstPendingIdx >= 0) setSelectedDayIndex(firstPendingIdx);
   };
 
+  const handleToggleView = (): void => {
+    const next: ViewMode = viewMode === 'detailed' ? 'compact' : 'detailed';
+    setViewMode(next);
+    saveViewPreference(next);
+  };
+
   // Derive first pending slot for keyboard shortcuts
   const firstPendingSlot = (() => {
     if (firstPendingIdx < 0) return null;
@@ -623,19 +635,48 @@ export function ProgramApp({
                   onGoToCurrent={handleGoToCurrent}
                 />
 
-                {selectedWorkout && (
-                  <DayView
-                    workout={selectedWorkout}
-                    isCurrent={selectedDayIndex === currentDayIndex}
-                    onMark={handleMarkResult}
-                    onUndo={handleUndoSpecific}
-                    onSetAmrapReps={setAmrapReps}
-                    onSetRpe={setRpe}
-                    onSetTap={handleSetTap}
-                    getSetLogs={getSetLogs}
-                    isSlotLogging={isSlotLogging}
-                  />
-                )}
+                {/* View mode toggle */}
+                <div className="flex justify-end mb-2">
+                  <button
+                    type="button"
+                    onClick={handleToggleView}
+                    aria-label={
+                      viewMode === 'detailed'
+                        ? 'Cambiar a vista compacta'
+                        : 'Cambiar a vista detallada'
+                    }
+                    className="text-2xs font-bold text-muted hover:text-main tracking-wide uppercase cursor-pointer transition-colors"
+                  >
+                    {viewMode === 'detailed' ? 'Vista compacta' : 'Vista detallada'}
+                  </button>
+                </div>
+
+                {selectedWorkout &&
+                  (viewMode === 'detailed' ? (
+                    <DetailedDayView
+                      workout={selectedWorkout}
+                      isCurrent={selectedDayIndex === currentDayIndex}
+                      onMark={handleMarkResult}
+                      onUndo={handleUndoSpecific}
+                      onSetAmrapReps={setAmrapReps}
+                      onSetRpe={setRpe}
+                      onSetTap={handleSetTap}
+                      getSetLogs={getSetLogs}
+                      isSlotLogging={isSlotLogging}
+                    />
+                  ) : (
+                    <DayView
+                      workout={selectedWorkout}
+                      isCurrent={selectedDayIndex === currentDayIndex}
+                      onMark={handleMarkResult}
+                      onUndo={handleUndoSpecific}
+                      onSetAmrapReps={setAmrapReps}
+                      onSetRpe={setRpe}
+                      onSetTap={handleSetTap}
+                      getSetLogs={getSetLogs}
+                      isSlotLogging={isSlotLogging}
+                    />
+                  ))}
               </div>
             )}
 
