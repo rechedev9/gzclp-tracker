@@ -36,27 +36,100 @@ jobs:
           # Required for production Vite build validation.
           VITE_API_URL: ${{ vars.VITE_API_URL || 'https://gravityroom.app' }}
 
-  deploy:
+  build-images:
     needs: validate
+    if: github.event_name == 'push'
+    runs-on: ubuntu-latest
+    outputs:
+      api_image: ${{ steps.meta-api.outputs.image }}
+      web_image: ${{ steps.meta-web.outputs.image }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Compute API image tag
+        id: meta-api
+        run: echo "image=ghcr.io/rechedev9/gravity-room/api:${{ github.sha }}" >> "$GITHUB_OUTPUT"
+
+      - name: Compute web image tag
+        id: meta-web
+        run: echo "image=ghcr.io/rechedev9/gravity-room/web:${{ github.sha }}" >> "$GITHUB_OUTPUT"
+
+      - name: Build and push API image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: Dockerfile.api
+          push: true
+          tags: |
+            ghcr.io/rechedev9/gravity-room/api:${{ github.sha }}
+            ghcr.io/rechedev9/gravity-room/api:latest
+          build-args: |
+            COMMIT_SHA=${{ github.sha }}
+          cache-from: type=gha,scope=api
+          cache-to: type=gha,mode=max,scope=api
+
+      - name: Build and push web image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: apps/web/Dockerfile
+          push: true
+          tags: |
+            ghcr.io/rechedev9/gravity-room/web:${{ github.sha }}
+            ghcr.io/rechedev9/gravity-room/web:latest
+          build-args: |
+            VITE_API_URL=https://gravityroom.app
+            VITE_GOOGLE_CLIENT_ID=563649081217-uh092o7iapi9t4d5a38d1522j8s66981.apps.googleusercontent.com
+            COMMIT_SHA=${{ github.sha }}
+          cache-from: type=gha,scope=web
+          cache-to: type=gha,mode=max,scope=web
+
+  deploy:
+    needs: build-images
     if: github.event_name == 'push'
     runs-on: ubuntu-latest
     steps:
       - name: Deploy to VPS
+        id: deploy
         uses: appleboy/ssh-action@v1
+        env:
+          GHCR_API_IMAGE: ${{ needs.build-images.outputs.api_image }}
+          GHCR_WEB_IMAGE: ${{ needs.build-images.outputs.web_image }}
+          GHCR_TOKEN: ${{ secrets.GHCR_TOKEN }}
         with:
           host: ${{ secrets.VPS_HOST }}
           username: ${{ secrets.VPS_USER }}
           key: ${{ secrets.VPS_SSH_KEY }}
           port: ${{ secrets.VPS_SSH_PORT }}
+          envs: GHCR_API_IMAGE,GHCR_WEB_IMAGE,GHCR_TOKEN
           script: |
             set -euo pipefail
             cd ${{ secrets.VPS_PROJECT_PATH }}
             git fetch origin main
             git reset --hard origin/main
             git clean -fd -e .env.production
-            COMMIT_SHA=$(git rev-parse --short HEAD)
-            echo "Deploying commit: $COMMIT_SHA"
-            docker compose build --build-arg COMMIT_SHA=$COMMIT_SHA
+            COMMIT_SHA=$(git rev-parse HEAD)
+            echo "Deploying commit: ${COMMIT_SHA:0:7}"
+
+            echo "Authenticating to GHCR..."
+            echo "$GHCR_TOKEN" | docker login ghcr.io -u rechedev9 --password-stdin
+
+            echo "Pulling pre-built images..."
+            echo "  API: $GHCR_API_IMAGE"
+            echo "  Web: $GHCR_WEB_IMAGE"
+            export GHCR_API_IMAGE="$GHCR_API_IMAGE"
+            export GHCR_WEB_IMAGE="$GHCR_WEB_IMAGE"
+            docker compose pull api web
             docker compose up -d --remove-orphans
 
             echo "Waiting for containers to start..."
@@ -93,3 +166,33 @@ jobs:
             done
 
             echo "Deploy verified successfully"
+            ./scripts/deploy-log.sh record "$COMMIT_SHA"
+            ./scripts/deploy-log.sh rotate
+
+      - name: Notify via Telegram
+        if: always()
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+          DEPLOY_OUTCOME: ${{ job.status }}
+          COMMIT_SHA: ${{ github.sha }}
+          RUN_ID: ${{ github.run_id }}
+        run: |
+          SHORT_SHA="${COMMIT_SHA:0:7}"
+          TIMESTAMP=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
+          REPO="rechedev9/gravity-room"
+          COMMIT_URL="https://github.com/${REPO}/commit/${COMMIT_SHA}"
+          RUN_URL="https://github.com/${REPO}/actions/runs/${RUN_ID}"
+
+          if [ "$DEPLOY_OUTCOME" = "success" ]; then
+            TEXT=$(printf '<b>Deploy %s OK</b>\n%s\n<a href="%s">View commit</a>' "$SHORT_SHA" "$TIMESTAMP" "$COMMIT_URL")
+          else
+            TEXT=$(printf '<b>Deploy %s FAILED</b>\n%s\n<a href="%s">View logs</a>' "$SHORT_SHA" "$TIMESTAMP" "$RUN_URL")
+          fi
+
+          curl -sf -X POST \
+            "https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage" \
+            --data-urlencode "chat_id=${TELEGRAM_CHAT_ID}" \
+            --data-urlencode "text=${TEXT}" \
+            --data-urlencode "parse_mode=HTML" \
+            || true

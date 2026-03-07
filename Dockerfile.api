@@ -10,5 +10,10 @@ COPY . .
 FROM oven/bun:latest
 WORKDIR /app
 COPY --from=build /app ./
+
+ARG COMMIT_SHA
+LABEL org.opencontainers.image.source="https://github.com/rechedev9/gravity-room"
+LABEL org.opencontainers.image.revision="${COMMIT_SHA}"
+
 EXPOSE 3001
 CMD ["bun", "--cwd", "apps/api", "src/index.ts"]
