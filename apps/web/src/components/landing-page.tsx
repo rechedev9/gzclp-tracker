@@ -529,9 +529,10 @@ export function LandingPage(): React.ReactNode {
               <>
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-px bg-rule">
                   {catalog.slice(0, MAX_LANDING_PROGRAMS).map((program) => (
-                    <div
+                    <Link
                       key={program.id}
-                      className="relative bg-card p-8 landing-card-glow group cursor-default"
+                      to={`/programs/${program.id}`}
+                      className="relative bg-card p-8 landing-card-glow group cursor-pointer no-underline text-inherit"
                     >
                       {/* Category badge */}
                       <div className="flex justify-center mb-5">
@@ -578,7 +579,7 @@ export function LandingPage(): React.ReactNode {
                           </span>
                         ))}
                       </div>
-                    </div>
+                    </Link>
                   ))}
                 </div>
                 {catalog.length > MAX_LANDING_PROGRAMS && (

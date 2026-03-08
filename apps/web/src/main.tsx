@@ -18,6 +18,9 @@ const PrivacyPage = lazyWithRetry(() =>
 const LandingPage = lazyWithRetry(() =>
   import('@/components/landing-page').then((m) => ({ default: m.LandingPage }))
 );
+const ProgramPreviewPage = lazyWithRetry(() =>
+  import('@/components/program-preview-page').then((m) => ({ default: m.ProgramPreviewPage }))
+);
 const NotFound = lazyWithRetry(() =>
   import('@/components/not-found').then((m) => ({ default: m.NotFound }))
 );
@@ -55,6 +58,14 @@ const router = createBrowserRouter([
         element: (
           <Suspense fallback={null}>
             <PrivacyPage />
+          </Suspense>
+        ),
+      },
+      {
+        path: '/programs/:programId',
+        element: (
+          <Suspense fallback={null}>
+            <ProgramPreviewPage />
           </Suspense>
         ),
       },
