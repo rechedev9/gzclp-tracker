@@ -1873,11 +1873,11 @@ describe('ProgramDefinitionSchema', () => {
         },
       },
       {
-        name: 'PPL A/B Hipertrofia',
+        name: 'Furia Oscura',
         def: PPL_AB_DEFINITION_JSONB,
         meta: {
           id: 'ppl-ab',
-          name: 'PPL A/B Hipertrofia',
+          name: 'Furia Oscura',
           description: 'test',
           author: 'test',
           version: 1,

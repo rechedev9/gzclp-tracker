@@ -266,9 +266,9 @@ export const PROGRAM_CATALOG: readonly ProgramMeta[] = [
   },
   {
     id: 'ppl-ab',
-    name: 'PPL A/B Hipertrofia',
+    name: 'Furia Oscura',
     description:
-      'Push/Pull/Legs con alternancia A/B semanal. 3 dias/semana, doble progresion, fallo tecnico.',
+      'Entrena como un Saiyajin: Push/Pull/Legs con alternancia A/B semanal. 3 dias/semana al estilo Sala del Tiempo, doble progresion hasta superar tus limites.',
     author: 'Gravity Room',
     category: 'hypertrophy',
     level: 'intermediate',
