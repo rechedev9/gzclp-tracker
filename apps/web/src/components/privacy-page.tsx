@@ -34,9 +34,9 @@ export function PrivacyPage(): React.ReactNode {
             </h2>
             <p>
               Si creas una cuenta, almacenamos tu dirección de correo electrónico y datos de
-              entrenamiento en una base de datos segura (Railway PostgreSQL). Esto permite
-              sincronización entre dispositivos. La sincronización en la nube es completamente
-              opcional &mdash; la app funciona totalmente sin conexión sin una cuenta.
+              entrenamiento en una base de datos segura (PostgreSQL). Esto permite sincronización
+              entre dispositivos. La sincronización en la nube es completamente opcional &mdash; la
+              app funciona totalmente sin conexión sin una cuenta.
             </p>
           </section>
 

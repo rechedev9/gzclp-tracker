@@ -482,4 +482,9 @@ body {
     animation-duration: 0.01ms !important;
     transition-duration: 0.01ms !important;
   }
+
+  .landing-fade-in {
+    opacity: 1;
+    transform: none;
+  }
 }
