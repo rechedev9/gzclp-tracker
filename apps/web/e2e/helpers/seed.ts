@@ -67,3 +67,31 @@ export async function navigateToGzclpSetup(page: Page): Promise<void> {
   await programCard(page, 'GZCLP').getByRole('button', { name: 'Iniciar Programa' }).click();
   await expect(page.getByText('Pesos Iniciales (kg)')).toBeVisible({ timeout: 10_000 });
 }
+
+/** Enter guest mode from the login page. Waits for catalog to load. */
+export async function enterGuestMode(page: Page): Promise<void> {
+  await page.goto('/login');
+  await page.getByRole('button', { name: 'Probar sin cuenta' }).click();
+  await page.waitForURL('**/app**', { timeout: 10_000 });
+  await expect(page.getByText('Elegir un Programa')).toBeVisible({ timeout: 10_000 });
+}
+
+/** Enter guest mode, start a program by name, and generate with default weights. */
+export async function guestWithProgram(page: Page, name: string): Promise<void> {
+  await enterGuestMode(page);
+  await programCard(page, name).getByRole('button', { name: 'Iniciar Programa' }).click();
+  await expect(page.getByRole('button', { name: 'Generar Programa' })).toBeVisible({
+    timeout: 10_000,
+  });
+  await page.getByRole('button', { name: 'Generar Programa' }).click();
+  await expect(page.getByText(/^Día \d+$/).first()).toBeVisible({ timeout: 10_000 });
+}
+
+/** Dismiss RPE dialog if present — call after marking tiers, before navigating. */
+export async function dismissRpeIfPresent(page: Page): Promise<void> {
+  const rpeBtn = page.getByRole('button', { name: /continuar sin rpe/i });
+  if (await rpeBtn.isVisible({ timeout: 500 }).catch(() => false)) {
+    await rpeBtn.click();
+    await expect(page.getByRole('dialog')).not.toBeVisible({ timeout: 3_000 });
+  }
+}

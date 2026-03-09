@@ -1,31 +1,16 @@
-import { test, expect, type Page } from '@playwright/test';
-import { programCard } from './helpers/seed';
+import { test, expect } from '@playwright/test';
+import { guestWithProgram } from './helpers/seed';
 
 /**
  * Tracker interaction E2E tests — covers the core tracking UX:
  * sequential set confirmation, day navigation, view toggle, and edit weights.
  */
 
-/* ── Helpers ────────────────────────────────────── */
-
-async function guestWithGzclp(page: Page): Promise<void> {
-  await page.goto('/login');
-  await page.getByRole('button', { name: 'Probar sin cuenta' }).click();
-  await page.waitForURL('**/app**', { timeout: 10_000 });
-  await expect(page.getByText('Elegir un Programa')).toBeVisible({ timeout: 10_000 });
-  await programCard(page, 'GZCLP').getByRole('button', { name: 'Iniciar Programa' }).click();
-  await expect(page.getByRole('button', { name: 'Generar Programa' })).toBeVisible({
-    timeout: 10_000,
-  });
-  await page.getByRole('button', { name: 'Generar Programa' }).click();
-  await expect(page.getByText(/^Día \d+$/).first()).toBeVisible({ timeout: 10_000 });
-}
-
 /* ── Sequential Set Confirmation ───────────────── */
 
 test.describe('Sequential set confirmation', () => {
   test.beforeEach(async ({ page }) => {
-    await guestWithGzclp(page);
+    await guestWithProgram(page, 'GZCLP');
   });
 
   test('set 1 is enabled, sets 2-5 are disabled initially', async ({ page }) => {
@@ -44,7 +29,7 @@ test.describe('Sequential set confirmation', () => {
 
 test.describe('Day navigation', () => {
   test.beforeEach(async ({ page }) => {
-    await guestWithGzclp(page);
+    await guestWithProgram(page, 'GZCLP');
   });
 
   test('prev button is disabled on day 1', async ({ page }) => {
@@ -69,7 +54,7 @@ test.describe('Day navigation', () => {
 
 test.describe('View toggle', () => {
   test.beforeEach(async ({ page }) => {
-    await guestWithGzclp(page);
+    await guestWithProgram(page, 'GZCLP');
   });
 
   test('can switch to compact view and back', async ({ page }) => {
@@ -89,7 +74,7 @@ test.describe('View toggle', () => {
 
 test.describe('Edit weights', () => {
   test.beforeEach(async ({ page }) => {
-    await guestWithGzclp(page);
+    await guestWithProgram(page, 'GZCLP');
   });
 
   test('"Editar Pesos" opens modal with "Actualizar Pesos" button', async ({ page }) => {
@@ -106,7 +91,6 @@ test.describe('Edit weights', () => {
       timeout: 5_000,
     });
     await page.getByRole('button', { name: 'Cancelar' }).click();
-    // Back to tracker
     await expect(page.getByText(/^Día \d+$/).first()).toBeVisible({ timeout: 5_000 });
   });
 });
@@ -115,7 +99,7 @@ test.describe('Edit weights', () => {
 
 test.describe('Overflow menu', () => {
   test.beforeEach(async ({ page }) => {
-    await guestWithGzclp(page);
+    await guestWithProgram(page, 'GZCLP');
   });
 
   test('menu opens and shows all actions', async ({ page }) => {

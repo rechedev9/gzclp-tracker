@@ -176,14 +176,13 @@ describe('Dashboard', () => {
       expect(screen.getByText('Nivel 7')).toBeDefined();
     });
 
-    it('should render 3 "Iniciar Programa" buttons that call onStartNewProgram', async () => {
+    it('should render 3 "Iniciar Programa" buttons for catalog entries', async () => {
       mockFetchCatalogList.mockImplementation(() => Promise.resolve(CATALOG_ENTRIES));
-      const onStart = mock(() => {});
 
       const Wrapper = createWrapper();
       render(
         <Wrapper>
-          <Dashboard onStartNewProgram={onStart} onContinueProgram={noopFn} />
+          <Dashboard onStartNewProgram={noopFn} onContinueProgram={noopFn} />
         </Wrapper>
       );
 
