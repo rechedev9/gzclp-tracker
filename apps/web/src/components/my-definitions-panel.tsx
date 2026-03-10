@@ -1,3 +1,4 @@
+import { useEffect } from 'react';
 import { isRecord } from '@gzclp/shared/type-guards';
 import { useDefinitions } from '@/hooks/use-definitions';
 import { Button } from './button';
@@ -25,7 +26,18 @@ export function MyDefinitionsPanel({
   onOpenWizard,
   onStartProgram,
 }: MyDefinitionsPanelProps): React.ReactNode {
-  const { definitions, isLoading, deleteDefinition, isDeleting } = useDefinitions();
+  const {
+    definitions,
+    isLoading,
+    deleteDefinition,
+    isDeleting,
+    deleteError,
+    deleteErrorDefId,
+    clearDeleteError,
+  } = useDefinitions();
+
+  // Clear delete error on unmount
+  useEffect(() => clearDeleteError, [clearDeleteError]);
 
   const handleDelete = (id: string, name: string): void => {
     if (!window.confirm(`¿Eliminar "${name}"? Esta accion no se puede deshacer.`)) return;
@@ -67,41 +79,50 @@ export function MyDefinitionsPanel({
           name = def.definition.name;
         }
 
+        const hasDeleteError = deleteErrorDefId === def.id && deleteError !== null;
+
         return (
-          <div
-            key={def.id}
-            className="bg-card border border-rule p-5 sm:p-6 flex flex-col sm:flex-row sm:items-center gap-3"
-          >
-            <div className="flex-1 min-w-0">
-              <div className="flex items-center gap-2 mb-1">
-                <h4 className="text-sm font-bold text-title truncate">{name}</h4>
-                <span className={`shrink-0 text-2xs font-bold px-2 py-0.5 rounded ${statusColor}`}>
-                  {statusLabel}
-                </span>
+          <div key={def.id} className="bg-card border border-rule p-5 sm:p-6 flex flex-col gap-3">
+            <div className="flex flex-col sm:flex-row sm:items-center gap-3">
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-2 mb-1">
+                  <h4 className="text-sm font-bold text-title truncate">{name}</h4>
+                  <span
+                    className={`shrink-0 text-2xs font-bold px-2 py-0.5 rounded ${statusColor}`}
+                  >
+                    {statusLabel}
+                  </span>
+                </div>
+                <p className="text-2xs text-muted">
+                  Actualizado: {new Date(def.updatedAt).toLocaleDateString('es-ES')}
+                </p>
               </div>
-              <p className="text-2xs text-muted">
-                Actualizado: {new Date(def.updatedAt).toLocaleDateString('es-ES')}
-              </p>
+
+              <div className="flex gap-2 flex-wrap">
+                <Button size="sm" variant="ghost" onClick={() => onOpenWizard(def.id)}>
+                  Editar
+                </Button>
+                {def.status === 'draft' && (
+                  <Button size="sm" variant="primary" onClick={() => onStartProgram(def.id)}>
+                    Empezar
+                  </Button>
+                )}
+                <Button
+                  size="sm"
+                  variant="danger"
+                  onClick={() => handleDelete(def.id, name)}
+                  disabled={isDeleting}
+                >
+                  Eliminar
+                </Button>
+              </div>
             </div>
 
-            <div className="flex gap-2 flex-wrap">
-              <Button size="sm" variant="ghost" onClick={() => onOpenWizard(def.id)}>
-                Editar
-              </Button>
-              {def.status === 'draft' && (
-                <Button size="sm" variant="primary" onClick={() => onStartProgram(def.id)}>
-                  Empezar
-                </Button>
-              )}
-              <Button
-                size="sm"
-                variant="danger"
-                onClick={() => handleDelete(def.id, name)}
-                disabled={isDeleting}
-              >
-                Eliminar
-              </Button>
-            </div>
+            {hasDeleteError && (
+              <p className="text-xs text-red-400" role="alert">
+                {deleteError}
+              </p>
+            )}
           </div>
         );
       })}

@@ -20,5 +20,7 @@ export const queryKeys = {
     ): readonly ['catalog', 'exercises', ...(Record<string, unknown> | undefined)[]] =>
       filter ? (['catalog', 'exercises', filter] as const) : (['catalog', 'exercises'] as const),
     muscleGroups: (): readonly ['catalog', 'muscleGroups'] => ['catalog', 'muscleGroups'] as const,
+    preview: (definitionId: string): readonly ['catalog', 'preview', string] =>
+      ['catalog', 'preview', definitionId] as const,
   },
 } as const;

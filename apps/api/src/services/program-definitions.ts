@@ -4,7 +4,7 @@
  */
 import { eq, and, isNull, desc, count } from 'drizzle-orm';
 import { getDb } from '../db';
-import { programDefinitions, programTemplates } from '../db/schema';
+import { programDefinitions, programTemplates, programInstances } from '../db/schema';
 import { ProgramDefinitionSchema } from '@gzclp/shared/schemas/program-definition';
 import { ApiError } from '../middleware/error-handler';
 import { logger } from '../lib/logger';
@@ -43,6 +43,8 @@ function err<E>(error: E): Err<E> {
 type ProgramDefinitionRow = typeof programDefinitions.$inferSelect;
 
 type DefinitionStatus = 'draft' | 'pending_review' | 'approved' | 'rejected';
+
+export type DeleteError = 'NOT_FOUND' | 'ACTIVE_INSTANCES_EXIST';
 
 export type ForkError =
   | 'SOURCE_NOT_FOUND'
@@ -277,8 +279,23 @@ export async function update(
   return toResponse(updated);
 }
 
-export async function softDelete(userId: string, id: string): Promise<boolean> {
+export async function softDelete(
+  userId: string,
+  id: string
+): Promise<Result<boolean, DeleteError>> {
   const db = getDb();
+
+  // Guard: check for active program instances referencing this definition
+  const [activeCountResult] = await db
+    .select({ value: count() })
+    .from(programInstances)
+    .where(and(eq(programInstances.definitionId, id), eq(programInstances.status, 'active')));
+
+  const activeCount = activeCountResult?.value ?? 0;
+  if (activeCount > 0) {
+    return err('ACTIVE_INSTANCES_EXIST');
+  }
+
   const deleted = await db
     .update(programDefinitions)
     .set({
@@ -293,7 +310,7 @@ export async function softDelete(userId: string, id: string): Promise<boolean> {
     )
     .returning({ id: programDefinitions.id });
 
-  return deleted.length > 0;
+  return ok(deleted.length > 0);
 }
 
 export async function updateStatus(

@@ -6,7 +6,9 @@ import { eq, and, asc, inArray, sql } from 'drizzle-orm';
 import { getDb } from '../db';
 import { programTemplates, programInstances, exercises } from '../db/schema';
 import { hydrateProgramDefinition } from '../lib/hydrate-program';
+import { computeGenericProgram } from '@gzclp/shared/generic-engine';
 import type { ProgramDefinition } from '@gzclp/shared/types/program';
+import type { GenericWorkoutRow } from '@gzclp/shared/types';
 import { PROGRAM_LEVELS } from '@gzclp/shared/catalog';
 import type { ProgramLevel } from '@gzclp/shared/catalog';
 import { isRecord } from '@gzclp/shared/type-guards';
@@ -18,6 +20,7 @@ import {
 } from '../lib/catalog-cache';
 import { SingleflightMap } from '../lib/singleflight';
 import { logger } from '../lib/logger';
+import { ApiError } from '../middleware/error-handler';
 
 // Singleflight instances — one per return type for type safety
 const listFlight = new SingleflightMap<readonly CatalogEntry[]>();
@@ -207,6 +210,40 @@ export async function getProgramDefinition(programId: string): Promise<GetProgra
 
     return { status: 'found' as const, definition: result.value };
   });
+}
+
+// ---------------------------------------------------------------------------
+// Preview
+// ---------------------------------------------------------------------------
+
+const MAX_PREVIEW_ROWS = 10;
+
+/**
+ * Dry-run a program definition and return the first cycle of workout rows.
+ * Pure computation — no DB access, no side effects.
+ */
+export function previewDefinition(
+  definition: ProgramDefinition,
+  config?: Record<string, number | string>
+): readonly GenericWorkoutRow[] {
+  // Build config: use provided values or default to 0 for each weight field
+  const resolvedConfig: Record<string, number | string> = {};
+  for (const field of definition.configFields) {
+    if (field.type === 'weight') {
+      resolvedConfig[field.key] = config?.[field.key] ?? 0;
+    } else if (field.type === 'select') {
+      resolvedConfig[field.key] = config?.[field.key] ?? field.options[0].value;
+    }
+  }
+
+  try {
+    const allRows = computeGenericProgram(definition, resolvedConfig, {});
+    return allRows.slice(0, MAX_PREVIEW_ROWS);
+  } catch (e: unknown) {
+    const message = e instanceof Error ? e.message : 'Unknown engine error';
+    logger.error({ event: 'catalog.preview.engine_error', error: e }, 'preview engine error');
+    throw new ApiError(500, `Preview computation failed: ${message}`, 'INTERNAL_ERROR');
+  }
 }
 
 // ---------------------------------------------------------------------------

@@ -204,8 +204,15 @@ export const programDefinitionRoutes = new Elysia({ prefix: '/program-definition
         windowMs: HOUR_MS,
         maxRequests: 20,
       });
-      const deleted = await softDelete(userId, params.id);
-      if (!deleted) {
+      const result = await softDelete(userId, params.id);
+      if (!result.ok) {
+        throw new ApiError(
+          409,
+          'Cannot delete definition with active program instances',
+          'ACTIVE_INSTANCES_EXIST'
+        );
+      }
+      if (!result.value) {
         throw new ApiError(404, 'Program definition not found', 'NOT_FOUND');
       }
       set.status = 204;
@@ -221,6 +228,7 @@ export const programDefinitionRoutes = new Elysia({ prefix: '/program-definition
           204: { description: 'Deleted successfully' },
           401: { description: 'Missing or invalid token' },
           404: { description: 'Not found or not owned by user' },
+          409: { description: 'Definition has active program instances' },
         },
       },
     }

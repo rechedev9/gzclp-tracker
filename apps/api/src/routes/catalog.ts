@@ -1,13 +1,79 @@
 /**
  * Catalog routes — public endpoints serving program definitions from the database.
- * No auth required — these are read-only reference data.
+ * Public GET routes require no auth. POST /preview requires auth.
  */
 import { Elysia, t } from 'elysia';
-import { listPrograms, getProgramDefinition } from '../services/catalog';
+import { listPrograms, getProgramDefinition, previewDefinition } from '../services/catalog';
+import { jwtPlugin, resolveUserId } from '../middleware/auth-guard';
+import { requestLogger } from '../middleware/request-logger';
 import { rateLimit } from '../middleware/rate-limit';
+import { ProgramDefinitionSchema } from '@gzclp/shared/schemas/program-definition';
 import { ApiError } from '../middleware/error-handler';
+import { isRecord } from '@gzclp/shared/type-guards';
+
+const HOUR_MS = 3_600_000;
+const security = [{ bearerAuth: [] }];
+
+function parseMixedConfig(raw: unknown): Record<string, number | string> | undefined {
+  if (!isRecord(raw)) return undefined;
+  const out: Record<string, number | string> = {};
+  for (const [k, v] of Object.entries(raw)) {
+    if (typeof v === 'number') out[k] = v;
+    else if (typeof v === 'string') out[k] = v;
+  }
+  return out;
+}
 
 export const catalogRoutes = new Elysia({ prefix: '/catalog' })
+
+  // --- Auth-protected preview route ---
+  .group('/preview', (app) =>
+    app
+      .use(requestLogger)
+      .use(jwtPlugin)
+      .resolve(resolveUserId)
+      .post(
+        '/',
+        async ({ userId, body }) => {
+          await rateLimit(userId, 'POST /catalog/preview', {
+            windowMs: HOUR_MS,
+            maxRequests: 30,
+          });
+          const parseResult = ProgramDefinitionSchema.safeParse(body.definition);
+          if (!parseResult.success) {
+            throw new ApiError(
+              422,
+              `Invalid program definition: ${parseResult.error.message}`,
+              'VALIDATION_ERROR'
+            );
+          }
+          const config = parseMixedConfig(body.config);
+          const rows = previewDefinition(parseResult.data, config);
+          return rows;
+        },
+        {
+          body: t.Object({
+            definition: t.Any(),
+            config: t.Optional(t.Any()),
+          }),
+          detail: {
+            tags: ['Catalog'],
+            summary: 'Preview program definition',
+            description:
+              'Dry-runs a program definition and returns the first 10 workout rows. Requires authentication.',
+            security,
+            responses: {
+              200: { description: 'Array of GenericWorkoutRow (max 10)' },
+              401: { description: 'Missing or invalid token' },
+              422: { description: 'Invalid definition payload' },
+              429: { description: 'Rate limited' },
+            },
+          },
+        }
+      )
+  )
+
+  // --- Public routes (no auth) ---
 
   // GET /catalog — list all available program definitions
   .get(

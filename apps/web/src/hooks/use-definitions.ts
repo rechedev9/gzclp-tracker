@@ -1,3 +1,4 @@
+import { useState, useCallback } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { queryKeys } from '@/lib/query-keys';
 import {
@@ -6,6 +7,9 @@ import {
   deleteDefinition,
   type ProgramDefinitionResponse,
 } from '@/lib/api-functions';
+
+const DELETE_409_MESSAGE =
+  'No se puede eliminar — hay un programa activo basado en esta definición. Completa o elimina el programa primero.';
 
 export interface UseDefinitionsReturn {
   readonly definitions: readonly ProgramDefinitionResponse[];
@@ -18,10 +22,21 @@ export interface UseDefinitionsReturn {
   readonly isForking: boolean;
   readonly deleteDefinition: (id: string) => void;
   readonly isDeleting: boolean;
+  readonly deleteError: string | null;
+  readonly deleteErrorDefId: string | null;
+  readonly clearDeleteError: () => void;
 }
 
 export function useDefinitions(): UseDefinitionsReturn {
   const queryClient = useQueryClient();
+  const [deleteErrorState, setDeleteErrorState] = useState<{
+    readonly defId: string;
+    readonly message: string;
+  } | null>(null);
+
+  const clearDeleteError = useCallback((): void => {
+    setDeleteErrorState(null);
+  }, []);
 
   const listQuery = useQuery({
     queryKey: queryKeys.definitions.list(),
@@ -47,7 +62,15 @@ export function useDefinitions(): UseDefinitionsReturn {
 
   const deleteMutation = useMutation({
     mutationFn: async (id: string) => deleteDefinition(id),
-    onSettled: () => {
+    onSuccess: () => {
+      setDeleteErrorState(null);
+      void queryClient.invalidateQueries({ queryKey: queryKeys.definitions.all });
+    },
+    onError: (error: unknown, defId: string) => {
+      const message = error instanceof Error ? error.message : '';
+      if (message.includes('ACTIVE_INSTANCES_EXIST')) {
+        setDeleteErrorState({ defId, message: DELETE_409_MESSAGE });
+      }
       void queryClient.invalidateQueries({ queryKey: queryKeys.definitions.all });
     },
   });
@@ -75,5 +98,8 @@ export function useDefinitions(): UseDefinitionsReturn {
     isForking: forkMutation.isPending,
     deleteDefinition: deleteCb,
     isDeleting: deleteMutation.isPending,
+    deleteError: deleteErrorState?.message ?? null,
+    deleteErrorDefId: deleteErrorState?.defId ?? null,
+    clearDeleteError,
   };
 }

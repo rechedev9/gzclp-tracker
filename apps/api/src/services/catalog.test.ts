@@ -360,3 +360,112 @@ describe('getProgramDefinition', () => {
     expect(result).toEqual({ status: 'found', definition: cachedDef });
   });
 });
+
+// ---------------------------------------------------------------------------
+// previewDefinition — unit tests (REQ-PREV-002, REQ-PREV-003, REQ-PREV-004, REQ-PREV-006)
+// ---------------------------------------------------------------------------
+
+const { previewDefinition } = await import('./catalog');
+
+// Minimal valid ProgramDefinition fixture for preview tests
+const PREVIEW_DEFINITION: import('@gzclp/shared/types/program').ProgramDefinition = {
+  id: 'preview-test',
+  name: 'Preview Test Program',
+  description: 'Minimal program for preview tests',
+  author: 'Test',
+  version: 1,
+  category: 'strength',
+  source: 'custom',
+  cycleLength: 2,
+  totalWorkouts: 10,
+  workoutsPerWeek: 3,
+  exercises: {
+    squat: { name: 'Sentadilla' },
+  },
+  configFields: [{ key: 'squat', label: 'Sentadilla', type: 'weight' as const, min: 0, step: 2.5 }],
+  weightIncrements: { squat: 5 },
+  days: [
+    {
+      name: 'Day 1',
+      slots: [
+        {
+          id: 'd1-t1',
+          exerciseId: 'squat',
+          tier: 't1',
+          stages: [{ sets: 5, reps: 3 }],
+          onSuccess: { type: 'add_weight' },
+          onMidStageFail: { type: 'advance_stage' },
+          onFinalStageFail: { type: 'deload_percent', percent: 10 },
+          startWeightKey: 'squat',
+        },
+      ],
+    },
+    {
+      name: 'Day 2',
+      slots: [
+        {
+          id: 'd2-t1',
+          exerciseId: 'squat',
+          tier: 't1',
+          stages: [{ sets: 5, reps: 3 }],
+          onSuccess: { type: 'add_weight' },
+          onMidStageFail: { type: 'advance_stage' },
+          onFinalStageFail: { type: 'deload_percent', percent: 10 },
+          startWeightKey: 'squat',
+        },
+      ],
+    },
+  ],
+};
+
+// Small program fixture with fewer than 10 total workouts
+const SMALL_DEFINITION: import('@gzclp/shared/types/program').ProgramDefinition = {
+  ...PREVIEW_DEFINITION,
+  id: 'small-preview',
+  totalWorkouts: 4,
+  cycleLength: 2,
+};
+
+describe('previewDefinition', () => {
+  it('returns array with length <= 10 for a definition with many workouts', () => {
+    const rows = previewDefinition(PREVIEW_DEFINITION);
+
+    expect(rows.length).toBeLessThanOrEqual(10);
+    expect(rows.length).toBeGreaterThan(0);
+  });
+
+  it('returns all rows when definition has fewer than 10 total workouts', () => {
+    const rows = previewDefinition(SMALL_DEFINITION);
+
+    expect(rows.length).toBeLessThanOrEqual(4);
+    expect(rows.length).toBeGreaterThan(0);
+  });
+
+  it('uses all-zero weights when config is omitted', () => {
+    const rows = previewDefinition(PREVIEW_DEFINITION);
+
+    // With zero start weight, the first row's first slot weight should be 0
+    expect(rows[0]?.slots[0]?.weight).toBe(0);
+  });
+
+  it('uses provided config weights for matching keys', () => {
+    const rows = previewDefinition(PREVIEW_DEFINITION, { squat: 80 });
+
+    // With start weight 80, the first row's first slot weight should be 80
+    expect(rows[0]?.slots[0]?.weight).toBe(80);
+  });
+
+  it('ignores unknown config keys without error', () => {
+    const rows = previewDefinition(PREVIEW_DEFINITION, { unknownKey: 100, squat: 60 });
+
+    expect(rows.length).toBeGreaterThan(0);
+    expect(rows[0]?.slots[0]?.weight).toBe(60);
+  });
+
+  it('returns deterministic output on repeated calls with same input', () => {
+    const rows1 = previewDefinition(PREVIEW_DEFINITION, { squat: 50 });
+    const rows2 = previewDefinition(PREVIEW_DEFINITION, { squat: 50 });
+
+    expect(rows1).toEqual(rows2);
+  });
+});

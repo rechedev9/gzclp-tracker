@@ -520,28 +520,46 @@ describe('update', () => {
 // ---------------------------------------------------------------------------
 
 describe('softDelete', () => {
-  it('returns true when soft-deleting owned definition', async () => {
+  it('returns ok(true) when soft-deleting owned definition with no active instances', async () => {
+    // First select: active instance count = 0
+    selectResults[0] = [{ value: 0 }];
+    // Update: soft-delete succeeds (returning id)
     mockQueryResult = [{ id: 'def-uuid-001' }];
 
     const result = await softDelete('user-uuid-001', 'def-uuid-001');
 
-    expect(result).toBe(true);
+    expect(result).toEqual({ ok: true, value: true });
   });
 
-  it('returns false for wrong owner', async () => {
+  it('returns ok(false) for wrong owner (no matching row updated)', async () => {
+    // First select: active instance count = 0
+    selectResults[0] = [{ value: 0 }];
+    // Update: no rows affected
     mockQueryResult = [];
 
     const result = await softDelete('user-uuid-002', 'def-uuid-001');
 
-    expect(result).toBe(false);
+    expect(result).toEqual({ ok: true, value: false });
   });
 
-  it('returns false for already-deleted definition', async () => {
+  it('returns ok(false) for already-deleted definition', async () => {
+    // First select: active instance count = 0
+    selectResults[0] = [{ value: 0 }];
+    // Update: no rows affected
     mockQueryResult = [];
 
     const result = await softDelete('user-uuid-001', 'def-uuid-002');
 
-    expect(result).toBe(false);
+    expect(result).toEqual({ ok: true, value: false });
+  });
+
+  it('returns err(ACTIVE_INSTANCES_EXIST) when active instances exist', async () => {
+    // First select: active instance count = 1
+    selectResults[0] = [{ value: 1 }];
+
+    const result = await softDelete('user-uuid-001', 'def-uuid-001');
+
+    expect(result).toEqual({ ok: false, error: 'ACTIVE_INSTANCES_EXIST' });
   });
 });
 

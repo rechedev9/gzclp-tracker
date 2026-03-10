@@ -1,47 +1,87 @@
-import { useState } from 'react';
+import { useState, useCallback, useMemo } from 'react';
+import { ProgramDefinitionSchema } from '@gzclp/shared/schemas/program-definition';
 import type { ProgramDefinition } from '@gzclp/shared/types/program';
+import { previewDefinition } from '@/lib/api-functions';
 import { Button } from '@/components/button';
 import { PROGRESSION_TEMPLATES } from './progression-templates';
-import type { WizardStepProps } from './types';
+import { SlotCard } from './slot-card';
+import { PreviewTable } from './preview-table';
+import type { WizardStepProps, SlotEditorState, PreviewState } from './types';
 
-const MIN_SETS = 1;
-const MAX_SETS = 20;
-const MIN_REPS = 1;
-const MAX_REPS = 100;
+// ---------------------------------------------------------------------------
+// Constants
+// ---------------------------------------------------------------------------
 
-interface SlotConfig {
-  readonly dayIndex: number;
-  readonly slotIndex: number;
-  readonly exerciseName: string;
-  readonly sets: number;
-  readonly reps: number;
-  readonly templateId: string;
-}
+/** Number of workout cycles that make up one full program. */
+const PROGRAM_CYCLE_COUNT = 15;
 
-function buildInitialSlots(definition: ProgramDefinition): readonly SlotConfig[] {
-  const configs: SlotConfig[] = [];
+// ---------------------------------------------------------------------------
+// Helpers
+// ---------------------------------------------------------------------------
+
+function buildInitialSlots(definition: ProgramDefinition): readonly SlotEditorState[] {
+  const slots: SlotEditorState[] = [];
   for (let di = 0; di < definition.days.length; di++) {
     const day = definition.days[di];
     for (let si = 0; si < day.slots.length; si++) {
       const slot = day.slots[si];
       const name = definition.exercises[slot.exerciseId]?.name ?? slot.exerciseId;
-      const stage = slot.stages[0];
-      // Try to match an existing progression template
       const matchedTemplate = PROGRESSION_TEMPLATES.find(
         (t) => t.onSuccess.type === slot.onSuccess.type
       );
-      configs.push({
+      slots.push({
         dayIndex: di,
         slotIndex: si,
+        slotId: slot.id,
         exerciseName: name,
-        sets: stage?.sets ?? 3,
-        reps: stage?.reps ?? 10,
+        stages: slot.stages,
+        onSuccess: slot.onSuccess,
+        onMidStageFail: slot.onMidStageFail,
+        onFinalStageFail: slot.onFinalStageFail,
+        onFinalStageSuccess: slot.onFinalStageSuccess,
+        onUndefined: slot.onUndefined,
+        showAdvanced: false,
         templateId: matchedTemplate?.id ?? 'linear',
       });
     }
   }
-  return configs;
+  return slots;
 }
+
+function applySlotsToDef(
+  definition: ProgramDefinition,
+  slots: readonly SlotEditorState[]
+): Partial<ProgramDefinition> {
+  const updatedDays: ProgramDefinition['days'] = definition.days.map((day, di) => ({
+    name: day.name,
+    slots: day.slots.map((origSlot, si) => {
+      const state = slots.find((s) => s.dayIndex === di && s.slotIndex === si);
+      if (!state) return origSlot;
+      return {
+        ...origSlot,
+        stages: [...state.stages],
+        onSuccess: state.onSuccess,
+        onMidStageFail: state.onMidStageFail,
+        onFinalStageFail: state.onFinalStageFail,
+        ...(state.onFinalStageSuccess ? { onFinalStageSuccess: state.onFinalStageSuccess } : {}),
+        ...(state.onUndefined ? { onUndefined: state.onUndefined } : {}),
+      };
+    }),
+  }));
+
+  const cycleLength = updatedDays.length;
+  const totalWorkouts = cycleLength * PROGRAM_CYCLE_COUNT;
+
+  return {
+    days: updatedDays,
+    totalWorkouts,
+    workoutsPerWeek: Math.min(cycleLength, 6),
+  };
+}
+
+// ---------------------------------------------------------------------------
+// Component
+// ---------------------------------------------------------------------------
 
 interface ProgressionStepExtraProps extends WizardStepProps {
   readonly onSaveAndStart: () => void;
@@ -58,72 +98,45 @@ export function ProgressionStep({
   isSaving,
 }: ProgressionStepExtraProps): React.ReactNode {
   const [slots, setSlots] = useState(() => buildInitialSlots(definition));
-  const [error, setError] = useState<string | null>(null);
+  const [previewState, setPreviewState] = useState<PreviewState>({ status: 'idle' });
+  const [validationError, setValidationError] = useState<string | null>(null);
 
-  const updateSlot = (
-    dayIndex: number,
-    slotIndex: number,
-    field: 'sets' | 'reps' | 'templateId',
-    value: string | number
-  ): void => {
+  const handleSlotChange = useCallback((updated: SlotEditorState): void => {
     setSlots((prev) =>
       prev.map((s) =>
-        s.dayIndex === dayIndex && s.slotIndex === slotIndex ? { ...s, [field]: value } : s
+        s.dayIndex === updated.dayIndex && s.slotIndex === updated.slotIndex ? updated : s
       )
     );
-  };
+    // Clear stale preview when slots change
+    setPreviewState((prev) => (prev.status === 'loaded' ? { status: 'idle' } : prev));
+  }, []);
 
-  const validate = (): boolean => {
-    for (const slot of slots) {
-      if (slot.sets < MIN_SETS || slot.sets > MAX_SETS) {
-        setError(`${slot.exerciseName}: las series deben ser entre ${MIN_SETS} y ${MAX_SETS}`);
-        return false;
-      }
-      if (slot.reps < MIN_REPS || slot.reps > MAX_REPS) {
-        setError(
-          `${slot.exerciseName}: las repeticiones deben ser entre ${MIN_REPS} y ${MAX_REPS}`
-        );
-        return false;
-      }
+  const buildCurrentDef = useCallback((): ProgramDefinition => {
+    const partial = applySlotsToDef(definition, slots);
+    return { ...definition, ...partial };
+  }, [definition, slots]);
+
+  const handlePreview = async (): Promise<void> => {
+    setPreviewState({ status: 'loading' });
+    try {
+      const currentDef = buildCurrentDef();
+      const rows = await previewDefinition(currentDef);
+      setPreviewState({ status: 'loaded', rows });
+    } catch {
+      setPreviewState({ status: 'error', message: 'Error al generar la vista previa' });
     }
-    setError(null);
-    return true;
   };
 
-  const applyAndSave = (startAfter: boolean): void => {
-    if (!validate()) return;
+  const validateAndSave = (startAfter: boolean): void => {
+    const currentDef = buildCurrentDef();
+    const result = ProgramDefinitionSchema.safeParse(currentDef);
+    if (!result.success) {
+      setValidationError(result.error.message);
+      return;
+    }
+    setValidationError(null);
 
-    // Build updated days with progression rules
-    const updatedDays: ProgramDefinition['days'] = definition.days.map((day, di) => ({
-      name: day.name,
-      slots: day.slots.map((origSlot, si) => {
-        const config = slots.find((s) => s.dayIndex === di && s.slotIndex === si);
-        if (!config) return origSlot;
-        const template = PROGRESSION_TEMPLATES.find((t) => t.id === config.templateId);
-        if (!template) return origSlot;
-        return {
-          ...origSlot,
-          stages: template.defaultStages.map((stage) => ({
-            ...stage,
-            sets: config.sets,
-            reps: config.reps,
-          })),
-          onSuccess: template.onSuccess,
-          onMidStageFail: template.onMidStageFail,
-          onFinalStageFail: template.onFinalStageFail,
-        };
-      }),
-    }));
-
-    // Compute totalWorkouts based on cycle length and a default of 90 / cycleLength rounded
-    const cycleLength = updatedDays.length;
-    const totalWorkouts = cycleLength * 15; // Sensible default: 15 cycles
-
-    onUpdate({
-      days: updatedDays,
-      totalWorkouts,
-      workoutsPerWeek: Math.min(cycleLength, 6),
-    });
+    onUpdate(applySlotsToDef(definition, slots));
 
     if (startAfter) {
       onSaveAndStart();
@@ -132,13 +145,21 @@ export function ProgressionStep({
     }
   };
 
-  // Group slots by day for display
-  const groupedByDay = new Map<number, SlotConfig[]>();
+  // Memoised validation — avoids re-running applySlotsToDef + safeParse on every render
+  const isValid = useMemo(
+    () => ProgramDefinitionSchema.safeParse(buildCurrentDef()).success,
+    [buildCurrentDef]
+  );
+
+  // Group slots by day
+  const groupedByDay = new Map<number, SlotEditorState[]>();
   for (const slot of slots) {
     const list = groupedByDay.get(slot.dayIndex) ?? [];
     list.push(slot);
     groupedByDay.set(slot.dayIndex, list);
   }
+
+  const isPreviewLoading = previewState.status === 'loading';
 
   return (
     <div className="space-y-4">
@@ -148,74 +169,62 @@ export function ProgressionStep({
           <div key={dayIndex}>
             <h4 className="text-xs font-bold text-zinc-400 mb-2">{dayName}</h4>
             <div className="space-y-3">
-              {daySlots.map((slot) => (
-                <div
+              {daySlots.map((slot, slotIdx) => (
+                <SlotCard
                   key={`${slot.dayIndex}-${slot.slotIndex}`}
-                  className="bg-zinc-800/50 border border-zinc-700/50 rounded-xl p-4"
-                >
-                  <p className="text-sm font-medium text-zinc-200 mb-3">{slot.exerciseName}</p>
-                  <div className="grid grid-cols-3 gap-3">
-                    <div>
-                      <label className="block text-2xs text-zinc-500 mb-1">Series</label>
-                      <input
-                        type="number"
-                        min={MIN_SETS}
-                        max={MAX_SETS}
-                        value={slot.sets}
-                        onChange={(e) =>
-                          updateSlot(slot.dayIndex, slot.slotIndex, 'sets', Number(e.target.value))
-                        }
-                        className="w-full bg-zinc-900 border border-zinc-700 rounded-lg px-2 py-1.5 text-sm text-zinc-100 focus:border-amber-500 focus:outline-none transition-colors text-center"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-2xs text-zinc-500 mb-1">Reps</label>
-                      <input
-                        type="number"
-                        min={MIN_REPS}
-                        max={MAX_REPS}
-                        value={slot.reps}
-                        onChange={(e) =>
-                          updateSlot(slot.dayIndex, slot.slotIndex, 'reps', Number(e.target.value))
-                        }
-                        className="w-full bg-zinc-900 border border-zinc-700 rounded-lg px-2 py-1.5 text-sm text-zinc-100 focus:border-amber-500 focus:outline-none transition-colors text-center"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-2xs text-zinc-500 mb-1">Progresion</label>
-                      <select
-                        value={slot.templateId}
-                        onChange={(e) =>
-                          updateSlot(slot.dayIndex, slot.slotIndex, 'templateId', e.target.value)
-                        }
-                        className="w-full bg-zinc-900 border border-zinc-700 rounded-lg px-2 py-1.5 text-sm text-zinc-100 focus:border-amber-500 focus:outline-none transition-colors"
-                      >
-                        {PROGRESSION_TEMPLATES.map((t) => (
-                          <option key={t.id} value={t.id}>
-                            {t.label}
-                          </option>
-                        ))}
-                      </select>
-                    </div>
-                  </div>
-                </div>
+                  slot={slot}
+                  onChange={handleSlotChange}
+                  defaultOpen={dayIndex === 0 && slotIdx === 0}
+                />
               ))}
             </div>
           </div>
         );
       })}
 
-      {error && <p className="text-xs text-red-400">{error}</p>}
+      {/* Preview section */}
+      <div className="border-t border-zinc-700/50 pt-4 space-y-3">
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={() => void handlePreview()}
+          disabled={isPreviewLoading || isSaving}
+        >
+          {isPreviewLoading ? 'Cargando...' : 'Vista previa'}
+        </Button>
 
+        {previewState.status === 'loaded' && <PreviewTable rows={previewState.rows} />}
+
+        {previewState.status === 'error' && (
+          <p className="text-xs text-red-400">{previewState.message}</p>
+        )}
+      </div>
+
+      {/* Validation error */}
+      {validationError && (
+        <div className="bg-red-500/10 border border-red-500/30 rounded-lg px-4 py-3">
+          <p className="text-xs text-red-400">{validationError}</p>
+        </div>
+      )}
+
+      {/* Footer */}
       <div className="flex flex-col sm:flex-row justify-between gap-3 pt-4">
         <Button variant="ghost" onClick={onBack} disabled={isSaving}>
           Atras
         </Button>
         <div className="flex gap-3">
-          <Button variant="ghost" onClick={() => applyAndSave(false)} disabled={isSaving}>
+          <Button
+            variant="ghost"
+            onClick={() => validateAndSave(false)}
+            disabled={isSaving || !isValid}
+          >
             {isSaving ? 'Guardando...' : 'Guardar borrador'}
           </Button>
-          <Button variant="primary" onClick={() => applyAndSave(true)} disabled={isSaving}>
+          <Button
+            variant="primary"
+            onClick={() => validateAndSave(true)}
+            disabled={isSaving || !isValid}
+          >
             {isSaving ? 'Guardando...' : 'Guardar y empezar'}
           </Button>
         </div>
