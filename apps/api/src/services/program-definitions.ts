@@ -2,13 +2,14 @@
  * Program definitions service — CRUD for user-created program definitions.
  * Framework-agnostic: no Elysia dependency.
  */
-import { eq, and, isNull, desc, count } from 'drizzle-orm';
+import { eq, and, isNull, desc, count, inArray } from 'drizzle-orm';
 import { getDb } from '../db';
-import { programDefinitions, programTemplates, programInstances } from '../db/schema';
+import { programDefinitions, programTemplates, programInstances, exercises } from '../db/schema';
 import { ProgramDefinitionSchema } from '@gzclp/shared/schemas/program-definition';
 import { ApiError } from '../middleware/error-handler';
 import { logger } from '../lib/logger';
 import { invalidateCatalogList, invalidateCatalogDetail } from '../lib/catalog-cache';
+import { hydrateProgramDefinition } from '../lib/hydrate-program';
 import { isRecord } from '@gzclp/shared/type-guards';
 import { randomUUID } from 'crypto';
 
@@ -372,6 +373,40 @@ export async function updateStatus(
 }
 
 // ---------------------------------------------------------------------------
+// Helpers
+// ---------------------------------------------------------------------------
+
+/** Extract exerciseId strings from an array of raw slot objects. */
+function extractSlotExerciseIds(slots: unknown[]): string[] {
+  const ids: string[] = [];
+  for (const slot of slots) {
+    if (isRecord(slot) && typeof slot['exerciseId'] === 'string') {
+      ids.push(slot['exerciseId']);
+    }
+  }
+  return ids;
+}
+
+/** Collect exercise IDs from a raw definition JSONB (exercises map + day slot references). */
+function collectExerciseIdsFromDef(def: Record<string, unknown>): string[] {
+  const ids = new Set<string>();
+  const defExercises = def['exercises'];
+  if (isRecord(defExercises)) {
+    for (const key of Object.keys(defExercises)) ids.add(key);
+  }
+  const days = def['days'];
+  if (Array.isArray(days)) {
+    for (const day of days) {
+      if (!isRecord(day)) continue;
+      const slots = day['slots'];
+      if (!Array.isArray(slots)) continue;
+      for (const id of extractSlotExerciseIds(slots)) ids.add(id);
+    }
+  }
+  return [...ids];
+}
+
+// ---------------------------------------------------------------------------
 // Fork
 // ---------------------------------------------------------------------------
 
@@ -398,11 +433,20 @@ export async function forkDefinition(
   }
 
   // Fetch source definition based on type
-  let sourceDefinition: unknown;
+  let parsed: import('@gzclp/shared/types/program').ProgramDefinition;
 
   if (sourceType === 'template') {
     const [template] = await db
-      .select({ definition: programTemplates.definition })
+      .select({
+        id: programTemplates.id,
+        name: programTemplates.name,
+        description: programTemplates.description,
+        author: programTemplates.author,
+        version: programTemplates.version,
+        category: programTemplates.category,
+        source: programTemplates.source,
+        definition: programTemplates.definition,
+      })
       .from(programTemplates)
       .where(and(eq(programTemplates.id, sourceId), eq(programTemplates.isActive, true)))
       .limit(1);
@@ -410,7 +454,28 @@ export async function forkDefinition(
     if (!template) {
       return err('SOURCE_NOT_FOUND');
     }
-    sourceDefinition = template.definition;
+
+    // Collect exercise IDs from the JSONB definition and fetch names from exercises table
+    const defRecord = isRecord(template.definition) ? template.definition : {};
+    const exerciseIds = collectExerciseIdsFromDef(defRecord);
+    const exerciseRows =
+      exerciseIds.length > 0
+        ? await db
+            .select({ id: exercises.id, name: exercises.name })
+            .from(exercises)
+            .where(inArray(exercises.id, exerciseIds))
+        : [];
+
+    // Hydrate using the same function as the catalog service
+    const hydrateResult = hydrateProgramDefinition(template, exerciseRows);
+    if (!hydrateResult.ok) {
+      logger.warn(
+        { event: 'definition.fork.hydration_failed', sourceId, error: hydrateResult.error },
+        'fork source template hydration failed'
+      );
+      return err('VALIDATION_ERROR');
+    }
+    parsed = hydrateResult.value;
   } else {
     const [definition] = await db
       .select({ definition: programDefinitions.definition, userId: programDefinitions.userId })
@@ -424,20 +489,18 @@ export async function forkDefinition(
     if (definition.userId !== userId) {
       return err('FORBIDDEN');
     }
-    sourceDefinition = definition.definition;
-  }
 
-  // Validate source definition JSON
-  const parseResult = ProgramDefinitionSchema.safeParse(sourceDefinition);
-  if (!parseResult.success) {
-    logger.warn(
-      { event: 'definition.fork.validation_failed', sourceId, sourceType },
-      'fork source definition failed validation'
-    );
-    return err('VALIDATION_ERROR');
+    // User definitions store the full schema in JSONB (already hydrated)
+    const parseResult = ProgramDefinitionSchema.safeParse(definition.definition);
+    if (!parseResult.success) {
+      logger.warn(
+        { event: 'definition.fork.validation_failed', sourceId, sourceType },
+        'fork source definition failed validation'
+      );
+      return err('VALIDATION_ERROR');
+    }
+    parsed = parseResult.data;
   }
-
-  const parsed = parseResult.data;
 
   // Clone with new identity
   const newId = randomUUID();
