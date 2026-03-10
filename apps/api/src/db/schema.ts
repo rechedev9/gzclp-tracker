@@ -102,6 +102,10 @@ export const programInstances = pgTable(
       .references(() => users.id, { onDelete: 'cascade' })
       .notNull(),
     programId: varchar('program_id', { length: 50 }).notNull(),
+    /** UUID FK to program_definitions — set when the user forks/customises a program. */
+    definitionId: uuid('definition_id'),
+    /** Inline snapshot of the forked definition (denormalised for offline / fast reads). */
+    customDefinition: jsonb('custom_definition'),
     name: varchar({ length: 100 }).notNull(),
     config: jsonb().notNull(),
     metadata: jsonb('metadata'),
@@ -120,6 +124,10 @@ export const programInstancesRelations = relations(programInstances, ({ one, man
   programTemplate: one(programTemplates, {
     fields: [programInstances.programId],
     references: [programTemplates.id],
+  }),
+  definition: one(programDefinitions, {
+    fields: [programInstances.definitionId],
+    references: [programDefinitions.id],
   }),
   workoutResults: many(workoutResults),
   undoEntries: many(undoEntries),

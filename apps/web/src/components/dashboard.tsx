@@ -8,12 +8,18 @@ import {
   fetchCatalogDetail,
   deleteProgram,
 } from '@/lib/api-functions';
+import { ProgramDefinitionSchema } from '@gzclp/shared/schemas/program-definition';
+import { isRecord } from '@gzclp/shared/type-guards';
+import type { ProgramDefinition } from '@gzclp/shared/types/program';
 import { useAuth } from '@/contexts/auth-context';
 import { useGuest } from '@/contexts/guest-context';
+import { useDefinitions } from '@/hooks/use-definitions';
 import { ProgramCard } from './program-card';
 import { AppHeader } from './app-header';
 import { GuestBanner } from './guest-banner';
 import { ConfirmDialog } from './confirm-dialog';
+import { MyDefinitionsPanel } from './my-definitions-panel';
+import { DefinitionWizard } from './definition-wizard';
 import type { ProgramSummary } from '@/lib/api-functions';
 import { PROGRAM_LEVELS } from '@gzclp/shared/catalog';
 import type { ProgramLevel } from '@gzclp/shared/catalog';
@@ -42,6 +48,12 @@ interface ActiveProgramCardProps {
   readonly onOrphanDeleted?: () => void;
 }
 
+function parseCustomDefinition(raw: unknown): ProgramDefinition | undefined {
+  if (!isRecord(raw)) return undefined;
+  const result = ProgramDefinitionSchema.safeParse(raw);
+  return result.success ? result.data : undefined;
+}
+
 function ActiveProgramCard({
   program,
   onContinue,
@@ -50,12 +62,14 @@ function ActiveProgramCard({
 }: ActiveProgramCardProps): React.ReactNode {
   const queryClient = useQueryClient();
   const [showOrphanConfirm, setShowOrphanConfirm] = useState(false);
+  const isCustomProgram = program.programId.startsWith('custom:');
 
   const catalogQuery = useQuery({
     queryKey: queryKeys.catalog.detail(program.programId),
     queryFn: () => fetchCatalogDetail(program.programId),
     staleTime: 5 * 60 * 1000,
     retry: 1,
+    enabled: !isCustomProgram,
   });
 
   const deleteOrphanMutation = useMutation({
@@ -66,12 +80,15 @@ function ActiveProgramCard({
     },
   });
 
-  const definition = catalogQuery.data;
-
   const detailQuery = useQuery({
     queryKey: queryKeys.programs.detail(program.id),
     queryFn: () => fetchGenericProgramDetail(program.id),
   });
+
+  // For custom programs, extract definition from the instance's customDefinition
+  const definition: ProgramDefinition | undefined = isCustomProgram
+    ? parseCustomDefinition(detailQuery.data?.customDefinition)
+    : catalogQuery.data;
 
   // Count workouts where ALL slots have a result (program-agnostic)
   const completedWorkouts = (() => {
@@ -133,7 +150,8 @@ function ActiveProgramCard({
 
   if (!definition) {
     // Catalog query failed or definition was deleted — show orphan recovery UI
-    if (catalogQuery.isError) {
+    const isOrphan = isCustomProgram ? detailQuery.isFetched && !definition : catalogQuery.isError;
+    if (isOrphan) {
       return (
         <>
           <div className="bg-card border border-rule p-6 sm:p-8">
@@ -303,6 +321,9 @@ export function Dashboard({
 }: DashboardProps): React.ReactNode {
   const { user } = useAuth();
   const { isGuest } = useGuest();
+  const [wizardDefinitionId, setWizardDefinitionId] = useState<string | null>(null);
+  const { forkAsync, isForking } = useDefinitions();
+  const queryClient = useQueryClient();
 
   // Fetch catalog of preset programs from API
   const catalogQuery = useQuery({
@@ -323,6 +344,27 @@ export function Dashboard({
     if (!programsQuery.data) return null;
     return programsQuery.data.find((p) => p.status === 'active') ?? null;
   })();
+
+  const handleCustomize = async (templateId: string): Promise<void> => {
+    try {
+      const forked = await forkAsync(templateId, 'template');
+      setWizardDefinitionId(forked.id);
+    } catch {
+      // Fork failed — error handled by mutation
+    }
+  };
+
+  const handleWizardComplete = (definitionId: string): void => {
+    setWizardDefinitionId(null);
+    void queryClient.invalidateQueries({ queryKey: queryKeys.programs.all });
+    void queryClient.invalidateQueries({ queryKey: queryKeys.definitions.all });
+    // Navigate to the newly created custom program
+    onStartNewProgram(`custom:${definitionId}`);
+  };
+
+  const handleStartFromDefinition = (definitionId: string): void => {
+    setWizardDefinitionId(definitionId);
+  };
 
   return (
     <div className="min-h-dvh bg-body">
@@ -412,12 +454,23 @@ export function Dashboard({
                         </h3>
                         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                           {entries.map((entry) => (
-                            <ProgramCard
-                              key={entry.id}
-                              definition={entry}
-                              isActive={false}
-                              onSelect={() => onStartNewProgram(entry.id)}
-                            />
+                            <div key={entry.id} className="flex flex-col">
+                              <ProgramCard
+                                definition={entry}
+                                isActive={false}
+                                onSelect={() => onStartNewProgram(entry.id)}
+                              />
+                              {user && !isGuest && (
+                                <button
+                                  type="button"
+                                  onClick={() => void handleCustomize(entry.id)}
+                                  disabled={isForking}
+                                  className="mt-1.5 text-2xs font-bold text-zinc-500 hover:text-amber-400 transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                                >
+                                  {isForking ? 'Personalizando...' : 'Personalizar'}
+                                </button>
+                              )}
+                            </div>
                           ))}
                         </div>
                       </div>
@@ -427,7 +480,27 @@ export function Dashboard({
               );
             })()}
         </section>
+
+        {/* My custom definitions */}
+        {user && !isGuest && (
+          <section className="mt-12">
+            <h2 className="section-label mb-4">Mis Programas Personalizados</h2>
+            <MyDefinitionsPanel
+              onOpenWizard={setWizardDefinitionId}
+              onStartProgram={handleStartFromDefinition}
+            />
+          </section>
+        )}
       </div>
+
+      {/* Definition wizard overlay */}
+      {wizardDefinitionId !== null && (
+        <DefinitionWizard
+          definitionId={wizardDefinitionId}
+          onComplete={handleWizardComplete}
+          onCancel={() => setWizardDefinitionId(null)}
+        />
+      )}
     </div>
   );
 }

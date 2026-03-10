@@ -4,12 +4,37 @@
  */
 import { eq, and, isNull, desc, count } from 'drizzle-orm';
 import { getDb } from '../db';
-import { programDefinitions } from '../db/schema';
+import { programDefinitions, programTemplates } from '../db/schema';
 import { ProgramDefinitionSchema } from '@gzclp/shared/schemas/program-definition';
 import { ApiError } from '../middleware/error-handler';
 import { logger } from '../lib/logger';
 import { invalidateCatalogList, invalidateCatalogDetail } from '../lib/catalog-cache';
 import { isRecord } from '@gzclp/shared/type-guards';
+import { randomUUID } from 'crypto';
+
+// ---------------------------------------------------------------------------
+// Result type (same pattern as hydrate-program.ts)
+// ---------------------------------------------------------------------------
+
+interface Ok<T> {
+  readonly ok: true;
+  readonly value: T;
+}
+
+interface Err<E> {
+  readonly ok: false;
+  readonly error: E;
+}
+
+type Result<T, E> = Ok<T> | Err<E>;
+
+function ok<T>(value: T): Ok<T> {
+  return { ok: true, value };
+}
+
+function err<E>(error: E): Err<E> {
+  return { ok: false, error };
+}
 
 // ---------------------------------------------------------------------------
 // Types
@@ -18,6 +43,13 @@ import { isRecord } from '@gzclp/shared/type-guards';
 type ProgramDefinitionRow = typeof programDefinitions.$inferSelect;
 
 type DefinitionStatus = 'draft' | 'pending_review' | 'approved' | 'rejected';
+
+export type ForkError =
+  | 'SOURCE_NOT_FOUND'
+  | 'FORBIDDEN'
+  | 'DEFINITION_LIMIT_REACHED'
+  | 'VALIDATION_ERROR'
+  | 'DATABASE_ERROR';
 
 export interface ProgramDefinitionResponse {
   readonly id: string;
@@ -320,6 +352,112 @@ export async function updateStatus(
   }
 
   return toResponse(updated);
+}
+
+// ---------------------------------------------------------------------------
+// Fork
+// ---------------------------------------------------------------------------
+
+/**
+ * Fork a program definition from an existing template or user-owned definition.
+ * Creates a new draft definition with source='custom' and '(copia)' suffix.
+ */
+export async function forkDefinition(
+  userId: string,
+  sourceId: string,
+  sourceType: 'template' | 'definition'
+): Promise<Result<ProgramDefinitionResponse, ForkError>> {
+  const db = getDb();
+
+  // Check user's definition count
+  const [countResult] = await db
+    .select({ value: count() })
+    .from(programDefinitions)
+    .where(and(eq(programDefinitions.userId, userId), isNull(programDefinitions.deletedAt)));
+
+  const activeCount = countResult?.value ?? 0;
+  if (activeCount >= MAX_DEFINITIONS_PER_USER) {
+    return err('DEFINITION_LIMIT_REACHED');
+  }
+
+  // Fetch source definition based on type
+  let sourceDefinition: unknown;
+
+  if (sourceType === 'template') {
+    const [template] = await db
+      .select({ definition: programTemplates.definition })
+      .from(programTemplates)
+      .where(and(eq(programTemplates.id, sourceId), eq(programTemplates.isActive, true)))
+      .limit(1);
+
+    if (!template) {
+      return err('SOURCE_NOT_FOUND');
+    }
+    sourceDefinition = template.definition;
+  } else {
+    const [definition] = await db
+      .select({ definition: programDefinitions.definition, userId: programDefinitions.userId })
+      .from(programDefinitions)
+      .where(and(eq(programDefinitions.id, sourceId), isNull(programDefinitions.deletedAt)))
+      .limit(1);
+
+    if (!definition) {
+      return err('SOURCE_NOT_FOUND');
+    }
+    if (definition.userId !== userId) {
+      return err('FORBIDDEN');
+    }
+    sourceDefinition = definition.definition;
+  }
+
+  // Validate source definition JSON
+  const parseResult = ProgramDefinitionSchema.safeParse(sourceDefinition);
+  if (!parseResult.success) {
+    logger.warn(
+      { event: 'definition.fork.validation_failed', sourceId, sourceType },
+      'fork source definition failed validation'
+    );
+    return err('VALIDATION_ERROR');
+  }
+
+  const parsed = parseResult.data;
+
+  // Clone with new identity
+  const newId = randomUUID();
+  const cloned = {
+    ...parsed,
+    id: newId,
+    name: `${parsed.name} (copia)`,
+    source: 'custom' as const,
+  };
+
+  try {
+    const [row] = await db
+      .insert(programDefinitions)
+      .values({
+        userId,
+        definition: cloned,
+        status: 'draft',
+      })
+      .returning();
+
+    if (!row) {
+      return err('DATABASE_ERROR');
+    }
+
+    logger.info(
+      { event: 'definition.forked', userId, sourceId, sourceType, newId: row.id },
+      'program definition forked'
+    );
+
+    return ok(toResponse(row));
+  } catch (e: unknown) {
+    logger.error(
+      { event: 'definition.fork.error', sourceId, sourceType, error: e },
+      'fork definition database error'
+    );
+    return err('DATABASE_ERROR');
+  }
 }
 
 // ---------------------------------------------------------------------------

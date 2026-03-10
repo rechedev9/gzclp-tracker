@@ -6,6 +6,11 @@ export const queryKeys = {
     all: ['programs'] as const,
     detail: (id: string): readonly ['programs', string] => ['programs', id] as const,
   },
+  definitions: {
+    all: ['definitions'] as const,
+    list: (): readonly ['definitions', 'list'] => ['definitions', 'list'] as const,
+    detail: (id: string): readonly ['definitions', string] => ['definitions', id] as const,
+  },
   catalog: {
     list: (): readonly ['catalog', 'list'] => ['catalog', 'list'] as const,
     detail: (programId: string): readonly ['catalog', 'detail', string] =>

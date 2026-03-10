@@ -4,11 +4,19 @@
  */
 import { eq, and, lt, desc, or, gt, asc, sql, type SQL } from 'drizzle-orm';
 import { getDb } from '../db';
-import { programInstances, programTemplates, workoutResults, undoEntries } from '../db/schema';
+import {
+  programInstances,
+  programTemplates,
+  programDefinitions,
+  workoutResults,
+  undoEntries,
+} from '../db/schema';
 import { getProgramDefinition } from '../services/catalog';
 import { ProgramInstanceSchema } from '@gzclp/shared/schemas/instance';
+import { ProgramDefinitionSchema } from '@gzclp/shared/schemas/program-definition';
 import type { GenericResults, GenericUndoHistory } from '@gzclp/shared/types/program';
 import { ApiError } from '../middleware/error-handler';
+import { logger } from '../lib/logger';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -49,6 +57,8 @@ export interface ProgramInstanceResponse {
   readonly undoHistory: GenericUndoHistory;
   readonly resultTimestamps: Readonly<Record<string, string>>;
   readonly completedDates: Readonly<Record<string, string>>;
+  readonly definitionId: string | null;
+  readonly customDefinition: unknown | null;
   readonly createdAt: string;
   readonly updatedAt: string;
 }
@@ -145,6 +155,8 @@ function toResponse(
     undoHistory: buildUndoHistory(undoRows),
     resultTimestamps: buildResultTimestamps(resultRows),
     completedDates: buildCompletedDates(resultRows),
+    definitionId: instance.definitionId ?? null,
+    customDefinition: instance.customDefinition ?? null,
     createdAt: instance.createdAt.toISOString(),
     updatedAt: instance.updatedAt.toISOString(),
   };
@@ -323,6 +335,8 @@ export async function getInstance(
       id: programInstances.id,
       userId: programInstances.userId,
       programId: programInstances.programId,
+      definitionId: programInstances.definitionId,
+      customDefinition: programInstances.customDefinition,
       name: programInstances.name,
       config: programInstances.config,
       metadata: programInstances.metadata,
@@ -424,6 +438,118 @@ export async function deleteInstance(userId: string, instanceId: string): Promis
 
   if (deleted.length === 0) {
     throw new ApiError(404, 'Program instance not found', 'INSTANCE_NOT_FOUND');
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Custom instance creation
+// ---------------------------------------------------------------------------
+
+interface Ok<T> {
+  readonly ok: true;
+  readonly value: T;
+}
+
+interface Err<E> {
+  readonly ok: false;
+  readonly error: E;
+}
+
+type Result<T, E> = Ok<T> | Err<E>;
+
+function ok<T>(value: T): Ok<T> {
+  return { ok: true, value };
+}
+
+function err<E>(error: E): Err<E> {
+  return { ok: false, error };
+}
+
+export type InstantiationError =
+  | 'DEFINITION_NOT_FOUND'
+  | 'FORBIDDEN'
+  | 'DEFINITION_INVALID'
+  | 'DATABASE_ERROR';
+
+/**
+ * Create a program instance from a user-owned program definition.
+ * Snapshots the definition into customDefinition for offline/fast reads.
+ */
+export async function createCustomInstance(
+  userId: string,
+  definitionId: string,
+  name: string,
+  config: Record<string, number | string>
+): Promise<Result<ProgramInstanceResponse, InstantiationError>> {
+  const db = getDb();
+
+  // Query the definition
+  const [defRow] = await db
+    .select({
+      id: programDefinitions.id,
+      userId: programDefinitions.userId,
+      definition: programDefinitions.definition,
+    })
+    .from(programDefinitions)
+    .where(and(eq(programDefinitions.id, definitionId), eq(programDefinitions.userId, userId)))
+    .limit(1);
+
+  if (!defRow) {
+    return err('DEFINITION_NOT_FOUND');
+  }
+
+  if (defRow.userId !== userId) {
+    return err('FORBIDDEN');
+  }
+
+  // Validate definition against ProgramDefinitionSchema
+  const parseResult = ProgramDefinitionSchema.safeParse(defRow.definition);
+  if (!parseResult.success) {
+    logger.warn(
+      { event: 'program.createCustom.validation_failed', definitionId },
+      'custom definition failed validation'
+    );
+    return err('DEFINITION_INVALID');
+  }
+
+  const definition = parseResult.data;
+
+  // Auto-complete any existing active instance
+  await db
+    .update(programInstances)
+    .set({ status: 'completed' })
+    .where(and(eq(programInstances.userId, userId), eq(programInstances.status, 'active')));
+
+  try {
+    const [instance] = await db
+      .insert(programInstances)
+      .values({
+        userId,
+        programId: `custom:${definitionId}`,
+        definitionId,
+        customDefinition: definition,
+        name,
+        config,
+        status: 'active',
+      })
+      .returning();
+
+    if (!instance) {
+      return err('DATABASE_ERROR');
+    }
+
+    logger.info(
+      { event: 'program.createCustom', userId, definitionId, instanceId: instance.id },
+      'custom program instance created'
+    );
+
+    return ok(toResponse(instance, [], []));
+  } catch (e: unknown) {
+    logger.error(
+      { event: 'program.createCustom.error', definitionId, error: e },
+      'custom instance creation database error'
+    );
+    return err('DATABASE_ERROR');
   }
 }
 

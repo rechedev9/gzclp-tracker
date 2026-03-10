@@ -13,6 +13,7 @@ import {
   update,
   softDelete,
   updateStatus,
+  forkDefinition,
 } from '../services/program-definitions';
 import { ApiError } from '../middleware/error-handler';
 
@@ -80,6 +81,57 @@ export const programDefinitionRoutes = new Elysia({ prefix: '/program-definition
         responses: {
           200: { description: 'Paginated list of program definitions' },
           401: { description: 'Missing or invalid token' },
+        },
+      },
+    }
+  )
+
+  // POST /program-definitions/fork — fork from template or existing definition
+  .post(
+    '/fork',
+    async ({ userId, body, set, reqLogger }) => {
+      reqLogger.info(
+        { event: 'programDefinition.fork', userId, sourceId: body.sourceId },
+        'forking program definition'
+      );
+      await rateLimit(userId, 'POST /program-definitions/fork', {
+        windowMs: HOUR_MS,
+        maxRequests: 10,
+      });
+      const result = await forkDefinition(userId, body.sourceId, body.sourceType);
+      if (!result.ok) {
+        const errorMap: Record<string, { status: number; code: string }> = {
+          SOURCE_NOT_FOUND: { status: 404, code: 'NOT_FOUND' },
+          FORBIDDEN: { status: 403, code: 'FORBIDDEN' },
+          DEFINITION_LIMIT_REACHED: { status: 409, code: 'LIMIT_EXCEEDED' },
+          VALIDATION_ERROR: { status: 422, code: 'VALIDATION_ERROR' },
+          DATABASE_ERROR: { status: 500, code: 'INTERNAL_ERROR' },
+        };
+        const mapped = errorMap[result.error] ?? { status: 500, code: 'INTERNAL_ERROR' };
+        throw new ApiError(mapped.status, result.error, mapped.code);
+      }
+      set.status = 201;
+      return result.value;
+    },
+    {
+      body: t.Object({
+        sourceId: t.String({ minLength: 1 }),
+        sourceType: t.Union([t.Literal('template'), t.Literal('definition')]),
+      }),
+      detail: {
+        tags: ['Program Definitions'],
+        summary: 'Fork a program definition',
+        description:
+          'Forks a program definition from an existing template or user-owned definition. Creates a new draft with source="custom".',
+        security,
+        responses: {
+          201: { description: 'Forked program definition created' },
+          401: { description: 'Missing or invalid token' },
+          403: { description: 'Forbidden — source not owned by user' },
+          404: { description: 'Source not found' },
+          409: { description: 'Definition limit reached (max 10)' },
+          422: { description: 'Source definition failed validation' },
+          429: { description: 'Rate limited' },
         },
       },
     }

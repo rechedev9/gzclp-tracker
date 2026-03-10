@@ -39,6 +39,8 @@ export interface GenericProgramDetail {
   readonly undoHistory: GenericUndoHistory;
   readonly resultTimestamps: Readonly<Record<string, string>>;
   readonly completedDates: Readonly<Record<string, string>>;
+  readonly definitionId: string | null;
+  readonly customDefinition: unknown | null;
   readonly status: string;
 }
 
@@ -265,6 +267,8 @@ export async function updateProgramMetadata(
     undoHistory: parseGenericUndoHistory(data.undoHistory),
     resultTimestamps: parseStringRecord(data.resultTimestamps),
     completedDates: parseStringRecord(data.completedDates),
+    definitionId: typeof data.definitionId === 'string' ? data.definitionId : null,
+    customDefinition: data.customDefinition ?? null,
     status: String(data.status ?? 'active'),
   };
 }
@@ -362,6 +366,8 @@ export async function fetchGenericProgramDetail(id: string): Promise<GenericProg
     undoHistory: parseGenericUndoHistory(data.undoHistory),
     resultTimestamps: parseStringRecord(data.resultTimestamps),
     completedDates: parseStringRecord(data.completedDates),
+    definitionId: typeof data.definitionId === 'string' ? data.definitionId : null,
+    customDefinition: data.customDefinition ?? null,
     status: String(data.status ?? 'active'),
   };
 }
@@ -581,4 +587,102 @@ export async function fetchMuscleGroups(): Promise<readonly MuscleGroupEntry[]> 
   const data = await apiFetch('/muscle-groups');
   if (!Array.isArray(data)) return [];
   return data.map(parseMuscleGroupEntry);
+}
+
+// ---------------------------------------------------------------------------
+// Program Definitions (user-created custom programs)
+// ---------------------------------------------------------------------------
+
+export interface ProgramDefinitionResponse {
+  readonly id: string;
+  readonly userId: string;
+  readonly definition: unknown;
+  readonly status: string;
+  readonly createdAt: string;
+  readonly updatedAt: string;
+  readonly deletedAt: string | null;
+}
+
+function parseDefinitionResponse(raw: unknown): ProgramDefinitionResponse {
+  if (!isRecord(raw)) throw new Error('Invalid program definition response');
+  return {
+    id: String(raw.id ?? ''),
+    userId: String(raw.userId ?? ''),
+    definition: raw.definition ?? null,
+    status: String(raw.status ?? 'draft'),
+    createdAt: String(raw.createdAt ?? ''),
+    updatedAt: String(raw.updatedAt ?? ''),
+    deletedAt: typeof raw.deletedAt === 'string' ? raw.deletedAt : null,
+  };
+}
+
+/** Fork a program definition from a template or existing definition. */
+export async function forkDefinition(
+  sourceId: string,
+  sourceType: 'template' | 'definition'
+): Promise<ProgramDefinitionResponse> {
+  const data = await apiFetch('/program-definitions/fork', {
+    method: 'POST',
+    body: JSON.stringify({ sourceId, sourceType }),
+  });
+  return parseDefinitionResponse(data);
+}
+
+/** Fetch user's program definitions with pagination. */
+export async function fetchDefinitions(
+  offset?: number,
+  limit?: number
+): Promise<{ readonly data: readonly ProgramDefinitionResponse[]; readonly total: number }> {
+  const params = new URLSearchParams();
+  if (offset !== undefined) params.set('offset', String(offset));
+  if (limit !== undefined) params.set('limit', String(limit));
+  const qs = params.toString();
+  const data = await apiFetch(`/program-definitions${qs ? `?${qs}` : ''}`);
+  if (!isRecord(data)) throw new Error('Invalid definitions response');
+  const rawData = Array.isArray(data.data) ? data.data : [];
+  return {
+    data: rawData.map(parseDefinitionResponse),
+    total: typeof data.total === 'number' ? data.total : 0,
+  };
+}
+
+/** Fetch a single program definition by ID. */
+export async function fetchDefinition(id: string): Promise<ProgramDefinitionResponse> {
+  const data = await apiFetch(`/program-definitions/${encodeURIComponent(id)}`);
+  return parseDefinitionResponse(data);
+}
+
+/** Update a program definition. */
+export async function updateDefinition(
+  id: string,
+  payload: unknown
+): Promise<ProgramDefinitionResponse> {
+  const data = await apiFetch(`/program-definitions/${encodeURIComponent(id)}`, {
+    method: 'PUT',
+    body: JSON.stringify({ definition: payload }),
+  });
+  return parseDefinitionResponse(data);
+}
+
+/** Delete (soft) a program definition. */
+export async function deleteDefinition(id: string): Promise<void> {
+  await apiFetch(`/program-definitions/${encodeURIComponent(id)}`, { method: 'DELETE' });
+}
+
+/** Create a program instance from a custom definition. */
+export async function createCustomProgram(
+  definitionId: string,
+  name: string,
+  config: Record<string, number | string>
+): Promise<ProgramSummary> {
+  const data = await apiFetch('/programs', {
+    method: 'POST',
+    body: JSON.stringify({
+      programId: `custom:${definitionId}`,
+      name,
+      config: { ...config },
+      definitionId,
+    }),
+  });
+  return parseSummary(data);
 }

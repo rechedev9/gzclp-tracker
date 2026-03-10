@@ -2,6 +2,7 @@ import { useRef, useMemo } from 'react';
 import { useQuery, useMutation, useQueryClient, type QueryClient } from '@tanstack/react-query';
 import { computeGenericProgram } from '@gzclp/shared/generic-engine';
 import { isRecord } from '@gzclp/shared/type-guards';
+import { ProgramDefinitionSchema } from '@gzclp/shared/schemas/program-definition';
 import type {
   ProgramDefinition,
   GenericResults,
@@ -14,6 +15,7 @@ import {
   fetchGenericProgramDetail,
   fetchCatalogDetail,
   createProgram,
+  createCustomProgram,
   updateProgramConfig,
   updateProgramMetadata,
   completeProgram,
@@ -167,14 +169,15 @@ export function useProgram(programId: string, instanceId?: string): UseProgramRe
   const amrapTimers = useRef<Map<string, ReturnType<typeof setTimeout>>>(new Map());
   const rpeTimers = useRef<Map<string, ReturnType<typeof setTimeout>>>(new Map());
 
-  // Fetch the program definition from the catalog API
+  const isCustom = programId.startsWith('custom:');
+
+  // Fetch the program definition from the catalog API (skip for custom programs)
   const catalogQuery = useQuery({
     queryKey: queryKeys.catalog.detail(programId),
     queryFn: () => fetchCatalogDetail(programId),
     staleTime: 5 * 60 * 1000,
+    enabled: !isCustom,
   });
-
-  const definition = catalogQuery.data;
 
   // Fetch the list of programs to find the active one
   const programsQuery = useQuery({
@@ -206,7 +209,20 @@ export function useProgram(programId: string, instanceId?: string): UseProgramRe
   const undoHistory: GenericUndoHistory = detail?.undoHistory ?? [];
   const resultTimestamps: Readonly<Record<string, string>> = detail?.resultTimestamps ?? {};
   const completedDates: Readonly<Record<string, string>> = detail?.completedDates ?? {};
-  const isLoading = catalogQuery.isLoading || programsQuery.isLoading || detailQuery.isLoading;
+
+  // For custom programs, extract definition from the instance's customDefinition snapshot
+  const customDefinition = useMemo((): ProgramDefinition | undefined => {
+    if (!isCustom || !detail?.customDefinition) return undefined;
+    const raw: unknown = detail.customDefinition;
+    if (!isRecord(raw)) return undefined;
+    const parseResult = ProgramDefinitionSchema.safeParse(raw);
+    return parseResult.success ? parseResult.data : undefined;
+  }, [isCustom, detail?.customDefinition]);
+
+  const definition = isCustom ? customDefinition : catalogQuery.data;
+
+  const isLoading =
+    (!isCustom && catalogQuery.isLoading) || programsQuery.isLoading || detailQuery.isLoading;
 
   // Compute rows from definition + config + results (memoized — avoids O(W×S) replay on every render)
   const rows: readonly GenericWorkoutRow[] = useMemo(() => {
@@ -355,7 +371,12 @@ export function useProgram(programId: string, instanceId?: string): UseProgramRe
   const generateProgramMutation = useMutation({
     mutationFn: async (newConfig: Record<string, number | string>) => {
       if (!definition) throw new Error('Unknown program definition');
-      await createProgram(programId, definition.name, newConfig);
+      if (isCustom) {
+        const defId = programId.replace('custom:', '');
+        await createCustomProgram(defId, definition.name, newConfig);
+      } else {
+        await createProgram(programId, definition.name, newConfig);
+      }
     },
     onError: () => {
       toast({ message: 'No se pudo crear el programa. Inténtalo de nuevo.' });
