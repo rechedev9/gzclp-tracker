@@ -102,22 +102,32 @@ export function DaysAndExercisesStep({
 
     // Build updated definition data
     const exercises: Record<string, { readonly name: string }> = {};
+    const newSlotDefaults: Pick<
+      ProgramDefinition['days'][number]['slots'][number],
+      'tier' | 'stages' | 'onSuccess' | 'onMidStageFail' | 'onFinalStageFail'
+    > = {
+      tier: 't1',
+      stages: [{ sets: 3, reps: 10 }],
+      onSuccess: { type: 'add_weight' },
+      onMidStageFail: { type: 'no_change' },
+      onFinalStageFail: { type: 'deload_percent', percent: 10 },
+    };
     const updatedDays: ProgramDefinition['days'] = days.map((day, dayIdx) => ({
       name: day.name,
       slots: day.slots.map((slot, slotIdx) => {
         exercises[slot.exerciseId] = { name: slot.exerciseName };
         const existingSlot = definition.days[dayIdx]?.slots[slotIdx];
+        if (existingSlot) {
+          return {
+            ...existingSlot,
+            id: generateSlotId(dayIdx, slotIdx),
+            exerciseId: slot.exerciseId,
+          };
+        }
         return {
+          ...newSlotDefaults,
           id: generateSlotId(dayIdx, slotIdx),
           exerciseId: slot.exerciseId,
-          tier: existingSlot?.tier ?? 't1',
-          stages: existingSlot?.stages ?? [{ sets: 3, reps: 10 }],
-          onSuccess: existingSlot?.onSuccess ?? { type: 'add_weight' as const },
-          onMidStageFail: existingSlot?.onMidStageFail ?? { type: 'no_change' as const },
-          onFinalStageFail: existingSlot?.onFinalStageFail ?? {
-            type: 'deload_percent' as const,
-            percent: 10,
-          },
           startWeightKey: slot.exerciseId,
         };
       }),
