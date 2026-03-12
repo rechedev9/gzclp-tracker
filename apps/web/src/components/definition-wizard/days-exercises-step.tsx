@@ -6,6 +6,32 @@ import type { WizardStepProps } from './types';
 
 const MAX_DAYS = 7;
 
+// ---------------------------------------------------------------------------
+// Wizard-local types — carry FULL slot data to avoid reconstruction
+// ---------------------------------------------------------------------------
+
+type ExerciseSlot = ProgramDefinition['days'][number]['slots'][number];
+
+/** Full slot data + display name. Prevents property loss during editing. */
+type WizardSlot = ExerciseSlot & { readonly exerciseName: string };
+
+interface WizardDay {
+  name: string;
+  slots: WizardSlot[];
+}
+
+/** Defaults applied to brand-new slots added by the user. */
+const NEW_SLOT_DEFAULTS: Pick<
+  ExerciseSlot,
+  'tier' | 'stages' | 'onSuccess' | 'onMidStageFail' | 'onFinalStageFail'
+> = {
+  tier: 't1',
+  stages: [{ sets: 3, reps: 10 }],
+  onSuccess: { type: 'add_weight' },
+  onMidStageFail: { type: 'no_change' },
+  onFinalStageFail: { type: 'deload_percent', percent: 10 },
+};
+
 interface PickerTarget {
   readonly dayIndex: number;
 }
@@ -20,14 +46,15 @@ export function DaysAndExercisesStep({
   onNext,
   onBack,
 }: WizardStepProps): React.ReactNode {
-  const [days, setDays] = useState(() =>
+  const [days, setDays] = useState<WizardDay[]>(() =>
     definition.days.map((d) => ({
       name: d.name,
-      slots: d.slots.map((s) => ({
-        id: s.id,
-        exerciseId: s.exerciseId,
-        exerciseName: definition.exercises[s.exerciseId]?.name ?? s.exerciseId,
-      })),
+      slots: d.slots.map(
+        (s): WizardSlot => ({
+          ...s,
+          exerciseName: definition.exercises[s.exerciseId]?.name ?? s.exerciseId,
+        })
+      ),
     }))
   );
   const [selectedDay, setSelectedDay] = useState(0);
@@ -69,17 +96,14 @@ export function DaysAndExercisesStep({
       prev.map((d, i) => {
         if (i !== dayIndex) return d;
         const slotIndex = d.slots.length;
-        return {
-          ...d,
-          slots: [
-            ...d.slots,
-            {
-              id: generateSlotId(dayIndex, slotIndex),
-              exerciseId: exercise.id,
-              exerciseName: exercise.name,
-            },
-          ],
+        const newSlot: WizardSlot = {
+          ...NEW_SLOT_DEFAULTS,
+          id: generateSlotId(dayIndex, slotIndex),
+          exerciseId: exercise.id,
+          startWeightKey: exercise.id,
+          exerciseName: exercise.name,
         };
+        return { ...d, slots: [...d.slots, newSlot] };
       })
     );
     setPickerTarget(null);
@@ -100,36 +124,16 @@ export function DaysAndExercisesStep({
   const handleNext = (): void => {
     if (!validate()) return;
 
-    // Build updated definition data
+    // Map directly from full-fidelity state — no index-based reconstruction needed.
+    // Each WizardSlot already carries all ExerciseSlot properties.
     const exercises: Record<string, { readonly name: string }> = {};
-    const newSlotDefaults: Pick<
-      ProgramDefinition['days'][number]['slots'][number],
-      'tier' | 'stages' | 'onSuccess' | 'onMidStageFail' | 'onFinalStageFail'
-    > = {
-      tier: 't1',
-      stages: [{ sets: 3, reps: 10 }],
-      onSuccess: { type: 'add_weight' },
-      onMidStageFail: { type: 'no_change' },
-      onFinalStageFail: { type: 'deload_percent', percent: 10 },
-    };
     const updatedDays: ProgramDefinition['days'] = days.map((day, dayIdx) => ({
       name: day.name,
       slots: day.slots.map((slot, slotIdx) => {
         exercises[slot.exerciseId] = { name: slot.exerciseName };
-        const existingSlot = definition.days[dayIdx]?.slots[slotIdx];
-        if (existingSlot) {
-          return {
-            ...existingSlot,
-            id: generateSlotId(dayIdx, slotIdx),
-            exerciseId: slot.exerciseId,
-          };
-        }
-        return {
-          ...newSlotDefaults,
-          id: generateSlotId(dayIdx, slotIdx),
-          exerciseId: slot.exerciseId,
-          startWeightKey: slot.exerciseId,
-        };
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars -- stripping display-only field
+        const { exerciseName: _displayOnly, ...slotData } = slot;
+        return { ...slotData, id: generateSlotId(dayIdx, slotIdx) };
       }),
     }));
 

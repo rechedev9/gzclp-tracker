@@ -98,4 +98,48 @@ describe('ExerciseSlotSchema', () => {
       }
     });
   });
+
+  describe('update_tm requires trainingMaxKey', () => {
+    it('should reject slot with update_tm onSuccess but no trainingMaxKey', () => {
+      const input = {
+        ...VALID_SLOT_BASE,
+        onSuccess: { type: 'update_tm', amount: 2.5, minAmrapReps: 5 },
+      };
+
+      const result = ExerciseSlotSchema.safeParse(input);
+
+      expect(result.success).toBe(false);
+    });
+
+    it('should accept slot with update_tm onSuccess and trainingMaxKey present', () => {
+      const input = {
+        ...VALID_SLOT_BASE,
+        onSuccess: { type: 'update_tm', amount: 2.5, minAmrapReps: 5 },
+        trainingMaxKey: 'squat_tm',
+      };
+
+      const result = ExerciseSlotSchema.safeParse(input);
+
+      expect(result.success).toBe(true);
+    });
+
+    it('should reject slot with update_tm onFinalStageSuccess but no trainingMaxKey', () => {
+      const input = {
+        ...VALID_SLOT_BASE,
+        onFinalStageSuccess: { type: 'update_tm', amount: 5, minAmrapReps: 3 },
+      };
+
+      const result = ExerciseSlotSchema.safeParse(input);
+
+      expect(result.success).toBe(false);
+    });
+
+    it('should accept slot without update_tm rules and no trainingMaxKey', () => {
+      const input = { ...VALID_SLOT_BASE };
+
+      const result = ExerciseSlotSchema.safeParse(input);
+
+      expect(result.success).toBe(true);
+    });
+  });
 });

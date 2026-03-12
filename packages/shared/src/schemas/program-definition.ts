@@ -86,40 +86,54 @@ export const SetPrescriptionSchema = z.strictObject({
 
 // --- Exercise Slot ---
 
-export const ExerciseSlotSchema = z.strictObject({
-  id: z.string().min(1),
-  exerciseId: z.string().min(1),
-  tier: TierSchema,
-  stages: z.array(StageDefinitionSchema).min(1),
-  onSuccess: ProgressionRuleSchema,
-  onFinalStageSuccess: ProgressionRuleSchema.optional(),
-  onUndefined: ProgressionRuleSchema.optional(),
-  onMidStageFail: ProgressionRuleSchema,
-  onFinalStageFail: ProgressionRuleSchema,
-  startWeightKey: z.string().min(1),
-  startWeightMultiplier: z.number().positive().optional(),
-  startWeightOffset: z.number().int().optional(),
-  trainingMaxKey: z.string().min(1).optional(),
-  tmPercent: z.number().positive().max(1).optional(),
-  role: RoleSchema.optional(),
-  notes: z.string().min(1).optional(),
-  /** Percentage-based set prescriptions (replaces stages for %1RM programs). */
-  prescriptions: z.array(SetPrescriptionSchema).min(1).optional(),
-  /** Config key for the 1RM to derive weights from (e.g., 'squat1rm'). */
-  percentOf: z.string().min(1).optional(),
-  /** True for GPP slots where the athlete picks their own weight. */
-  isGpp: z.boolean().optional(),
-  /** Complex rep scheme display string (e.g., '1+3'). */
-  complexReps: z.string().min(1).optional(),
-  /** Config key to update with the user's test weight (e.g., 'squat_jaw_b2_tm'). */
-  propagatesTo: z.string().min(1).optional(),
-  /** True for test slots that require weight entry (regardless of propagation). */
-  isTestSlot: z.boolean().optional(),
-  /** True for bodyweight exercises where the weight column should be hidden. */
-  isBodyweight: z.boolean().optional(),
-  /** 0-indexed set to evaluate for progression (only that set's reps matter). */
-  progressionSetIndex: z.number().int().nonnegative().optional(),
-});
+export const ExerciseSlotSchema = z
+  .strictObject({
+    id: z.string().min(1),
+    exerciseId: z.string().min(1),
+    tier: TierSchema,
+    stages: z.array(StageDefinitionSchema).min(1),
+    onSuccess: ProgressionRuleSchema,
+    onFinalStageSuccess: ProgressionRuleSchema.optional(),
+    onUndefined: ProgressionRuleSchema.optional(),
+    onMidStageFail: ProgressionRuleSchema,
+    onFinalStageFail: ProgressionRuleSchema,
+    startWeightKey: z.string().min(1),
+    startWeightMultiplier: z.number().positive().optional(),
+    startWeightOffset: z.number().int().optional(),
+    trainingMaxKey: z.string().min(1).optional(),
+    tmPercent: z.number().positive().max(1).optional(),
+    role: RoleSchema.optional(),
+    notes: z.string().min(1).optional(),
+    /** Percentage-based set prescriptions (replaces stages for %1RM programs). */
+    prescriptions: z.array(SetPrescriptionSchema).min(1).optional(),
+    /** Config key for the 1RM to derive weights from (e.g., 'squat1rm'). */
+    percentOf: z.string().min(1).optional(),
+    /** True for GPP slots where the athlete picks their own weight. */
+    isGpp: z.boolean().optional(),
+    /** Complex rep scheme display string (e.g., '1+3'). */
+    complexReps: z.string().min(1).optional(),
+    /** Config key to update with the user's test weight (e.g., 'squat_jaw_b2_tm'). */
+    propagatesTo: z.string().min(1).optional(),
+    /** True for test slots that require weight entry (regardless of propagation). */
+    isTestSlot: z.boolean().optional(),
+    /** True for bodyweight exercises where the weight column should be hidden. */
+    isBodyweight: z.boolean().optional(),
+    /** 0-indexed set to evaluate for progression (only that set's reps matter). */
+    progressionSetIndex: z.number().int().nonnegative().optional(),
+  })
+  .refine(
+    (slot) => {
+      const usesUpdateTm = [
+        slot.onSuccess,
+        slot.onMidStageFail,
+        slot.onFinalStageFail,
+        slot.onFinalStageSuccess,
+        slot.onUndefined,
+      ].some((r) => r?.type === 'update_tm');
+      return !usesUpdateTm || slot.trainingMaxKey !== undefined;
+    },
+    { message: 'trainingMaxKey is required when any progression rule uses update_tm' }
+  );
 
 // --- Program Day ---
 
