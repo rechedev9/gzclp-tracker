@@ -1,3 +1,9 @@
+<div align="center">
+  <img src="docs/assets/banner.png" alt="Gravity Room Header" width="100%" />
+</div>
+
+<br />
+
 # Gravity Room
 
 A strength training tracker for any program. Define your progression rules declaratively — the engine handles the rest. Built as a Bun monorepo with a Vite + React 19 SPA frontend and an ElysiaJS API backend.
@@ -109,6 +115,10 @@ Browser (SPA)
 
 ## Program system
 
+<div align="center">
+  <img src="docs/assets/feature_engine.png" alt="Generic Program Engine" width="100%" />
+</div>
+
 The tracker supports multiple strength programs through a **generic program engine**. Each program is defined declaratively — adding a new program requires no engine changes, only a new definition.
 
 ### Registered programs
@@ -127,6 +137,10 @@ The tracker supports multiple strength programs through a **generic program engi
 3. The engine iterates through every workout in order, checking the result for each slot and applying the corresponding rule.
 
 **Progression rules:**
+
+<div align="center">
+  <img src="docs/assets/feature_progression.png" alt="Progression Rules" width="100%" />
+</div>
 
 | Rule                       | Effect                                          |
 | -------------------------- | ----------------------------------------------- |
